@@ -4,7 +4,7 @@ import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 
-import { ApiKeyEntity, ApiKeyScope } from '../entities/api-key.entity';
+import { ApiKeyEntity, ApiKeyScope } from './entities/api-key.entity';
 
 const BCRYPT_ROUNDS = 12;
 const KEY_BYTES = 32; // 256-bit raw key → 64-char hex string
