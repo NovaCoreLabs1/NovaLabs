@@ -9,9 +9,13 @@ const PAYSTACK_BASE = 'https://api.paystack.co';
 export class PaystackProvider {
   private readonly logger = new Logger(PaystackProvider.name);
   private readonly secretKey: string;
+  private readonly previousSecretKey: string | undefined;
 
   constructor(private readonly configService: ConfigService) {
     this.secretKey = this.configService.get<string>('PAYSTACK_SECRET_KEY');
+    this.previousSecretKey = this.configService.get<string>(
+      'PAYSTACK_SECRET_KEY_PREVIOUS',
+    );
   }
 
   private get headers() {
@@ -91,13 +95,33 @@ export class PaystackProvider {
 
   /**
    * Validates the HMAC-SHA512 signature on an incoming Paystack webhook request.
+   * Accepts the current secret or, during rotation, an optional previous secret.
    * @param rawBody - Raw request body buffer
    * @param signature - Value of the x-paystack-signature header
    * @returns True if the signature matches, false otherwise
    */
   verifyWebhookSignature(rawBody: Buffer, signature: string): boolean {
+    if (this.matchesWebhookSignature(rawBody, signature, this.secretKey)) {
+      return true;
+    }
+
+    if (
+      this.previousSecretKey &&
+      this.matchesWebhookSignature(rawBody, signature, this.previousSecretKey)
+    ) {
+      return true;
+    }
+
+    return false;
+  }
+
+  private matchesWebhookSignature(
+    rawBody: Buffer,
+    signature: string,
+    secretKey: string,
+  ): boolean {
     const hash = crypto
-      .createHmac('sha512', this.secretKey)
+      .createHmac('sha512', secretKey)
       .update(rawBody)
       .digest('hex');
     return hash === signature;
