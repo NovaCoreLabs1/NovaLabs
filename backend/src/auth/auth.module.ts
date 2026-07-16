@@ -17,18 +17,21 @@ import { RefreshToken } from './entities/refreshToken.entity';
 import { SetupTotpProvider } from './providers/setup-totp.provider';
 import { VerifyTotpProvider } from './providers/verify-totp.provider';
 import { ManageTotpProvider } from './providers/manage-totp.provider';
+import { ApiKeyEntity } from './entities/api-key.entity';
+import { ApiKeyAuditLogEntity } from './entities/api-key-audit.entity';
+import { ApiKeyGuard } from './guard/api-key.guard';
+import { ApiKeyService } from './api-key.service';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, RefreshToken]),
+    TypeOrmModule.forFeature([User, RefreshToken, ApiKeyEntity, ApiKeyAuditLogEntity]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
         secret: configService.get<string>('JWT_SECRET'),
         signOptions: {
-          expiresIn: (configService.get<string>('JWT_EXPIRATION') ??
-            '7d') as any,
+          expiresIn: (configService.get<string>('JWT_EXPIRATION') ?? '7d') as any,
         },
       }),
     }),
@@ -47,12 +50,16 @@ import { ManageTotpProvider } from './providers/manage-totp.provider';
     SetupTotpProvider,
     VerifyTotpProvider,
     ManageTotpProvider,
+    ApiKeyGuard,
+    ApiKeyService,
   ],
   exports: [
     AuthService,
     HashingProvider,
     GenerateTokensProvider,
     RefreshTokenRepositoryOperations,
+    ApiKeyGuard,
+    ApiKeyService,
   ],
 })
 export class AuthModule {}

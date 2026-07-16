@@ -1,0 +1,77 @@
+# API Key Auth — Usage Guide
+
+## 1. Import the module
+
+```typescript
+// app.module.ts
+import { ApiKeyModule } from './auth/api-key.module';
+
+@Module({
+  imports: [
+    ApiKeyModule,
+    // ... other modules
+  ],
+})
+export class AppModule {}
+```
+
+## 2. Add entities to TypeORM
+
+```typescript
+// typeorm config
+entities: [ApiKeyEntity, ApiKeyAuditLogEntity, /* ...others */]
+```
+
+## 3. Apply the guard to webhook routes
+
+```typescript
+import { Controller, Post, UseGuards } from '@nestjs/common';
+import { ApiKeyGuard } from '../auth/guards/api-key.guard';
+import { RequiredScopes } from '../auth/decorators/required-scopes.decorator';
+import { ApiKeyScope } from '../auth/entities/api-key.entity';
+
+@Controller('webhooks')
+@UseGuards(ApiKeyGuard)
+export class WebhooksController {
+
+  @Post('payment-received')
+  @RequiredScopes(ApiKeyScope.READ_PAYMENTS)
+  handlePayment() { ... }
+
+  @Post('invoice-generate')
+  @RequiredScopes(ApiKeyScope.WRITE_INVOICES)
+  generateInvoice() { ... }
+}
+```
+
+## 4. Create an API key (admin only)
+
+```typescript
+// Inject ApiKeyService in your admin controller
+const { rawKey, entity } = await this.apiKeyService.create({
+  name: 'cron-invoicing-service',
+  scopes: [ApiKeyScope.WRITE_INVOICES],
+  expiresAt: new Date('2027-01-01'),
+});
+
+// rawKey is shown ONCE — store it securely in the caller's env
+```
+
+## 5. Call a protected endpoint
+
+```bash
+curl -X POST https://api.novalabs.com/webhooks/payment-received \
+  -H "X-API-Key: <raw_key>" \
+  -H "Content-Type: application/json" \
+  -d '{"amount": 100}'
+```
+
+## Error responses
+
+| Situation | Status | Message |
+|-----------|--------|---------|
+| No header | 401 | Missing X-API-Key header |
+| Wrong key | 401 | Invalid API key |
+| Revoked | 401 | API key has been revoked |
+| Expired | 401 | API key has expired |
+| Missing scope | 403 | Insufficient scopes. Required: write:invoices |
