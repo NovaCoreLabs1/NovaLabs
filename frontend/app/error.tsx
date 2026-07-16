@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import * as Sentry from "@sentry/nextjs";
 
 interface ErrorPageProps {
   error: Error & { digest?: string };
@@ -9,8 +10,16 @@ interface ErrorPageProps {
 
 export default function ErrorPage({ error, reset }: ErrorPageProps) {
   useEffect(() => {
-    // Log the error to an error reporting service
+    // Log the error to console for development
     console.error("Application error:", error);
+
+    // Report the error to Sentry
+    Sentry.captureException(error, {
+      tags: {
+        errorBoundary: "app",
+        digest: error.digest,
+      },
+    });
   }, [error]);
 
   const handleReload = () => {

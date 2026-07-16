@@ -1,9 +1,55 @@
+import * as Sentry from '@sentry/node';
+import { nodeProfilingIntegration } from '@sentry/profiling-node';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ValidationPipe, ClassSerializerInterceptor } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { HttpLogger } from './common/middlewares/httpLogger.middleware';
+import * as crypto from 'crypto';
+
+// Initialize Sentry before anything else
+if (process.env.SENTRY_DSN) {
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    environment: process.env.NODE_ENV || 'development',
+    release: process.env.SENTRY_RELEASE || `backend@${process.env.npm_package_version || '0.0.1'}`,
+
+    // Performance monitoring - configurable via env, defaults to 10%
+    tracesSampleRate: parseFloat(process.env.SENTRY_TRACES_SAMPLE_RATE || '0.1'),
+
+    // CPU profiling for performance insights
+    profilesSampleRate: parseFloat(process.env.SENTRY_PROFILES_SAMPLE_RATE || '0.1'),
+
+    integrations: [
+      nodeProfilingIntegration(),
+    ],
+
+    // Filter out health-check routes from transactions
+    beforeSendTransaction(event) {
+      const url = event.transaction || '';
+      const healthCheckRoutes = ['/api/health', '/health', '/api/ping', '/ping', '/api/ready', '/ready'];
+      if (healthCheckRoutes.some((route) => url.includes(route))) {
+        return null;
+      }
+      return event;
+    },
+
+    // Add additional context to errors
+    beforeSend(event) {
+      // Scrub sensitive data if needed
+      return event;
+    },
+  });
+}
+
+// Helper to hash user email for privacy
+function hashEmail(email: string): string {
+  return crypto.createHash('sha256').update(email).digest('hex').substring(0, 16);
+}
+
+// Export for use in other modules
+export { Sentry, hashEmail };
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { rawBody: true });
