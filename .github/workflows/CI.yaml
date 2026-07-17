@@ -222,7 +222,7 @@ jobs:
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: ../coverage/lcov.info
+          files: coverage/lcov.info
           flags: backend
           fail_ci_if_error: false
           verbose: true
