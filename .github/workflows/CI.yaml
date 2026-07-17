@@ -305,3 +305,75 @@ jobs:
             echo "Schema files changed (and docs updated):"
             printf '  %s\n' $SCHEMA_CHANGED
           fi
+
+  # ─────────────────────────────────────────────
+  # AUTO-GENERATE ER DIAGRAM (erdia)
+  # Regenerates the Mermaid ER diagram from TypeORM entities and fails
+  # if the generated output differs from what is committed. Developers
+  # run `npm run db:diagram` locally after entity changes.
+  # See https://github.com/NovaCoreLabs1/NovaLabs/issues/140
+  # ─────────────────────────────────────────────
+  generate-er-diagram:
+    name: Generate ER Diagram
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: novalabs
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate ER diagram with erdia
+        run: npm run db:diagram
+        env:
+          DATABASE_HOST: localhost
+          DATABASE_PORT: 5432
+          DATABASE_USERNAME: postgres
+          DATABASE_PASSWORD: password
+          DATABASE_NAME: novalabs
+
+      - name: Check generated docs match committed version
+        run: |
+          OUTPUT_DIR="docs/erd"
+          if [ -d "$OUTPUT_DIR" ]; then
+            CHANGES="$(git status --porcelain -- "$OUTPUT_DIR/" 2>/dev/null || true)"
+            if [ -z "$CHANGES" ]; then
+              echo "✅ Generated ER diagram matches committed version."
+            else
+              echo "❌ Generated ER diagram differs from committed version."
+              echo "   Run 'npm run db:diagram' locally and commit the changes."
+              echo ""
+              git status -- "$OUTPUT_DIR/"
+              exit 1
+            fi
+          else
+            echo "⚠️  erdia output directory not found — run erdia locally first."
+            echo "   npm run db:diagram"
+            echo "   Then commit the docs/erd/ directory."
+          fi

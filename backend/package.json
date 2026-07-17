@@ -25,7 +25,8 @@
     "typeorm:revert-migration": "npm run typeorm -- migration:revert -d ./src/config/typeorm.config.ts",
     "demo:seed": "node scripts/demo-data.js seed",
     "demo:clear": "node scripts/demo-data.js clear",
-    "demo:info": "node scripts/demo-data.js info"
+    "demo:info": "node scripts/demo-data.js info",
+    "db:diagram": "node --require ts-node/register/transpile-only node_modules/erdia/dist/cli.js build -d src/config/typeorm.config.ts -o docs/erd --format md --components er"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.972.0",
@@ -106,6 +107,7 @@
     "@types/swagger-ui-express": "^4.1.8",
     "@typescript-eslint/eslint-plugin": "^8.0.0",
     "@typescript-eslint/parser": "^8.0.0",
+    "erdia": "^3.7.1",
     "eslint": "^8.0.0",
     "eslint-config-prettier": "^9.0.0",
     "eslint-plugin-prettier": "^5.0.0",
