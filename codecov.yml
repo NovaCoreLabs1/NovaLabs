@@ -21,6 +21,11 @@ coverage:
         threshold: 5%
         flags:
           - backend
+      frontend:
+        target: 60%
+        threshold: 10%
+        flags:
+          - frontend
     patch:
       default:
         target: 80%
@@ -33,6 +38,10 @@ flags:
   backend:
     paths:
       - backend/src/
+    carryforward: false
+  frontend:
+    paths:
+      - frontend/
     carryforward: false
 
 comment:
