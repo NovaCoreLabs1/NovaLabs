@@ -99,6 +99,83 @@ jobs:
         run: cargo build --all --verbose
 
   # ─────────────────────────────────────────────
+  # CONTRACT TEST COVERAGE — cargo-tarpaulin
+  # Fails the build if any contract crate drops below 80% line coverage.
+  # See https://github.com/NovaCoreLabs1/NovaLabs/issues/145
+  # ─────────────────────────────────────────────
+  coverage:
+    name: Contract Coverage (>= 80%)
+    runs-on: ubuntu-latest
+    needs: build
+    defaults:
+      run:
+        working-directory: contracts
+    env:
+      CARGO_TERM_COLOR: always
+      RUSTUP_TOOLCHAIN: stable
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust toolchain (with LLVM tools for tarpaulin)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: llvm-tools-preview
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          # Reuse the build job's cache so tarpaulin doesn't recompile from
+          # scratch; tarpaulin re-instruments existing test binaries.
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            contracts/target
+          key: ${{ runner.os }}-cargo-build-${{ hashFiles('''contracts/Cargo.lock''') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-build-
+            ${{ runner.os }}-cargo-
+      - name: Install cargo-tarpaulin
+        run: cargo install cargo-tarpaulin --version 0.31.5 --locked
+      - name: Run per-crate coverage (fail under 80%)
+        run: |
+          set -euo pipefail
+          mkdir -p ../coverage/contracts
+          echo "# Contract coverage report" > ../coverage/contracts/SUMMARY.md
+          OVERALL_STATUS=0
+          # Soroban contracts compile to wasm32/cdylib but their tests run on
+          # the host (x86_64). `--engine llvm` instruments the host test
+          # binaries; requires the llvm-tools-preview component installed above.
+          for crate in access_control common_types manage_hub membership_token payment_escrow resource_credits workspace_booking; do
+            if [ ! -f "$crate/Cargo.toml" ]; then
+              echo "::warning::Skipping missing crate $crate"
+              continue
+            fi
+            echo ""
+            echo "================================================================"
+            echo " Coverage for crate: $crate"
+            echo "================================================================"
+            if ! cargo tarpaulin \
+                --manifest-path "$crate/Cargo.toml" \
+                --engine llvm \
+                --timeout 300 \
+                --fail-under 80 \
+                --out Xml Stdout \
+                --output-dir "../coverage/contracts/$crate"; then
+              echo "::error file=$crate::Coverage for $crate is below 80% (or tarpaulin failed)."
+              OVERALL_STATUS=1
+            fi
+          done
+          if [ "$OVERALL_STATUS" -ne 0 ]; then
+            echo "::error::One or more contract crates fell below the 80% coverage threshold."
+            exit 1
+          fi
+      - name: Upload coverage artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: contract-coverage
+          path: coverage/contracts
+          if-no-files-found: ignore
+
+  # ─────────────────────────────────────────────
   # BACKEND — NestJS
   # ─────────────────────────────────────────────
   backend:
@@ -164,3 +241,67 @@ jobs:
         run: npm run build
         env:
           NEXT_PUBLIC_API_URL: http://localhost:3001
+
+  # ─────────────────────────────────────────────
+  # DATA-MODEL SYNC CHECK
+  # Fails the build if any TypeORM entity file or migration is modified
+  # without updating backend/docs/data-model.md.
+  # See https://github.com/NovaCoreLabs1/NovaLabs/issues/140
+  # ─────────────────────────────────────────────
+  verify-data-model:
+    name: Verify Data Model Sync
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Detect entity/migration changes without doc update
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PUSH_BASE_SHA: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+          # Determine which commits to diff against depending on event type.
+          # - For pull_request: compare PR head against the PR's base SHA.
+          # - For push (incl. merges): compare HEAD against the previous SHA.
+          # - Fallback (e.g. workflow_dispatch): skip the check.
+          case "$EVENT_NAME" in
+            pull_request)
+              BASE_SHA="$PR_BASE_SHA"
+              ;;
+            push)
+              BASE_SHA="$PUSH_BASE_SHA"
+              ;;
+            *)
+              echo "Skipping data-model sync check for event: $EVENT_NAME"
+              exit 0
+              ;;
+          esac
+          if [ -z "$BASE_SHA" ] || [ "$BASE_SHA" = "0000000000000000000000000000000000000000" ]; then
+            echo "::warning::No base SHA available; skipping data-model sync check."
+            exit 0
+          fi
+          git fetch --no-tags --depth=1 origin "$BASE_SHA"
+          ENTITY_CHANGED="$(git diff --name-only "$BASE_SHA"...HEAD | grep -E '(^|/)entities/.*\.entity\.ts$' || true)"
+          MIGRATION_CHANGED="$(git diff --name-only "$BASE_SHA"...HEAD | grep -E '(^|/)migrations/.*\.ts$' || true)"
+          DOC_CHANGED="$(git diff --name-only "$BASE_SHA"...HEAD | grep -E '(^|/)backend/docs/data-model\.md$' || true)"
+          SCHEMA_CHANGED="$ENTITY_CHANGED$MIGRATION_CHANGED"
+          if [ -n "$SCHEMA_CHANGED" ] && [ -z "$DOC_CHANGED" ]; then
+            {
+              echo "::error::TypeORM entities or migrations were modified but backend/docs/data-model.md was not updated."
+              echo "::error::Files changed:"
+              [ -n "$ENTITY_CHANGED" ] && printf '::error file=%s::Entity file changed without docs update\n' $ENTITY_CHANGED
+              [ -n "$MIGRATION_CHANGED" ] && printf '::error file=%s::Migration file changed without docs update\n' $MIGRATION_CHANGED
+              echo "::error::Please update backend/docs/data-model.md to keep the ER diagram and field reference in sync."
+            }
+            exit 1
+          fi
+          echo "No entity/migration/doc sync issues detected."
+          if [ -n "$SCHEMA_CHANGED" ]; then
+            echo "Schema files changed (and docs updated):"
+            printf '  %s\n' $SCHEMA_CHANGED
+          fi

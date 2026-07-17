@@ -200,7 +200,7 @@ Contributions are welcome! Whether it's a bug fix, new feature, documentation im
 4. Push to your fork: `git push origin feature/your-feature-name`
 5. Open a Pull Request against `main`
 
-Please follow the existing code style, naming conventions, and module architecture when contributing. See [CONTRIBUTING.md](CONTRIBUTING.md) if available.
+Please follow the existing code style, naming conventions, and module architecture when contributing. See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the full checklist, and the [PostgreSQL data model](backend/docs/data-model.md) if your change touches any entity, migration, or schema.
 
 ---
 

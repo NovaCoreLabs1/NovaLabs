@@ -125,8 +125,9 @@ export class SorobanEscrowProvider {
       const sentTransaction =
         await this.server.sendTransaction(preparedTransaction);
 
-      let getTransactionResponse =
-        await this.server.getTransaction(sentTransaction.hash);
+      let getTransactionResponse = await this.server.getTransaction(
+        sentTransaction.hash,
+      );
 
       const thirtySeconds = 30 * 1000;
       const startTime = Date.now();
@@ -150,9 +151,7 @@ export class SorobanEscrowProvider {
         this.logger.error(
           `[Soroban] createEscrow failed for booking ${bookingId}: Transaction execution failed`,
         );
-        throw new BadGatewayException(
-          'Failed to execute Soroban transaction.',
-        );
+        throw new BadGatewayException('Failed to execute Soroban transaction.');
       }
 
       return sentTransaction.hash;
@@ -199,8 +198,9 @@ export class SorobanEscrowProvider {
       const sentTransaction =
         await this.server.sendTransaction(preparedTransaction);
 
-      let getTransactionResponse =
-        await this.server.getTransaction(sentTransaction.hash);
+      let getTransactionResponse = await this.server.getTransaction(
+        sentTransaction.hash,
+      );
 
       const thirtySeconds = 30 * 1000;
       const startTime = Date.now();
@@ -224,9 +224,7 @@ export class SorobanEscrowProvider {
         this.logger.error(
           `[Soroban] releaseEscrow failed for escrow ${escrowId}: Transaction execution failed`,
         );
-        throw new BadGatewayException(
-          'Failed to execute Soroban transaction.',
-        );
+        throw new BadGatewayException('Failed to execute Soroban transaction.');
       }
 
       return sentTransaction.hash;
@@ -273,8 +271,9 @@ export class SorobanEscrowProvider {
       const sentTransaction =
         await this.server.sendTransaction(preparedTransaction);
 
-      let getTransactionResponse =
-        await this.server.getTransaction(sentTransaction.hash);
+      let getTransactionResponse = await this.server.getTransaction(
+        sentTransaction.hash,
+      );
 
       const thirtySeconds = 30 * 1000;
       const startTime = Date.now();
@@ -298,9 +297,7 @@ export class SorobanEscrowProvider {
         this.logger.error(
           `[Soroban] refundEscrow failed for escrow ${escrowId}: Transaction execution failed`,
         );
-        throw new BadGatewayException(
-          'Failed to execute Soroban transaction.',
-        );
+        throw new BadGatewayException('Failed to execute Soroban transaction.');
       }
 
       return sentTransaction.hash;
