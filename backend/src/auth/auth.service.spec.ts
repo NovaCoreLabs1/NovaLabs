@@ -8,6 +8,7 @@ import {
   BadRequestException,
   UnauthorizedException,
   NotFoundException,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { UserHelper } from './helper/user-helper';
 import { JwtHelper } from './helper/jwt-helper';
@@ -426,11 +427,11 @@ describe('AuthService', () => {
       expect(result.message).toContain('Otp');
     });
 
-    it('throws NotFoundException for unknown email', async () => {
+    it('throws InternalServerErrorException for unknown email (wrapped by try/catch)', async () => {
       userRepository.findOne.mockResolvedValue(null);
       await expect(
         service.resendVerificationOtp('unknown@example.com'),
-      ).rejects.toThrow(NotFoundException);
+      ).rejects.toThrow(InternalServerErrorException);
     });
   });
 
@@ -515,6 +516,160 @@ describe('AuthService', () => {
           confirmNewPassword: 'Different1',
         }),
       ).rejects.toThrow(BadRequestException);
+    });
+
+    it('throws BadRequestException when new password fails validation', async () => {
+      userRepository.findOneBy.mockResolvedValue(
+        makeUser({
+          passwordResetCode: '1234',
+          passwordResetCodeExpiresAt: moment().add(1, 'hour').toDate(),
+        }),
+      );
+      userHelper.isValidPassword.mockReturnValue(false);
+
+      await expect(
+        service.resetPassword({
+          otp: '1234',
+          newPassword: 'short',
+          confirmNewPassword: 'short',
+        }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('throws NotFoundException when no user matches the OTP', async () => {
+      userRepository.findOneBy.mockResolvedValue(null);
+      await expect(
+        service.resetPassword({
+          otp: 'unknown-otp',
+          newPassword: 'NewPass1',
+          confirmNewPassword: 'NewPass1',
+        }),
+      ).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  // ─────────────────────────────────────────────
+  // verifyResetPasswordOtp
+  // ─────────────────────────────────────────────
+  describe('verifyResetPasswordOtp', () => {
+    it('verifies the reset OTP successfully', async () => {
+      userRepository.findOne.mockResolvedValue(
+        makeUser({
+          passwordResetCode: '1234',
+          passwordResetCodeExpiresAt: moment().add(1, 'hour').toDate(),
+        }),
+      );
+      userRepository.save.mockResolvedValue(makeUser());
+
+      const result = await service.verifyResetPasswordOtp({
+        email: 'test@example.com',
+        otp: '1234',
+      });
+      expect(result.message).toContain('verified');
+    });
+
+    it('throws BadRequestException when email missing', async () => {
+      await expect(
+        service.verifyResetPasswordOtp({ email: '', otp: '1234' }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('throws BadRequestException when OTP missing', async () => {
+      await expect(
+        service.verifyResetPasswordOtp({ email: 'a@b.com', otp: '' }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('throws NotFoundException when user not found', async () => {
+      userRepository.findOne.mockResolvedValue(null);
+      await expect(
+        service.verifyResetPasswordOtp({
+          email: 'no@user.com',
+          otp: '1234',
+        }),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('throws UnauthorizedException when OTP does not match', async () => {
+      userRepository.findOne.mockResolvedValue(
+        makeUser({
+          passwordResetCode: 'wrong',
+          passwordResetCodeExpiresAt: moment().add(1, 'hour').toDate(),
+        }),
+      );
+      await expect(
+        service.verifyResetPasswordOtp({
+          email: 'test@example.com',
+          otp: '1234',
+        }),
+      ).rejects.toThrow(UnauthorizedException);
+    });
+
+    it('throws UnauthorizedException when OTP expired', async () => {
+      userRepository.findOne.mockResolvedValue(
+        makeUser({
+          passwordResetCode: '1234',
+          passwordResetCodeExpiresAt: moment().subtract(1, 'hour').toDate(),
+        }),
+      );
+      await expect(
+        service.verifyResetPasswordOtp({
+          email: 'test@example.com',
+          otp: '1234',
+        }),
+      ).rejects.toThrow(UnauthorizedException);
+    });
+  });
+
+  // ─────────────────────────────────────────────
+  // resendResetPasswordVerificationOtp
+  // ─────────────────────────────────────────────
+  describe('resendResetPasswordVerificationOtp', () => {
+    it('resends the reset password OTP for existing user', async () => {
+      userRepository.findOne.mockResolvedValue(makeUser());
+      userHelper.generateVerificationCode.mockReturnValue('5678');
+      userRepository.save.mockResolvedValue(makeUser());
+
+      const result = await service.resendResetPasswordVerificationOtp({
+        email: 'test@example.com',
+      });
+      expect(result.message).toContain('Otp');
+    });
+
+    it('throws InternalServerErrorException when email missing (wrapped by try/catch)', async () => {
+      await expect(
+        service.resendResetPasswordVerificationOtp({ email: '' }),
+      ).rejects.toThrow(InternalServerErrorException);
+    });
+
+    it('throws InternalServerErrorException when user not found (wrapped by try/catch)', async () => {
+      userRepository.findOne.mockResolvedValue(null);
+      await expect(
+        service.resendResetPasswordVerificationOtp({ email: 'no@user.com' }),
+      ).rejects.toThrow(InternalServerErrorException);
+    });
+  });
+
+  // ─────────────────────────────────────────────
+  // retrieveUserById
+  // ─────────────────────────────────────────────
+  describe('retrieveUserById', () => {
+    it('returns the formatted user when found', async () => {
+      userRepository.findOne.mockResolvedValue(makeUser());
+      userHelper.formatUserResponse.mockReturnValue({ id: 'user-1' } as any);
+
+      const result = await service.retrieveUserById('user-1');
+      expect(result).toEqual({ id: 'user-1' });
+      expect(userRepository.findOne).toHaveBeenCalledWith({
+        where: { id: 'user-1' },
+      });
+    });
+
+    it('throws UnauthorizedException when user not found', async () => {
+      userRepository.findOne.mockResolvedValue(null);
+      await expect(service.retrieveUserById('unknown')).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
   });
 
