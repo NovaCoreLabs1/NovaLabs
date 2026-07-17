@@ -11,6 +11,7 @@ NovaLabs is a full-stack platform built to power the next generation of coworkin
 [![Contributors](https://img.shields.io/badge/Contributors-96%2B-brightgreen?style=for-the-badge)](https://github.com/NovaCoreLabs1/NovaLabs/graphs/contributors)
 [![Contracts](https://img.shields.io/codecov/c/github/NovaCoreLabs1/NovaLabs?flag=contracts&label=Contracts&logo=codecov&style=for-the-badge)](https://codecov.io/gh/NovaCoreLabs1/NovaLabs)
 [![Backend](https://img.shields.io/codecov/c/github/NovaCoreLabs1/NovaLabs?flag=backend&label=Backend&logo=codecov&style=for-the-badge)](https://codecov.io/gh/NovaCoreLabs1/NovaLabs)
+[![Frontend](https://img.shields.io/codecov/c/github/NovaCoreLabs1/NovaLabs?flag=frontend&label=Frontend&logo=codecov&style=for-the-badge)](https://codecov.io/gh/NovaCoreLabs1/NovaLabs)
 
 </div>
 
