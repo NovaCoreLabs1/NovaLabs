@@ -197,7 +197,86 @@ erDiagram
 
 ---
 
-## 2. Relationship Cheat-Sheet
+## 2. Enumerations
+
+### `UserRole`
+| Value | Description |
+|---|---|
+| `super_admin` | Full system access |
+| `admin` | Administrative access |
+| `staff` | Staff-level access |
+| `user` | Regular platform user (default) |
+
+### `MembershipStatus`
+| Value | Description |
+|---|---|
+| `active` | Active member |
+| `inactive` | Not a member (default) |
+| `suspended` | Membership suspended |
+
+### `WorkspaceType`
+| Value | Description |
+|---|---|
+| `HotDesk` | Unassigned hot desk |
+| `DedicatedDesk` | Assigned dedicated desk |
+| `PrivateOffice` | Private office space |
+| `MeetingRoom` | Meeting/conference room |
+| `Virtual` | Virtual office |
+| `Hybrid` | Hybrid space |
+
+### `PlanType`
+| Value | Description |
+|---|---|
+| `daily` | Daily booking |
+| `weekly` | Weekly booking |
+| `monthly` | Monthly booking |
+| `quarterly` | Quarterly subscription |
+| `yearly` | Annual subscription |
+
+### `BookingStatus`
+| Value | Description |
+|---|---|
+| `pending` | Awaiting confirmation |
+| `confirmed` | Booking confirmed |
+| `cancelled` | Booking cancelled |
+| `completed` | Booking completed |
+
+### `PaymentProvider`
+| Value | Description |
+|---|---|
+| `paystack` | Paystack (NGN fiat) |
+| `soroban` | Soroban smart contract (Stellar) |
+
+### `PaymentStatus`
+| Value | Description |
+|---|---|
+| `pending` | Awaiting processing |
+| `success` | Payment completed |
+| `failed` | Payment failed |
+| `refunded` | Payment refunded |
+
+### `InvoiceStatus`
+| Value | Description |
+|---|---|
+| `pending` | Unpaid |
+| `paid` | Settled |
+| `void` | Cancelled/voided |
+
+### `NotificationType`
+| Value | Description |
+|---|---|
+| `booking_confirmed` | Booking confirmed |
+| `booking_cancelled` | Booking cancelled |
+| `booking_completed` | Booking completed |
+| `payment_success` | Payment successful |
+| `payment_failed` | Payment failed |
+| `payment_refunded` | Payment refunded |
+| `invoice_generated` | New invoice |
+| `general` | General notification |
+
+---
+
+## 3. Relationship Cheat-Sheet
 
 | From | Cardinality | To | Join column | On delete | Nullable |
 |---|---|---|---|---|---|

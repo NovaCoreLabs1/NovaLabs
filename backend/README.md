@@ -146,6 +146,13 @@ npm run typeorm:revert-migration
 
 ---
 
+## Data Model
+
+See [docs/data-model.md](./docs/data-model.md) for the full PostgreSQL entity-relationship diagram,
+table definitions, indexes, and relationship documentation.
+
+---
+
 ## License
 
 [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE)

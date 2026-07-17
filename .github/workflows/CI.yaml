@@ -119,21 +119,21 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           components: llvm-tools-preview
+      - name: Install cargo-binstall
+        run: curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
+      - name: Install cargo-tarpaulin (pre-built binary)
+        run: cargo binstall cargo-tarpaulin -y
       - name: Cache cargo registry
         uses: actions/cache@v4
         with:
-          # Reuse the build job's cache so tarpaulin doesn't recompile from
-          # scratch; tarpaulin re-instruments existing test binaries.
           path: |
             ~/.cargo/registry
             ~/.cargo/git
             contracts/target
-          key: ${{ runner.os }}-cargo-build-${{ hashFiles('''contracts/Cargo.lock''') }}
+          key: ${{ runner.os }}-cargo-coverage-${{ hashFiles('''contracts/Cargo.lock''') }}
           restore-keys: |
-            ${{ runner.os }}-cargo-build-
+            ${{ runner.os }}-cargo-coverage-
             ${{ runner.os }}-cargo-
-      - name: Install cargo-tarpaulin
-        run: cargo install cargo-tarpaulin --version 0.31.5 --locked
       - name: Run per-crate coverage (fail under 80%)
         run: |
           set -euo pipefail
