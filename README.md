@@ -22,16 +22,17 @@ NovaLabs is a full-stack platform built to power the next generation of coworkin
 1. [About](#about)
 2. [Key Features](#key-features)
 3. [Tech Stack](#tech-stack)
-4. [Getting Started](#getting-started)
+4. [Code Coverage](#code-coverage)
+5. [Getting Started](#getting-started)
    - [Prerequisites](#prerequisites)
    - [Installation](#installation)
    - [Environment Variables](#environment-variables)
-5. [Usage](#usage)
-6. [Project Structure](#project-structure)
-7. [Contributing](#contributing)
-8. [Roadmap](#roadmap)
-9. [License](#license)
-10. [Acknowledgements](#acknowledgements)
+6. [Usage](#usage)
+7. [Project Structure](#project-structure)
+8. [Contributing](#contributing)
+9. [Roadmap](#roadmap)
+10. [License](#license)
+11. [Acknowledgements](#acknowledgements)
 
 ---
 
@@ -78,6 +79,20 @@ NovaLabs uses a modern, production-grade full-stack technology stack:
 | **CI/CD** | GitHub Actions |
 
 > **Why NestJS + Next.js?** NestJS handles complex business logic, auth flows, and multi-client API needs with a structured, maintainable architecture — something Next.js API routes alone aren't optimized for at scale. This combination gives NovaLabs both a great developer experience and a solid production foundation.
+
+---
+
+## Code Coverage
+
+Code coverage is automatically measured and uploaded to [Codecov](https://codecov.io/gh/NovaCoreLabs1/NovaLabs) on every PR and push to `main`. The badges above show the current line coverage for each area of the codebase:
+
+| Badge | Area | Tool | Target |
+|-------|------|------|--------|
+| **Contracts** | Rust smart contracts (`contracts/`) | `cargo-tarpaulin` | ≥ 80% |
+| **Backend** | NestJS TypeScript API (`backend/src/`) | Jest (`test:cov`) | ≥ 70% |
+| **Frontend** | Next.js app (`frontend/`) | Vitest (`test:cov`) | ≥ 60% |
+
+If a PR drops coverage below the target threshold, the CI pipeline will flag it. You can drill into per-file coverage and historical trends on the [Codecov dashboard](https://codecov.io/gh/NovaCoreLabs1/NovaLabs).
 
 ---
 
