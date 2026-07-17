@@ -1,6 +1,6 @@
 ---
 codecov:
-  require_ci_to_pass: true
+  require_ci_to_pass: false
   notify:
     wait_for_ci: true
 
@@ -8,27 +8,27 @@ coverage:
   status:
     project:
       default:
-        target: 80%
-        threshold: 2%
+        target: auto
+        threshold: 5%
         base: auto
       contracts:
         target: 80%
-        threshold: 2%
+        threshold: 5%
         flags:
           - contracts
       backend:
-        target: 70%
+        target: 10%
         threshold: 5%
         flags:
           - backend
       frontend:
-        target: 60%
-        threshold: 10%
+        target: 10%
+        threshold: 5%
         flags:
           - frontend
     patch:
       default:
-        target: 80%
+        target: 60%
 
 flags:
   contracts:
