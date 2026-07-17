@@ -126,7 +126,7 @@ Output: `frontend/coverage/lcov.info` and a terminal summary.
 **Contracts** (cargo-tarpaulin)
 ```bash
 cd contracts
-cargo tarpaulin --engine llvm --out Xml --fail-under 80
+cargo tarpaulin --all --engine llvm --out Xml --fail-under 80
 ```
 `cargo-tarpaulin` must be installed first (`cargo install cargo-tarpaulin` or
 `cargo binstall cargo-tarpaulin`).
