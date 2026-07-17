@@ -101,7 +101,53 @@ Before opening a PR, confirm:
 
 ---
 
-## 5. Reporting bugs
+## 5. Code coverage
+
+Every PR and push to `main` automatically uploads coverage reports to
+[Codecov](https://codecov.io/gh/NovaCoreLabs1/NovaLabs). The dashboard shows
+historical trends and per-file breakdowns for each area.
+
+### Running coverage locally
+
+**Backend** (Jest)
+```bash
+cd backend
+npm run test:cov
+```
+Output: `backend/coverage/lcov.info` and an HTML report.
+
+**Frontend** (Vitest)
+```bash
+cd frontend
+npm run test:cov
+```
+Output: `frontend/coverage/lcov.info` and a terminal summary.
+
+**Contracts** (cargo-tarpaulin)
+```bash
+cd contracts
+cargo tarpaulin --engine llvm --out Xml --fail-under 80
+```
+`cargo-tarpaulin` must be installed first (`cargo install cargo-tarpaulin` or
+`cargo binstall cargo-tarpaulin`).
+
+### Current targets
+
+| Area | Target | Threshold | Tool |
+|------|-------:|----------:|------|
+| Contracts | 80% | 5% | cargo-tarpaulin |
+| Backend | 10% | 5% | Jest |
+| Frontend | 10% | 5% | Vitest |
+
+Targets are intentionally set near current levels and will be raised as more
+tests are written. The Codecov status check will not block your PR — it appears
+as a comment so you can track progress over time.
+
+See [`codecov.yml`](codecov.yml) for the full configuration.
+
+---
+
+## 6. Reporting bugs
 
 Open an issue with:
 
