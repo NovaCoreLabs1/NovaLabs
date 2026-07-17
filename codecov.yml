@@ -1,0 +1,41 @@
+---
+codecov:
+  require_ci_to_pass: true
+  notify:
+    wait_for_ci: true
+
+coverage:
+  status:
+    project:
+      default:
+        target: 80%
+        threshold: 2%
+        base: auto
+      contracts:
+        target: 80%
+        threshold: 2%
+        flags:
+          - contracts
+      backend:
+        target: 70%
+        threshold: 5%
+        flags:
+          - backend
+    patch:
+      default:
+        target: 80%
+
+flags:
+  contracts:
+    paths:
+      - contracts/
+    carryforward: false
+  backend:
+    paths:
+      - backend/src/
+    carryforward: false
+
+comment:
+  layout: "reach, diff, flags, files"
+  behavior: default
+  require_changes: false

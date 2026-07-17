@@ -175,6 +175,15 @@ jobs:
           path: coverage/contracts
           if-no-files-found: ignore
 
+      - name: Upload coverage to Codecov (contracts)
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          directory: ../coverage/contracts
+          flags: contracts
+          fail_ci_if_error: false
+          verbose: true
+
   # ─────────────────────────────────────────────
   # BACKEND — NestJS
   # ─────────────────────────────────────────────
@@ -206,8 +215,17 @@ jobs:
       - name: Build (TypeScript check)
         run: npm run build
 
-      - name: Unit tests
-        run: npm run test -- --passWithNoTests
+      - name: Unit tests with coverage
+        run: npm run test:cov -- --passWithNoTests
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ../coverage/lcov.info
+          flags: backend
+          fail_ci_if_error: false
+          verbose: true
 
   # ─────────────────────────────────────────────
   # FRONTEND — Next.js
