@@ -141,6 +141,9 @@
     "collectCoverageFrom": [
       "**/*.(t|j)s"
     ],
+    "transformIgnorePatterns": [
+      "node_modules/(?!(bcrypt|@aws-sdk|@nestjs|otplib|@otplib|@noble|@scure)/)"
+    ],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node"
   }
