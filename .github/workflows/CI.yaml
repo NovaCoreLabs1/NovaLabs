@@ -181,7 +181,7 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           directory: ../coverage/contracts
           flags: contracts
-          fail_ci_if_error: false
+          fail_ci_if_error: true
           verbose: true
 
   # ─────────────────────────────────────────────
@@ -224,7 +224,7 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: coverage/lcov.info
           flags: backend
-          fail_ci_if_error: false
+          fail_ci_if_error: true
           verbose: true
 
   # ─────────────────────────────────────────────
@@ -264,7 +264,7 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: coverage/lcov.info
           flags: frontend
-          fail_ci_if_error: false
+          fail_ci_if_error: true
           verbose: true
 
       - name: Build
