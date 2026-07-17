@@ -17,7 +17,7 @@ coverage:
         flags:
           - contracts
       backend:
-        target: 10%
+        target: 30%
         threshold: 5%
         flags:
           - backend
