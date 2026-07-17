@@ -9,8 +9,8 @@ NovaLabs is a full-stack platform built to power the next generation of coworkin
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-novalabs.vercel.app-black?style=for-the-badge&logo=vercel)](https://novalabs.vercel.app/)
 [![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
 [![Contributors](https://img.shields.io/badge/Contributors-96%2B-brightgreen?style=for-the-badge)](https://github.com/NovaCoreLabs1/NovaLabs/graphs/contributors)
-[![codecov - contracts](https://img.shields.io/badge/Contracts-80%25-brightgreen?style=for-the-badge&logo=codecov&logoColor=white)](https://codecov.io/gh/NovaCoreLabs1/NovaLabs)
-[![codecov - backend](https://img.shields.io/badge/Backend-70%25-blue?style=for-the-badge&logo=codecov&logoColor=white)](https://codecov.io/gh/NovaCoreLabs1/NovaLabs)
+[![Contracts](https://img.shields.io/codecov/c/github/NovaCoreLabs1/NovaLabs?flag=contracts&label=Contracts&logo=codecov&style=for-the-badge)](https://codecov.io/gh/NovaCoreLabs1/NovaLabs)
+[![Backend](https://img.shields.io/codecov/c/github/NovaCoreLabs1/NovaLabs?flag=backend&label=Backend&logo=codecov&style=for-the-badge)](https://codecov.io/gh/NovaCoreLabs1/NovaLabs)
 
 </div>
 
