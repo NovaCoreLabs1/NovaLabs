@@ -250,4 +250,15 @@ export class EmailService {
       },
     ]);
   }
+
+  async sendRefreshTokenFamilyRevokedEmail(
+    email: string,
+    fullName: string,
+  ): Promise<boolean> {
+    const html = this.compileTemplate('refresh-family-revoked', {
+      fullName,
+      year: new Date().getFullYear(),
+    });
+    return this.send(email, 'Your Session Was Revoked — NovaLabs', html);
+  }
 }

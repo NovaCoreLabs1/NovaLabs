@@ -1,5 +1,4 @@
 // contracts/workspace_booking/src/test.rs
-#![cfg(test)]
 
 use super::*;
 use soroban_sdk::{

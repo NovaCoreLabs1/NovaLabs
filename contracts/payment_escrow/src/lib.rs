@@ -3,10 +3,14 @@
 #![allow(deprecated)]
 
 mod errors;
+mod guards;
 mod types;
 
 #[cfg(test)]
 mod test;
+
+#[cfg(test)]
+mod reentrancy;
 
 pub use errors::Error;
 pub use types::{Escrow, EscrowStatus};
@@ -169,7 +173,13 @@ impl PaymentEscrowContract {
         let dispute_window = Self::get_dispute_window(&env);
         let now = env.ledger().timestamp();
 
-        // Pull funds from depositor into the contract
+        // ── Reentrancy guard ──
+        // Acquire the lock BEFORE pulling funds. A malicious depositor token
+        // could re-enter `create_escrow` from within the transfer callback; the
+        // guard reverts any such re-entrant attempt.
+        let _guard = guards::reentrancy_protect(&env, &guards::ReentrancyKey::Create)?;
+
+        // Cross-contract interaction: pull funds from depositor into the contract.
         token::Client::new(&env, &payment_token).transfer(
             &depositor,
             env.current_contract_address(),
@@ -234,6 +244,14 @@ impl PaymentEscrowContract {
         }
 
         let now = env.ledger().timestamp();
+
+        // ── Reentrancy guard ──
+        // Acquire the lock BEFORE releasing funds. The beneficiary token could
+        // re-enter `release` from within the transfer callback; the guard
+        // reverts any such re-entrant attempt.
+        let _guard = guards::reentrancy_protect(&env, &guards::ReentrancyKey::Release)?;
+
+        // Cross-contract interaction: release funds to beneficiary.
         token::Client::new(&env, &escrow.payment_token).transfer(
             &env.current_contract_address(),
             &escrow.beneficiary,
@@ -261,6 +279,14 @@ impl PaymentEscrowContract {
         }
 
         let now = env.ledger().timestamp();
+
+        // ── Reentrancy guard ──
+        // Acquire the lock BEFORE refunding funds. The depositor token could
+        // re-enter `refund` from within the transfer callback; the guard reverts
+        // any such re-entrant attempt.
+        let _guard = guards::reentrancy_protect(&env, &guards::ReentrancyKey::Refund)?;
+
+        // Cross-contract interaction: refund funds to depositor.
         token::Client::new(&env, &escrow.payment_token).transfer(
             &env.current_contract_address(),
             &escrow.depositor,
@@ -341,6 +367,13 @@ impl PaymentEscrowContract {
             escrow.depositor.clone()
         };
 
+        // ── Reentrancy guard ──
+        // Acquire the lock BEFORE moving funds. The recipient token could
+        // re-enter `resolve_dispute` from within the transfer callback; the guard
+        // reverts any such re-entrant attempt.
+        let _guard = guards::reentrancy_protect(&env, &guards::ReentrancyKey::Resolve)?;
+
+        // Cross-contract interaction: release or refund funds to the recipient.
         token::Client::new(&env, &escrow.payment_token).transfer(
             &env.current_contract_address(),
             &recipient,
@@ -387,6 +420,14 @@ impl PaymentEscrowContract {
         }
 
         let now = env.ledger().timestamp();
+
+        // ── Reentrancy guard ──
+        // Acquire the lock BEFORE releasing funds. The beneficiary token could
+        // re-enter `claim` from within the transfer callback; the guard reverts
+        // any such re-entrant attempt.
+        let _guard = guards::reentrancy_protect(&env, &guards::ReentrancyKey::Claim)?;
+
+        // Cross-contract interaction: release funds to beneficiary.
         token::Client::new(&env, &escrow.payment_token).transfer(
             &env.current_contract_address(),
             &escrow.beneficiary,

@@ -62,4 +62,11 @@ export class WorkspaceTrackingService {
   getRecentLogs(workspaceId?: string, limit?: number) {
     return this.occupancyProvider.getRecentLogs(workspaceId, limit);
   }
+
+  /**
+   * Returns a privacy-focused storage summary for biometric check-in data.
+   */
+  getStorageAuditSummary() {
+    return this.checkInProvider.getStorageAuditSummary();
+  }
 }

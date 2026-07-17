@@ -56,4 +56,16 @@ export class WorkspaceLog {
 
   @Column({ type: 'text', nullable: true })
   notes: string;
+
+  @Column({ type: 'varchar', length: 128, nullable: true })
+  biometricTemplateHash: string;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  biometricStorageReference: string;
+
+  @Column({ type: 'varchar', length: 32, nullable: true })
+  biometricProcessingLocation: string;
+
+  @Column({ type: 'varchar', length: 64, nullable: true })
+  biometricVendor: string;
 }

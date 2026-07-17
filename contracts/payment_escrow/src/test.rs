@@ -1,5 +1,4 @@
 // contracts/payment_escrow/src/test.rs
-#![cfg(test)]
 
 use super::*;
 use soroban_sdk::{

@@ -77,4 +77,8 @@ pub enum Error {
 
     /// Cannot modify workspace while active bookings exist.
     WorkspaceHasActiveBookings = 203,
+
+    /// Reentrancy detected: a guarded entry point was re-entered via a
+    /// cross-contract callback while its lock was held.
+    ReentrancyLock = 204,
 }

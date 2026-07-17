@@ -1,0 +1,61 @@
+# Reentrancy guard enforcement for Soroban contracts.
+#
+# Rule: every `token::Client ... .transfer(...)` call inside the target contract
+# entry points (workspace_booking, payment_escrow) MUST be preceded (in the same
+# function body) by a call to the reentrancy guard
+# `guards::reentrancy_protect(...)`. A transfer without a preceding guard
+# acquisition is flagged as a reentrancy risk.
+#
+# Scope is intentionally limited to the two contracts called out in issue #64.
+# Test harness files (reentrancy.rs / test.rs) are excluded because they
+# deliberately exercise unguarded transfers to prove the guard works.
+#
+# This is a best-effort static heuristic; the runtime `reentrancy.rs` fuzz +
+# unit tests provide the authoritative guarantee. This rule only prevents
+# regressions in code review.
+
+rules:
+  - id: soroban-transfer-without-reentrancy-guard
+    severity: ERROR
+    languages: [rust]
+    message: >
+      Token transfer detected without an explicit reentrancy guard. Every
+      cross-contract token transfer in a Soroban contract MUST be preceded by
+      `guards::reentrancy_protect(&env, &...)` to prevent reentrancy. See
+      contracts/*/src/guards.rs.
+    patterns:
+      - pattern: |
+          token::Client::new($ENV, $TOKEN).transfer(...)
+      # The transfer must be guarded. We flag it as a violation if a guard
+      # acquisition is NOT present anywhere in the enclosing function body.
+      - pattern-not-inside: |
+          fn $F(...) {
+            ...
+            let _guard = guards::reentrancy_protect(...)
+            ...
+          }
+    paths:
+      include:
+        - contracts/workspace_booking/src/lib.rs
+        - contracts/payment_escrow/src/lib.rs
+
+  - id: soroban-raw-invoke-without-reentrancy-guard
+    severity: ERROR
+    languages: [rust]
+    message: >
+      Cross-contract interaction via `env.invoke_contract` detected without an
+      explicit reentrancy guard. Acquire `guards::reentrancy_protect` before
+      any cross-contract call.
+    patterns:
+      - pattern: |
+          $ENV.invoke_contract(...)
+      - pattern-not-inside: |
+          fn $F(...) {
+            ...
+            let _guard = guards::reentrancy_protect(...)
+            ...
+          }
+    paths:
+      include:
+        - contracts/workspace_booking/src/lib.rs
+        - contracts/payment_escrow/src/lib.rs

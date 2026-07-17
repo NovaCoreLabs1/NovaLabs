@@ -29,4 +29,7 @@ pub enum Error {
     InvalidAmount = 11,
     /// Payment token address has not been set.
     PaymentTokenNotSet = 12,
+    /// Reentrancy detected: a guarded entry point was re-entered via a
+    /// cross-contract callback while its lock was held.
+    ReentrancyLock = 13,
 }
