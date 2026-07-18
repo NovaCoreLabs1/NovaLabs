@@ -82,9 +82,10 @@ class ApiClient {
     });
   }
 
-  async delete<T>(endpoint: string): Promise<T> {
+  async delete<T, D = unknown>(endpoint: string, options?: { data?: D }): Promise<T> {
     return this.request<T>(endpoint, {
       method: "DELETE",
+      body: options?.data ? JSON.stringify(options.data) : undefined,
     });
   }
 }

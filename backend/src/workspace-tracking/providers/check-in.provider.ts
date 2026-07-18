@@ -7,6 +7,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
 import { WorkspaceLog } from '../entities/workspace-log.entity';
 import { CheckInDto } from '../dto/check-in.dto';
+import { AuthenticatedCheckInDto, CheckInAuthMethod } from '../dto/authenticated-check-in.dto';
 import { Workspace } from '../../workspaces/entities/workspace.entity';
 
 @Injectable()
@@ -50,6 +51,48 @@ export class CheckInProvider {
       workspaceId: dto.workspaceId,
       bookingId: dto.bookingId ?? null,
       notes: dto.notes ?? null,
+      authMethod: 'none',
+    });
+
+    return this.logsRepository.save(log);
+  }
+
+  /**
+   * Records an authenticated workspace check-in for the given user.
+   * Includes the authentication method used (biometric, PIN, or none).
+   * @param dto - Authenticated check-in data including auth method
+   * @param userId - UUID of the user checking in
+   * @param verifiedAuthMethod - The verified authentication method
+   * @returns The newly created WorkspaceLog entry
+   */
+  async authenticatedCheckIn(
+    dto: AuthenticatedCheckInDto,
+    userId: string,
+    verifiedAuthMethod: CheckInAuthMethod,
+  ): Promise<WorkspaceLog> {
+    const workspace = await this.workspacesRepository.findOne({
+      where: { id: dto.workspaceId, isActive: true },
+    });
+    if (!workspace) {
+      throw new NotFoundException(`Workspace "${dto.workspaceId}" not found`);
+    }
+
+    // Prevent duplicate active check-in for same user + workspace
+    const activeLog = await this.logsRepository.findOne({
+      where: { userId, workspaceId: dto.workspaceId, checkedOutAt: IsNull() },
+    });
+    if (activeLog) {
+      throw new BadRequestException(
+        'You already have an active check-in for this workspace',
+      );
+    }
+
+    const log = this.logsRepository.create({
+      userId,
+      workspaceId: dto.workspaceId,
+      bookingId: dto.bookingId ?? null,
+      notes: dto.notes ?? null,
+      authMethod: verifiedAuthMethod,
     });
 
     return this.logsRepository.save(log);

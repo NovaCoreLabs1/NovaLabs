@@ -139,6 +139,20 @@ export class User {
   @Column({ type: 'int', default: 0 })
   profileCompleteness: number;
 
+  /** Hashed 4-digit PIN for check-in fallback authentication */
+  @Exclude()
+  @Column({ nullable: true, type: 'varchar', length: 255 })
+  checkInPin?: string;
+
+  /** Whether biometric check-in is enabled for this user */
+  @Column({ default: false })
+  biometricEnabled: boolean;
+
+  /** WebAuthn credential IDs for biometric authentication (JSON array) */
+  @Exclude()
+  @Column({ type: 'jsonb', nullable: true })
+  webAuthnCredentials?: object[];
+
   @DeleteDateColumn()
   deletedAt: Date;
   get fullName(): string {

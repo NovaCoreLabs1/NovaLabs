@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { CheckInProvider } from './providers/check-in.provider';
 import { OccupancyProvider } from './providers/occupancy.provider';
 import { CheckInDto } from './dto/check-in.dto';
+import { AuthenticatedCheckInDto, CheckInAuthMethod } from './dto/authenticated-check-in.dto';
 import { OccupancyQueryDto } from './dto/occupancy-query.dto';
 
 @Injectable()
@@ -61,5 +62,19 @@ export class WorkspaceTrackingService {
    */
   getRecentLogs(workspaceId?: string, limit?: number) {
     return this.occupancyProvider.getRecentLogs(workspaceId, limit);
+  }
+
+  /**
+   * Records an authenticated check-in with PIN or biometric verification.
+   * @param dto - Authenticated check-in payload
+   * @param userId - ID of the user checking in
+   * @param verifiedAuthMethod - The verified authentication method
+   */
+  authenticatedCheckIn(
+    dto: AuthenticatedCheckInDto,
+    userId: string,
+    verifiedAuthMethod: CheckInAuthMethod,
+  ) {
+    return this.checkInProvider.authenticatedCheckIn(dto, userId, verifiedAuthMethod);
   }
 }

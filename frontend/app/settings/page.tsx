@@ -8,8 +8,11 @@ import { useAuthState, useAuthActions } from "@/lib/store/authStore";
 import { apiClient } from "@/lib/apiClient";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import TwoFactorModal from "@/components/settings/TwoFactorModal";
+import CheckInPinSection from "@/components/settings/CheckInPinSection";
 import { use2faStatus } from "@/lib/react-query/hooks/two-factor/use2faStatus";
+import { useCheckInAuthStatus } from "@/lib/react-query/hooks/check-in/useCheckInAuthStatus";
 import { Eye, EyeOff, Shield, Bell, Palette } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useTheme } from "next-themes";
 
 /* ── Password change schema ── */
@@ -123,6 +126,11 @@ export default function SettingsPage() {
   const [twoFaModal, setTwoFaModal] = useState<"setup" | "disable" | null>(
     null
   );
+
+  /* ── Check-in PIN ── */
+  const queryClient = useQueryClient();
+  const { data: authStatusData } = useCheckInAuthStatus();
+  const hasPinSetup = authStatusData?.data?.hasPinSetup ?? false;
 
   /* ── Danger zone ── */
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -285,6 +293,12 @@ export default function SettingsPage() {
               }
             />
           </div>
+
+          {/* Check-in PIN */}
+          <CheckInPinSection
+            hasPinSetup={hasPinSetup}
+            onPinChange={() => queryClient.invalidateQueries({ queryKey: ["checkInAuthStatus"] })}
+          />
         </div>
 
         {/* ── Notifications ── */}

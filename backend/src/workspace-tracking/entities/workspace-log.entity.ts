@@ -56,4 +56,8 @@ export class WorkspaceLog {
 
   @Column({ type: 'text', nullable: true })
   notes: string;
+
+  /** Authentication method used for check-in: 'biometric', 'pin', or 'none' */
+  @Column({ type: 'varchar', length: 20, default: 'none' })
+  authMethod: string;
 }

@@ -2,10 +2,13 @@
 
 import { useState } from "react";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
+import CheckInAuthModal from "@/components/check-in/CheckInAuthModal";
 import { useGetActiveCheckIn } from "@/lib/react-query/hooks/workspace-tracking/useGetActiveCheckIn";
 import { useCheckIn } from "@/lib/react-query/hooks/workspace-tracking/useCheckIn";
+import { useAuthenticatedCheckIn } from "@/lib/react-query/hooks/workspace-tracking/useAuthenticatedCheckIn";
 import { useCheckOut } from "@/lib/react-query/hooks/workspace-tracking/useCheckOut";
 import { useGetMyBookings } from "@/lib/react-query/hooks/bookings/useGetMyBookings";
+import { useCheckInAuthStatus } from "@/lib/react-query/hooks/check-in/useCheckInAuthStatus";
 import {
   LogIn,
   LogOut,
@@ -13,7 +16,10 @@ import {
   MapPin,
   Calendar,
   CheckCircle2,
+  Fingerprint,
 } from "lucide-react";
+
+type AuthMethod = "biometric" | "pin" | "none";
 
 function formatDuration(minutes: number): string {
   const h = Math.floor(minutes / 60);
@@ -32,22 +38,43 @@ function formatDateTime(iso: string): string {
 export default function CheckInPage() {
   const { data: activeData, isLoading: activeLoading } = useGetActiveCheckIn();
   const { data: bookingsData } = useGetMyBookings(1, 20);
+  const { data: authStatusData } = useCheckInAuthStatus();
   const checkIn = useCheckIn();
+  const authenticatedCheckIn = useAuthenticatedCheckIn();
   const checkOut = useCheckOut();
 
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState("");
   const [selectedBookingId, setSelectedBookingId] = useState("");
   const [notes, setNotes] = useState("");
   const [confirmCheckout, setConfirmCheckout] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
   const activeLog = activeData?.data ?? null;
+  const authStatus = authStatusData?.data ?? {
+    hasPinSetup: false,
+    hasBiometricSetup: false,
+    requiresAuth: false,
+  };
 
   // Only show bookings that are confirmed
   const eligibleBookings = (bookingsData?.data ?? []).filter(
     (b) => b.status === "CONFIRMED"
   );
 
-  const handleCheckIn = async () => {
+  // Opens auth modal if auth is required, otherwise does regular check-in
+  const handleCheckInClick = () => {
+    if (!selectedWorkspaceId) return;
+
+    // If auth is required or user has auth methods set up, show the modal
+    if (authStatus.requiresAuth || authStatus.hasPinSetup || authStatus.hasBiometricSetup) {
+      setShowAuthModal(true);
+    } else {
+      // No auth required and no auth methods set up - do regular check-in
+      handleRegularCheckIn();
+    }
+  };
+
+  const handleRegularCheckIn = async () => {
     if (!selectedWorkspaceId) return;
     await checkIn.mutateAsync({
       workspaceId: selectedWorkspaceId,
@@ -57,6 +84,35 @@ export default function CheckInPage() {
     setSelectedWorkspaceId("");
     setSelectedBookingId("");
     setNotes("");
+  };
+
+  // Called by the auth modal after successful authentication
+  const handleAuthenticatedCheckIn = async (authMethod: AuthMethod, pin?: string) => {
+    if (!selectedWorkspaceId) {
+      throw new Error("No workspace selected");
+    }
+
+    await authenticatedCheckIn.mutateAsync({
+      workspaceId: selectedWorkspaceId,
+      bookingId: selectedBookingId || undefined,
+      notes: notes || undefined,
+      authMethod,
+      pin: authMethod === "pin" ? pin : undefined,
+      biometricAssertion: authMethod === "biometric" ? pin : undefined, // pin param reused for biometric assertion
+    });
+
+    setSelectedWorkspaceId("");
+    setSelectedBookingId("");
+    setNotes("");
+  };
+
+  // Find workspace name for display in auth modal
+  const getSelectedWorkspaceName = (): string | undefined => {
+    if (selectedBookingId) {
+      const booking = eligibleBookings.find((b) => b.id === selectedBookingId);
+      return booking?.workspace?.name;
+    }
+    return undefined;
   };
 
   const handleCheckOut = async () => {
@@ -78,8 +134,8 @@ export default function CheckInPage() {
   return (
     <DashboardLayout>
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Check In / Out</h1>
-        <p className="text-gray-500 mt-1 text-sm">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-50">Check In / Out</h1>
+        <p className="text-gray-500 dark:text-gray-400 mt-1 text-sm">
           Track your workspace sessions.
         </p>
       </div>
@@ -87,32 +143,32 @@ export default function CheckInPage() {
       <div className="max-w-2xl space-y-6">
         {/* Active session */}
         {activeLog ? (
-          <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-6">
+          <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-xl p-6">
             <div className="flex items-center gap-2 mb-4">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-              <h2 className="text-sm font-semibold text-emerald-800">
+              <h2 className="text-sm font-semibold text-emerald-800 dark:text-emerald-300">
                 Active session
               </h2>
             </div>
 
             <div className="space-y-3">
               {activeLog.workspace && (
-                <div className="flex items-center gap-2 text-sm text-emerald-700">
+                <div className="flex items-center gap-2 text-sm text-emerald-700 dark:text-emerald-400">
                   <MapPin className="w-4 h-4 shrink-0" />
                   <span>
                     {activeLog.workspace.name}{" "}
-                    <span className="text-emerald-500 capitalize">
+                    <span className="text-emerald-500 dark:text-emerald-500 capitalize">
                       ({activeLog.workspace.type})
                     </span>
                   </span>
                 </div>
               )}
-              <div className="flex items-center gap-2 text-sm text-emerald-700">
+              <div className="flex items-center gap-2 text-sm text-emerald-700 dark:text-emerald-400">
                 <Clock className="w-4 h-4 shrink-0" />
                 <span>Checked in at {formatDateTime(activeLog.checkedInAt)}</span>
               </div>
               {activeLog.notes && (
-                <p className="text-xs text-emerald-600 italic">
+                <p className="text-xs text-emerald-600 dark:text-emerald-500 italic">
                   &quot;{activeLog.notes}&quot;
                 </p>
               )}
@@ -141,7 +197,7 @@ export default function CheckInPage() {
                   <button
                     type="button"
                     onClick={() => setConfirmCheckout(false)}
-                    className="px-5 py-2.5 text-sm font-medium rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors"
+                    className="px-5 py-2.5 text-sm font-medium rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                   >
                     Cancel
                   </button>
@@ -151,10 +207,10 @@ export default function CheckInPage() {
           </div>
         ) : (
           /* Check-in form */
-          <div className="bg-white border border-gray-100 rounded-xl p-6">
+          <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl p-6">
             <div className="flex items-center gap-2 mb-5">
-              <LogIn className="w-4 h-4 text-gray-500" />
-              <h2 className="text-sm font-semibold text-gray-900">
+              <LogIn className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+              <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                 Check in to a workspace
               </h2>
             </div>
@@ -162,9 +218,9 @@ export default function CheckInPage() {
             <div className="space-y-4">
               {/* Booking selector */}
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1.5">
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">
                   Link to a booking{" "}
-                  <span className="text-gray-400">(optional)</span>
+                  <span className="text-gray-400 dark:text-gray-500">(optional)</span>
                 </label>
                 <select
                   value={selectedBookingId}
@@ -178,7 +234,7 @@ export default function CheckInPage() {
                       if (b) setSelectedWorkspaceId(b.workspaceId);
                     }
                   }}
-                  className="w-full px-3.5 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-200"
+                  className="w-full px-3.5 py-2.5 text-sm border border-gray-200 dark:border-gray-700 bg-transparent text-gray-900 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-700"
                 >
                   <option value="">— No booking —</option>
                   {eligibleBookings.map((b) => (
@@ -192,7 +248,7 @@ export default function CheckInPage() {
               {/* Workspace ID (manual if no booking selected) */}
               {!selectedBookingId && (
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1.5">
+                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">
                     Workspace ID{" "}
                     <span className="text-red-400">*</span>
                   </label>
@@ -201,33 +257,41 @@ export default function CheckInPage() {
                     value={selectedWorkspaceId}
                     onChange={(e) => setSelectedWorkspaceId(e.target.value)}
                     placeholder="Enter workspace UUID"
-                    className="w-full px-3.5 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-200"
+                    className="w-full px-3.5 py-2.5 text-sm border border-gray-200 dark:border-gray-700 bg-transparent text-gray-900 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-700"
                   />
                 </div>
               )}
 
               {/* Notes */}
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1.5">
-                  Notes <span className="text-gray-400">(optional)</span>
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">
+                  Notes <span className="text-gray-400 dark:text-gray-500">(optional)</span>
                 </label>
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   rows={2}
                   placeholder="e.g. Working on client project"
-                  className="w-full px-3.5 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-200 resize-none"
+                  className="w-full px-3.5 py-2.5 text-sm border border-gray-200 dark:border-gray-700 bg-transparent text-gray-900 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-700 resize-none"
                 />
               </div>
 
               <button
                 type="button"
-                onClick={handleCheckIn}
-                disabled={!selectedWorkspaceId || checkIn.isPending}
-                className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium rounded-lg bg-gray-900 text-white hover:bg-gray-800 disabled:opacity-50 transition-colors"
+                onClick={handleCheckInClick}
+                disabled={!selectedWorkspaceId || checkIn.isPending || authenticatedCheckIn.isPending}
+                className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium rounded-lg bg-gray-900 text-white hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-200 disabled:opacity-50 transition-colors"
               >
-                <LogIn className="w-4 h-4" />
-                {checkIn.isPending ? "Checking in..." : "Check in"}
+                {(authStatus.hasPinSetup || authStatus.hasBiometricSetup) ? (
+                  <Fingerprint className="w-4 h-4" />
+                ) : (
+                  <LogIn className="w-4 h-4" />
+                )}
+                {checkIn.isPending || authenticatedCheckIn.isPending
+                  ? "Checking in..."
+                  : authStatus.hasPinSetup || authStatus.hasBiometricSetup
+                    ? "Verify & Check in"
+                    : "Check in"}
               </button>
             </div>
           </div>
@@ -235,13 +299,13 @@ export default function CheckInPage() {
 
         {/* No active session info */}
         {!activeLog && (
-          <div className="bg-gray-50 border border-gray-100 rounded-xl p-5 flex items-start gap-3">
-            <CheckCircle2 className="w-5 h-5 text-gray-400 mt-0.5 shrink-0" />
+          <div className="bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800 rounded-xl p-5 flex items-start gap-3">
+            <CheckCircle2 className="w-5 h-5 text-gray-400 dark:text-gray-500 mt-0.5 shrink-0" />
             <div>
-              <p className="text-sm font-medium text-gray-700">
+              <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 No active session
               </p>
-              <p className="text-xs text-gray-400 mt-0.5">
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
                 Check in to start tracking your workspace time. Your sessions
                 are linked to your bookings and invoices.
               </p>
@@ -251,10 +315,10 @@ export default function CheckInPage() {
 
         {/* Eligible bookings hint */}
         {eligibleBookings.length > 0 && !activeLog && (
-          <div className="bg-white border border-gray-100 rounded-xl p-5">
+          <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl p-5">
             <div className="flex items-center gap-2 mb-3">
-              <Calendar className="w-4 h-4 text-gray-400" />
-              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              <Calendar className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+              <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 Your confirmed bookings
               </h3>
             </div>
@@ -264,10 +328,10 @@ export default function CheckInPage() {
                   key={b.id}
                   className="flex items-center justify-between text-sm"
                 >
-                  <span className="text-gray-700 capitalize">
+                  <span className="text-gray-700 dark:text-gray-300 capitalize">
                     {b.planType} — {b.seatCount} seat{b.seatCount !== 1 && "s"}
                   </span>
-                  <span className="text-xs text-gray-400 capitalize">
+                  <span className="text-xs text-gray-400 dark:text-gray-500 capitalize">
                     {b.status}
                   </span>
                 </li>
@@ -276,6 +340,17 @@ export default function CheckInPage() {
           </div>
         )}
       </div>
+
+      {/* Authentication Modal */}
+      <CheckInAuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        onAuthenticate={handleAuthenticatedCheckIn}
+        workspaceName={getSelectedWorkspaceName()}
+        hasPinSetup={authStatus.hasPinSetup}
+        hasBiometricSetup={authStatus.hasBiometricSetup}
+        requiresAuth={authStatus.requiresAuth}
+      />
     </DashboardLayout>
   );
 }
