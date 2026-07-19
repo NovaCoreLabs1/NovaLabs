@@ -46,7 +46,9 @@ describe('SanitizeString', () => {
     });
 
     it('removes self-closing script tags', () => {
-      const result = transformFn({ value: 'before<script src="evil.js"/>after' });
+      const result = transformFn({
+        value: 'before<script src="evil.js"/>after',
+      });
       expect(result).toBe('beforeafter');
     });
 

@@ -83,9 +83,7 @@ describe('AuthController', () => {
         message: 'sent',
       } as any);
       const result = await controller.resendVerificationOtp(dto);
-      expect(authService.resendVerificationOtp).toHaveBeenCalledWith(
-        'a@b.com',
-      );
+      expect(authService.resendVerificationOtp).toHaveBeenCalledWith('a@b.com');
       expect(result.message).toBe('sent');
     });
   });

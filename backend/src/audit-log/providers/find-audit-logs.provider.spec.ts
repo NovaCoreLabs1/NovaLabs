@@ -32,11 +32,7 @@ describe('FindAuditLogsProvider', () => {
         data: [{ id: 'log-1' }, { id: 'log-2' }],
       });
 
-      const result = await provider.findAll(
-        {},
-        'admin-1',
-        UserRole.ADMIN,
-      );
+      const result = await provider.findAll({}, 'admin-1', UserRole.ADMIN);
 
       expect(result.data).toHaveLength(2);
       expect(result.total).toBe(2);
@@ -50,10 +46,9 @@ describe('FindAuditLogsProvider', () => {
 
       await provider.findAll({}, 'user-1', UserRole.USER);
 
-      expect(qb.andWhere).toHaveBeenCalledWith(
-        'auditLog.actorId = :actorId',
-        { actorId: 'user-1' },
-      );
+      expect(qb.andWhere).toHaveBeenCalledWith('auditLog.actorId = :actorId', {
+        actorId: 'user-1',
+      });
     });
 
     it('allows admins to filter by specific actorId', async () => {
@@ -65,10 +60,9 @@ describe('FindAuditLogsProvider', () => {
         UserRole.ADMIN,
       );
 
-      expect(qb.andWhere).toHaveBeenCalledWith(
-        'auditLog.actorId = :actorId',
-        { actorId: 'specific-user' },
-      );
+      expect(qb.andWhere).toHaveBeenCalledWith('auditLog.actorId = :actorId', {
+        actorId: 'specific-user',
+      });
     });
 
     it('applies action filter', async () => {
@@ -80,10 +74,9 @@ describe('FindAuditLogsProvider', () => {
         UserRole.ADMIN,
       );
 
-      expect(qb.andWhere).toHaveBeenCalledWith(
-        'auditLog.action = :action',
-        { action: 'users.create' },
-      );
+      expect(qb.andWhere).toHaveBeenCalledWith('auditLog.action = :action', {
+        action: 'users.create',
+      });
     });
 
     it('applies targetType filter', async () => {
@@ -123,11 +116,7 @@ describe('FindAuditLogsProvider', () => {
     it('applies search filter with ILIKE', async () => {
       const qb = mockQueryBuilder({ total: 0, data: [] });
 
-      await provider.findAll(
-        { search: 'admin' },
-        'admin-1',
-        UserRole.ADMIN,
-      );
+      await provider.findAll({ search: 'admin' }, 'admin-1', UserRole.ADMIN);
 
       expect(qb.andWhere).toHaveBeenCalledWith(
         '(auditLog.actorEmail ILIKE :search OR auditLog.targetType ILIKE :search OR auditLog.action ILIKE :search)',

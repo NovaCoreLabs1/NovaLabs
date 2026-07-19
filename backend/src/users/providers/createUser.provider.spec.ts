@@ -122,9 +122,7 @@ describe('CreateUserProvider', () => {
         }),
       );
       expect(mockResponse.cookie).toHaveBeenCalled();
-      expect(
-        emailService.sendVerificationLinkEmail,
-      ).toHaveBeenCalledWith(
+      expect(emailService.sendVerificationLinkEmail).toHaveBeenCalledWith(
         'alice@example.com',
         expect.any(String),
         'Alice Smith',

@@ -75,9 +75,9 @@ describe('ForgotPasswordProvider', () => {
     it('throws NotFoundException when email is not registered', async () => {
       usersRepository.findOne.mockResolvedValue(null);
 
-      await expect(
-        provider.execute('unknown@example.com'),
-      ).rejects.toThrow(NotFoundException);
+      await expect(provider.execute('unknown@example.com')).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('uses custom frontend reset URL from config', async () => {
@@ -85,15 +85,16 @@ describe('ForgotPasswordProvider', () => {
       usersRepository.save.mockResolvedValue(mockUser);
       configService.get
         .mockReturnValueOnce('600000') // PASSWORD_RESET_EXPIRATION_MS
-        .mockReturnValueOnce(
-          'https://custom-app.com/reset-password?token=',
-        ); // FRONTEND_PASSWORD_RESET_URL
+        .mockReturnValueOnce('https://custom-app.com/reset-password?token='); // FRONTEND_PASSWORD_RESET_URL
       emailService.sendPasswordResetLinkEmail.mockResolvedValue(true);
 
       await provider.execute('alice@example.com');
 
-      const resetLink = emailService.sendPasswordResetLinkEmail.mock.calls[0][2];
-      expect(resetLink).toContain('https://custom-app.com/reset-password?token=');
+      const resetLink =
+        emailService.sendPasswordResetLinkEmail.mock.calls[0][2];
+      expect(resetLink).toContain(
+        'https://custom-app.com/reset-password?token=',
+      );
     });
 
     it('throws BadRequestException when email sending fails', async () => {
@@ -102,17 +103,15 @@ describe('ForgotPasswordProvider', () => {
       configService.get.mockReturnValue('300000');
       emailService.sendPasswordResetLinkEmail.mockResolvedValue(false);
 
-      await expect(
-        provider.execute('alice@example.com'),
-      ).rejects.toThrow(BadRequestException);
+      await expect(provider.execute('alice@example.com')).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('throws InternalServerErrorException when repository fails', async () => {
       usersRepository.findOne.mockRejectedValue(new Error('DB error'));
 
-      await expect(
-        provider.execute('alice@example.com'),
-      ).rejects.toThrow(
+      await expect(provider.execute('alice@example.com')).rejects.toThrow(
         'Failed to initiate password reset: Internal server error',
       );
     });

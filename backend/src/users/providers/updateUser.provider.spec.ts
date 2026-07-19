@@ -65,9 +65,9 @@ describe('UpdateUserProvider', () => {
     it('throws BadRequestException when no fields provided', async () => {
       usersRepository.findOne.mockResolvedValue(existingUser);
 
-      await expect(
-        provider.updateUser('user-1', {}),
-      ).rejects.toThrow(BadRequestException);
+      await expect(provider.updateUser('user-1', {})).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('throws InternalServerErrorException when repository fails', async () => {

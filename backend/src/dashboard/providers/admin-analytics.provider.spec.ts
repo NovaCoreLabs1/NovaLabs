@@ -118,14 +118,12 @@ describe('AdminAnalyticsProvider', () => {
       expect(qbTotal.where).toHaveBeenCalledWith('p.status = :status', {
         status: PaymentStatus.SUCCESS,
       });
-      expect(qbTotal.andWhere).toHaveBeenCalledWith(
-        'p.paidAt >= :from',
-        { from: '2024-01-01' },
-      );
-      expect(qbTotal.andWhere).toHaveBeenCalledWith(
-        'p.paidAt <= :to',
-        { to: '2024-01-31' },
-      );
+      expect(qbTotal.andWhere).toHaveBeenCalledWith('p.paidAt >= :from', {
+        from: '2024-01-01',
+      });
+      expect(qbTotal.andWhere).toHaveBeenCalledWith('p.paidAt <= :to', {
+        to: '2024-01-31',
+      });
     });
   });
 

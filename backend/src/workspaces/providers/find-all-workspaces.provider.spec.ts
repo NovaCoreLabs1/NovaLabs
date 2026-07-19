@@ -47,9 +47,12 @@ describe('FindAllWorkspacesProvider', () => {
 
     await provider.findAll({}, true);
 
-    expect(qb.where).not.toHaveBeenCalledWith('workspace.isActive = :isActive', {
-      isActive: true,
-    });
+    expect(qb.where).not.toHaveBeenCalledWith(
+      'workspace.isActive = :isActive',
+      {
+        isActive: true,
+      },
+    );
   });
 
   it('applies type filter', async () => {

@@ -34,7 +34,9 @@ describe('AuthService', () => {
   let userHelper: jest.Mocked<Partial<UserHelper>>;
   let jwtHelper: jest.Mocked<Partial<JwtHelper>>;
   let emailService: jest.Mocked<Partial<EmailService>>;
-  let refreshTokenRepoOps: jest.Mocked<Partial<RefreshTokenRepositoryOperations>>;
+  let refreshTokenRepoOps: jest.Mocked<
+    Partial<RefreshTokenRepositoryOperations>
+  >;
   let auditLogService: jest.Mocked<Partial<AuditLogService>>;
   let setupTotpProvider: jest.Mocked<Partial<SetupTotpProvider>>;
   let verifyTotpProvider: jest.Mocked<Partial<VerifyTotpProvider>>;
@@ -212,7 +214,9 @@ describe('AuthService', () => {
       userRepository.findOne.mockResolvedValue(null);
       userHelper.isValidPassword.mockReturnValue(true);
       userHelper.hashPassword.mockResolvedValue('hashed');
-      userHelper.formatUserResponse.mockReturnValue({ role: UserRole.ADMIN } as any);
+      userHelper.formatUserResponse.mockReturnValue({
+        role: UserRole.ADMIN,
+      } as any);
       userRepository.create.mockReturnValue(makeUser({ role: UserRole.ADMIN }));
       userRepository.save.mockResolvedValue(makeUser({ role: UserRole.ADMIN }));
       jwtHelper.generateAccessToken.mockReturnValue('admin-token');

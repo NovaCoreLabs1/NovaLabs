@@ -35,11 +35,7 @@ describe('FindBookingsProvider', () => {
     it('filters by userId for regular users', async () => {
       const qb = mockQueryBuilder({ total: 1, data: [{ id: 'booking-1' }] });
 
-      const result = await provider.findAll(
-        {},
-        'user-1',
-        UserRole.USER,
-      );
+      const result = await provider.findAll({}, 'user-1', UserRole.USER);
 
       expect(qb.where).toHaveBeenCalledWith('booking.userId = :userId', {
         userId: 'user-1',
@@ -78,10 +74,9 @@ describe('FindBookingsProvider', () => {
         UserRole.ADMIN,
       );
 
-      expect(qb.andWhere).toHaveBeenCalledWith(
-        'booking.status = :status',
-        { status: BookingStatus.PENDING },
-      );
+      expect(qb.andWhere).toHaveBeenCalledWith('booking.status = :status', {
+        status: BookingStatus.PENDING,
+      });
     });
 
     it('applies workspaceId filter', async () => {
@@ -112,10 +107,9 @@ describe('FindBookingsProvider', () => {
         'booking.startDate >= :startDate',
         { startDate: '2024-01-01' },
       );
-      expect(qb.andWhere).toHaveBeenCalledWith(
-        'booking.endDate <= :endDate',
-        { endDate: '2024-01-31' },
-      );
+      expect(qb.andWhere).toHaveBeenCalledWith('booking.endDate <= :endDate', {
+        endDate: '2024-01-31',
+      });
     });
 
     it('applies pagination', async () => {
@@ -138,7 +132,11 @@ describe('FindBookingsProvider', () => {
       const booking = { id: 'booking-1', userId: 'user-1' };
       bookingsRepository.findOne.mockResolvedValue(booking);
 
-      const result = await provider.findById('booking-1', 'user-1', UserRole.USER);
+      const result = await provider.findById(
+        'booking-1',
+        'user-1',
+        UserRole.USER,
+      );
       expect(result).toEqual(booking);
     });
 
@@ -146,7 +144,11 @@ describe('FindBookingsProvider', () => {
       const booking = { id: 'booking-1', userId: 'user-2' };
       bookingsRepository.findOne.mockResolvedValue(booking);
 
-      const result = await provider.findById('booking-1', 'admin-1', UserRole.ADMIN);
+      const result = await provider.findById(
+        'booking-1',
+        'admin-1',
+        UserRole.ADMIN,
+      );
       expect(result).toEqual(booking);
     });
 

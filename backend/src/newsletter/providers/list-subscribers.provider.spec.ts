@@ -79,10 +79,9 @@ describe('ListNewsletterSubscribersProvider', () => {
 
       await provider.execute({ searchTerm: 'alice' });
 
-      expect(qb.andWhere).toHaveBeenCalledWith(
-        'LOWER(s.email) LIKE :email',
-        { email: '%alice%' },
-      );
+      expect(qb.andWhere).toHaveBeenCalledWith('LOWER(s.email) LIKE :email', {
+        email: '%alice%',
+      });
     });
 
     it('filters by active status', async () => {

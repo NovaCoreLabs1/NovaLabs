@@ -27,7 +27,9 @@ describe('FindOneUserByEmailProvider', () => {
       ],
     }).compile();
 
-    provider = module.get<FindOneUserByEmailProvider>(FindOneUserByEmailProvider);
+    provider = module.get<FindOneUserByEmailProvider>(
+      FindOneUserByEmailProvider,
+    );
   });
 
   it('should be defined', () => {
@@ -49,17 +51,15 @@ describe('FindOneUserByEmailProvider', () => {
     it('throws UnauthorizedException when user not found', async () => {
       usersRepository.findOne.mockResolvedValue(null);
 
-      await expect(
-        provider.getUser('unknown@example.com'),
-      ).rejects.toThrow(UnauthorizedException);
+      await expect(provider.getUser('unknown@example.com')).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
 
     it('throws InternalServerErrorException when repository fails', async () => {
       usersRepository.findOne.mockRejectedValue(new Error('DB error'));
 
-      await expect(
-        provider.getUser('alice@example.com'),
-      ).rejects.toThrow(
+      await expect(provider.getUser('alice@example.com')).rejects.toThrow(
         'Error retrieving user details: Internal server error',
       );
     });

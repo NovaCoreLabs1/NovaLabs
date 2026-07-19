@@ -23,8 +23,12 @@ describe('GenerateInvoiceProvider', () => {
     usersRepository = { findOne: jest.fn() };
     workspacesRepository = { findOne: jest.fn() };
     dataSource = { query: jest.fn() };
-    emailService = { sendInvoiceReadyEmail: jest.fn().mockResolvedValue(undefined) };
-    pdfInvoiceProvider = { generate: jest.fn().mockResolvedValue(Buffer.from('pdf')) };
+    emailService = {
+      sendInvoiceReadyEmail: jest.fn().mockResolvedValue(undefined),
+    };
+    pdfInvoiceProvider = {
+      generate: jest.fn().mockResolvedValue(Buffer.from('pdf')),
+    };
 
     provider = new GenerateInvoiceProvider(
       invoicesRepository,
@@ -52,9 +56,9 @@ describe('GenerateInvoiceProvider', () => {
     invoicesRepository.findOne.mockResolvedValue(null);
     paymentsRepository.findOne.mockResolvedValue(null);
 
-    await expect(
-      provider.generateForPayment('unknown'),
-    ).rejects.toThrow('not found');
+    await expect(provider.generateForPayment('unknown')).rejects.toThrow(
+      'not found',
+    );
   });
 
   it('generates invoice with proper line items and sequence', async () => {

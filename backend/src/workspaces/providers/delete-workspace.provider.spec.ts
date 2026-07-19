@@ -4,7 +4,9 @@ import { FindWorkspaceByIdProvider } from './find-workspace-by-id.provider';
 describe('DeleteWorkspaceProvider', () => {
   let provider: DeleteWorkspaceProvider;
   let workspacesRepository: any;
-  let findWorkspaceByIdProvider: jest.Mocked<Partial<FindWorkspaceByIdProvider>>;
+  let findWorkspaceByIdProvider: jest.Mocked<
+    Partial<FindWorkspaceByIdProvider>
+  >;
 
   beforeEach(() => {
     workspacesRepository = { save: jest.fn() };

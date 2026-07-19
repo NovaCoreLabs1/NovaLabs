@@ -20,7 +20,9 @@ describe('CreateBookingProvider', () => {
     bookingsRepository = { create: jest.fn(), save: jest.fn() };
     usersRepository = { findOne: jest.fn().mockResolvedValue(null) };
     pricingService = { calculateAmount: jest.fn() };
-    emailService = { sendBookingCreatedEmail: jest.fn().mockResolvedValue(undefined) };
+    emailService = {
+      sendBookingCreatedEmail: jest.fn().mockResolvedValue(undefined),
+    };
 
     mockManager = {
       createQueryBuilder: jest.fn(),
@@ -55,9 +57,7 @@ describe('CreateBookingProvider', () => {
     const qb = {
       select: jest.fn().mockReturnThis(),
       where: jest.fn().mockReturnThis(),
-      andWhere: jest
-        .fn()
-        .mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
       getRawOne: jest.fn().mockResolvedValue({ booked: String(booked) }),
     };
     mockManager.createQueryBuilder.mockReturnValueOnce(qb);
@@ -98,7 +98,12 @@ describe('CreateBookingProvider', () => {
   });
 
   it('throws ConflictException when insufficient seats available', async () => {
-    mockWorkspaceQuery({ id: 'ws-1', isActive: true, totalSeats: 10, hourlyRate: 50000 });
+    mockWorkspaceQuery({
+      id: 'ws-1',
+      isActive: true,
+      totalSeats: 10,
+      hourlyRate: 50000,
+    });
     mockOverlapQuery(9); // 9 already booked, requesting 2, total 11 > 10
 
     await expect(provider.create(validDto, 'user-1')).rejects.toThrow(
@@ -119,7 +124,10 @@ describe('CreateBookingProvider', () => {
 
     pricingService.calculateAmount.mockReturnValue(800000);
     mockManager.create.mockReturnValue({ id: 'booking-1' });
-    mockManager.save.mockResolvedValue({ id: 'booking-1', workspaceId: 'ws-1' });
+    mockManager.save.mockResolvedValue({
+      id: 'booking-1',
+      workspaceId: 'ws-1',
+    });
 
     const result = await provider.create(validDto, 'user-1');
 

@@ -99,9 +99,7 @@ describe('NotificationsGateway', () => {
     it('logs disconnection', () => {
       const mockClient = { id: 'socket-1' };
       // Should not throw
-      expect(() =>
-        gateway.handleDisconnect(mockClient as any),
-      ).not.toThrow();
+      expect(() => gateway.handleDisconnect(mockClient as any)).not.toThrow();
     });
   });
 });

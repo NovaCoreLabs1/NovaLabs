@@ -84,7 +84,11 @@ describe('InvoicesService', () => {
       findProvider.findById.mockResolvedValue(invoice as any);
       pdfProvider.generate.mockResolvedValue(Buffer.from('pdf-content'));
 
-      const result = await service.downloadPdf('inv-1', 'user-1', UserRole.USER);
+      const result = await service.downloadPdf(
+        'inv-1',
+        'user-1',
+        UserRole.USER,
+      );
 
       expect(result.pdf).toBeDefined();
       expect(result.invoiceNumber).toBe('INV-00001');

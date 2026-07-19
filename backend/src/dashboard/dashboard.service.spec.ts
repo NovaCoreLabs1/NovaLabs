@@ -197,13 +197,16 @@ describe('DashboardService', () => {
       const result = await service.getAdminAnalytics('from', 'to');
 
       expect(result).toEqual(data);
-      expect(
-        adminAnalyticsProvider.getFullAdminDashboard,
-      ).toHaveBeenCalledWith('from', 'to');
+      expect(adminAnalyticsProvider.getFullAdminDashboard).toHaveBeenCalledWith(
+        'from',
+        'to',
+      );
     });
 
     it('getMemberDashboard delegates to MemberDashboardProvider', async () => {
-      memberDashboardProvider.getMemberDashboard.mockResolvedValue({ stats: {} });
+      memberDashboardProvider.getMemberDashboard.mockResolvedValue({
+        stats: {},
+      });
 
       const result = await service.getMemberDashboard('user-1');
 

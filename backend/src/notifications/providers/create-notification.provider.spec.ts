@@ -13,10 +13,7 @@ describe('CreateNotificationProvider', () => {
     };
     gateway = { sendToUser: jest.fn() };
 
-    provider = new CreateNotificationProvider(
-      notificationsRepository,
-      gateway,
-    );
+    provider = new CreateNotificationProvider(notificationsRepository, gateway);
   });
 
   const input = {

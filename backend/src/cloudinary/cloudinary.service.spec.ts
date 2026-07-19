@@ -48,7 +48,8 @@ describe('CloudinaryService', () => {
       cloudinaryUploader.upload_stream.mockImplementation(
         (_options: any, callback: Function) => {
           callback(null, {
-            secure_url: 'https://res.cloudinary.com/demo/image/upload/v1/profile-pictures/abc123',
+            secure_url:
+              'https://res.cloudinary.com/demo/image/upload/v1/profile-pictures/abc123',
             public_id: 'profile-pictures/abc123',
           });
           return mockUploadStream;
@@ -66,7 +67,8 @@ describe('CloudinaryService', () => {
       cloudinaryUploader.upload_stream.mockImplementation(
         (_options: any, callback: Function) => {
           callback(null, {
-            secure_url: 'https://res.cloudinary.com/demo/image/upload/v1/custom/test123',
+            secure_url:
+              'https://res.cloudinary.com/demo/image/upload/v1/custom/test123',
             public_id: 'custom/test123',
           });
           return mockUploadStream;
@@ -106,13 +108,11 @@ describe('CloudinaryService', () => {
     });
 
     it('throws BadRequestException on delete error', async () => {
-      cloudinaryUploader.destroy.mockRejectedValue(
-        new Error('Delete failed'),
-      );
+      cloudinaryUploader.destroy.mockRejectedValue(new Error('Delete failed'));
 
-      await expect(service.deleteImage('profile-pictures/abc123')).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(
+        service.deleteImage('profile-pictures/abc123'),
+      ).rejects.toThrow(BadRequestException);
     });
   });
 

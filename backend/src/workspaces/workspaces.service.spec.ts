@@ -15,7 +15,9 @@ describe('WorkspacesService', () => {
   let findByIdProvider: jest.Mocked<Partial<FindWorkspaceByIdProvider>>;
   let updateProvider: jest.Mocked<Partial<UpdateWorkspaceProvider>>;
   let deleteProvider: jest.Mocked<Partial<DeleteWorkspaceProvider>>;
-  let checkAvailabilityProvider: jest.Mocked<Partial<CheckWorkspaceAvailabilityProvider>>;
+  let checkAvailabilityProvider: jest.Mocked<
+    Partial<CheckWorkspaceAvailabilityProvider>
+  >;
 
   beforeEach(async () => {
     createProvider = { create: jest.fn() };
@@ -101,7 +103,10 @@ describe('WorkspacesService', () => {
   describe('update', () => {
     it('delegates to UpdateWorkspaceProvider', async () => {
       const dto = { name: 'Updated' } as any;
-      updateProvider.update.mockResolvedValue({ id: 'ws-1', name: 'Updated' } as any);
+      updateProvider.update.mockResolvedValue({
+        id: 'ws-1',
+        name: 'Updated',
+      } as any);
 
       const result = await service.update('ws-1', dto);
       expect(result).toEqual({ id: 'ws-1', name: 'Updated' });
@@ -139,7 +144,10 @@ describe('WorkspacesService', () => {
       });
 
       await service.checkAvailability('ws-1');
-      expect(checkAvailabilityProvider.check).toHaveBeenCalledWith('ws-1', undefined);
+      expect(checkAvailabilityProvider.check).toHaveBeenCalledWith(
+        'ws-1',
+        undefined,
+      );
     });
   });
 });

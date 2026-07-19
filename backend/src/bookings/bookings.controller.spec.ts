@@ -80,7 +80,11 @@ describe('BookingsController', () => {
       };
       service.findAll.mockResolvedValue(paginated as any);
 
-      const result = await controller.findAll({} as any, 'user-1', UserRole.USER);
+      const result = await controller.findAll(
+        {} as any,
+        'user-1',
+        UserRole.USER,
+      );
       expect(result).toEqual({
         message: 'Bookings retrieved successfully',
         ...paginated,
@@ -103,7 +107,12 @@ describe('BookingsController', () => {
       );
       expect(result).toEqual({
         message: 'Price estimate calculated',
-        data: { amountKobo: 400000, amountNaira: 4000, days: 1, discountPct: 0 },
+        data: {
+          amountKobo: 400000,
+          amountNaira: 4000,
+          days: 1,
+          discountPct: 0,
+        },
       });
       expect(service.calculatePrice).toHaveBeenCalledWith(
         50000,
@@ -119,12 +128,20 @@ describe('BookingsController', () => {
     it('returns booking by id', async () => {
       service.findById.mockResolvedValue({ id: 'booking-1' } as any);
 
-      const result = await controller.findOne('booking-1', 'user-1', UserRole.USER);
+      const result = await controller.findOne(
+        'booking-1',
+        'user-1',
+        UserRole.USER,
+      );
       expect(result).toEqual({
         message: 'Booking retrieved successfully',
         data: { id: 'booking-1' },
       });
-      expect(service.findById).toHaveBeenCalledWith('booking-1', 'user-1', UserRole.USER);
+      expect(service.findById).toHaveBeenCalledWith(
+        'booking-1',
+        'user-1',
+        UserRole.USER,
+      );
     });
   });
 
@@ -145,12 +162,20 @@ describe('BookingsController', () => {
     it('cancels booking', async () => {
       service.cancel.mockResolvedValue({ id: 'booking-1' } as any);
 
-      const result = await controller.cancel('booking-1', 'user-1', UserRole.USER);
+      const result = await controller.cancel(
+        'booking-1',
+        'user-1',
+        UserRole.USER,
+      );
       expect(result).toEqual({
         message: 'Booking cancelled successfully',
         data: { id: 'booking-1' },
       });
-      expect(service.cancel).toHaveBeenCalledWith('booking-1', 'user-1', UserRole.USER);
+      expect(service.cancel).toHaveBeenCalledWith(
+        'booking-1',
+        'user-1',
+        UserRole.USER,
+      );
     });
   });
 

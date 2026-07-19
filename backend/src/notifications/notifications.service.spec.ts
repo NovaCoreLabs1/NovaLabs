@@ -36,7 +36,10 @@ describe('NotificationsService', () => {
         title: 'Test',
         message: 'Hello',
       };
-      createProvider.create.mockResolvedValue({ id: 'notif-1', ...input } as any);
+      createProvider.create.mockResolvedValue({
+        id: 'notif-1',
+        ...input,
+      } as any);
 
       const result = await service.create(input);
       expect(result).toEqual({ id: 'notif-1', ...input });

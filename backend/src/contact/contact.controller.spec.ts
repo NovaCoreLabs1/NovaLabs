@@ -42,7 +42,10 @@ describe('ContactController', () => {
       expect(result).toEqual({
         message: 'Your message has been sent successfully.',
       });
-      expect(contactService.submit).toHaveBeenCalledWith(submitDto, '192.168.1.1');
+      expect(contactService.submit).toHaveBeenCalledWith(
+        submitDto,
+        '192.168.1.1',
+      );
     });
 
     it('extracts IP from x-forwarded-for header', async () => {

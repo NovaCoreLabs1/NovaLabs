@@ -2,7 +2,11 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { NewsletterProvider } from './subscription.provider';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { NewsletterSubscriber } from '../entities/newsletter.entity';
-import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
 import { EmailService } from '../../email/email.service';
 
 describe('NewsletterProvider', () => {
@@ -120,7 +124,11 @@ describe('NewsletterProvider', () => {
     it('trims and lowercases email', async () => {
       repo.findOne.mockResolvedValue(null);
       repo.create.mockReturnValue({ email: 'alice@example.com' });
-      repo.save.mockResolvedValue({ id: 's-1', email: 'alice@example.com', isActive: false });
+      repo.save.mockResolvedValue({
+        id: 's-1',
+        email: 'alice@example.com',
+        isActive: false,
+      });
       emailService.sendTemplateEmail.mockResolvedValue(true);
 
       const result = await provider.subscribe({

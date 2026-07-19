@@ -86,7 +86,10 @@ describe('WorkspacesController', () => {
 
   describe('findOne', () => {
     it('returns workspace by id with wrapped response', async () => {
-      service.findById.mockResolvedValue({ id: 'ws-1', name: 'Hot Desk A' } as any);
+      service.findById.mockResolvedValue({
+        id: 'ws-1',
+        name: 'Hot Desk A',
+      } as any);
 
       const result = await controller.findOne('ws-1');
       expect(result).toEqual({

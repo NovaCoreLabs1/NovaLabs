@@ -33,7 +33,10 @@ describe('BookingsService', () => {
       providers: [
         BookingsService,
         { provide: CreateBookingProvider, useValue: createProvider },
-        { provide: CreatePublicDayPassProvider, useValue: publicDayPassProvider },
+        {
+          provide: CreatePublicDayPassProvider,
+          useValue: publicDayPassProvider,
+        },
         { provide: ConfirmBookingProvider, useValue: confirmProvider },
         { provide: CancelBookingProvider, useValue: cancelProvider },
         { provide: CompleteBookingProvider, useValue: completeProvider },
@@ -120,7 +123,11 @@ describe('BookingsService', () => {
 
       const result = await service.findAll(query, 'user-1', UserRole.USER);
       expect(result.total).toBe(0);
-      expect(findProvider.findAll).toHaveBeenCalledWith(query, 'user-1', UserRole.USER);
+      expect(findProvider.findAll).toHaveBeenCalledWith(
+        query,
+        'user-1',
+        UserRole.USER,
+      );
     });
   });
 
@@ -128,7 +135,11 @@ describe('BookingsService', () => {
     it('delegates to FindBookingsProvider', async () => {
       findProvider.findById.mockResolvedValue({ id: 'booking-1' } as any);
 
-      const result = await service.findById('booking-1', 'user-1', UserRole.USER);
+      const result = await service.findById(
+        'booking-1',
+        'user-1',
+        UserRole.USER,
+      );
       expect(result).toEqual({ id: 'booking-1' });
       expect(findProvider.findById).toHaveBeenCalledWith(
         'booking-1',
@@ -162,11 +173,16 @@ describe('BookingsService', () => {
 
   describe('getPlanSummary', () => {
     it('delegates to PricingService', () => {
-      pricingService.getPlanSummary.mockReturnValue({ days: 22, discountPct: 10 });
+      pricingService.getPlanSummary.mockReturnValue({
+        days: 22,
+        discountPct: 10,
+      });
 
       const result = service.getPlanSummary(PlanType.MONTHLY);
       expect(result).toEqual({ days: 22, discountPct: 10 });
-      expect(pricingService.getPlanSummary).toHaveBeenCalledWith(PlanType.MONTHLY);
+      expect(pricingService.getPlanSummary).toHaveBeenCalledWith(
+        PlanType.MONTHLY,
+      );
     });
   });
 });

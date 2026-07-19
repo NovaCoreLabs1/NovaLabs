@@ -141,9 +141,7 @@ describe('UploadProfilePictureProvider', () => {
         'profile-pictures/old-pic',
       );
       cloudinaryService.deleteImage.mockResolvedValue({ result: 'ok' });
-      usersRepository.save.mockImplementation((user) =>
-        Promise.resolve(user),
-      );
+      usersRepository.save.mockImplementation((user) => Promise.resolve(user));
 
       await provider.uploadProfilePicture(
         'user-1',
@@ -175,9 +173,7 @@ describe('UploadProfilePictureProvider', () => {
       cloudinaryService.deleteImage.mockRejectedValue(
         new Error('Delete failed'),
       );
-      usersRepository.save.mockImplementation((user) =>
-        Promise.resolve(user),
-      );
+      usersRepository.save.mockImplementation((user) => Promise.resolve(user));
 
       const result = await provider.uploadProfilePicture(
         'user-1',

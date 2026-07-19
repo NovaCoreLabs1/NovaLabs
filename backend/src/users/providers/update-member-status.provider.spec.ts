@@ -32,7 +32,9 @@ describe('UpdateMemberStatusProvider', () => {
       ],
     }).compile();
 
-    provider = module.get<UpdateMemberStatusProvider>(UpdateMemberStatusProvider);
+    provider = module.get<UpdateMemberStatusProvider>(
+      UpdateMemberStatusProvider,
+    );
   });
 
   it('should be defined', () => {

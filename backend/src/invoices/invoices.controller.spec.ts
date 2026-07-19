@@ -36,7 +36,11 @@ describe('InvoicesController', () => {
       } as any;
       service.findAll.mockResolvedValue(paginated);
 
-      const result = await controller.findAll({} as any, 'user-1', UserRole.USER);
+      const result = await controller.findAll(
+        {} as any,
+        'user-1',
+        UserRole.USER,
+      );
       expect(result).toEqual({
         message: 'Invoices retrieved successfully',
         ...paginated,
@@ -54,7 +58,11 @@ describe('InvoicesController', () => {
         message: 'Invoice retrieved successfully',
         data: { id: 'inv-1' },
       });
-      expect(service.findById).toHaveBeenCalledWith('inv-1', 'user-1', UserRole.USER);
+      expect(service.findById).toHaveBeenCalledWith(
+        'inv-1',
+        'user-1',
+        UserRole.USER,
+      );
     });
   });
 });

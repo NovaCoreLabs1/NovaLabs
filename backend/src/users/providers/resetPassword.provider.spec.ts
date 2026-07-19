@@ -86,9 +86,7 @@ describe('ResetPasswordProvider', () => {
       expect(
         refreshTokenRepositoryOperations.revokeAllRefreshTokens,
       ).toHaveBeenCalledWith('user-1');
-      expect(
-        emailService.sendPasswordResetSuccessEmail,
-      ).toHaveBeenCalledWith(
+      expect(emailService.sendPasswordResetSuccessEmail).toHaveBeenCalledWith(
         'alice@example.com',
         'Alice Smith',
       );
@@ -109,9 +107,9 @@ describe('ResetPasswordProvider', () => {
       };
       usersRepository.findOne.mockResolvedValue(expiredUser);
 
-      await expect(
-        provider.execute(rawToken, newPassword),
-      ).rejects.toThrow(BadRequestException);
+      await expect(provider.execute(rawToken, newPassword)).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('throws BadRequestException when success email fails to send', async () => {
@@ -123,17 +121,17 @@ describe('ResetPasswordProvider', () => {
       );
       emailService.sendPasswordResetSuccessEmail.mockResolvedValue(false);
 
-      await expect(
-        provider.execute(rawToken, newPassword),
-      ).rejects.toThrow(BadRequestException);
+      await expect(provider.execute(rawToken, newPassword)).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('throws InternalServerErrorException when repository fails', async () => {
       usersRepository.findOne.mockRejectedValue(new Error('DB error'));
 
-      await expect(
-        provider.execute(rawToken, newPassword),
-      ).rejects.toThrow('Failed to reset password: Internal server error');
+      await expect(provider.execute(rawToken, newPassword)).rejects.toThrow(
+        'Failed to reset password: Internal server error',
+      );
     });
   });
 });

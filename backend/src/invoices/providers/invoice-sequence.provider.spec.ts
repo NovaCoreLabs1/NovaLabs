@@ -24,9 +24,7 @@ describe('InvoiceSequenceProvider', () => {
       dataSource.query.mockRejectedValue(new Error('Connection failed'));
 
       // Should not throw
-      await expect(
-        provider.onApplicationBootstrap(),
-      ).resolves.toBeUndefined();
+      await expect(provider.onApplicationBootstrap()).resolves.toBeUndefined();
     });
   });
 });

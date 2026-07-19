@@ -5,7 +5,9 @@ import { WorkspaceType } from '../enums/workspace-type.enum';
 describe('UpdateWorkspaceProvider', () => {
   let provider: UpdateWorkspaceProvider;
   let workspacesRepository: any;
-  let findWorkspaceByIdProvider: jest.Mocked<Partial<FindWorkspaceByIdProvider>>;
+  let findWorkspaceByIdProvider: jest.Mocked<
+    Partial<FindWorkspaceByIdProvider>
+  >;
 
   beforeEach(() => {
     workspacesRepository = { save: jest.fn() };
@@ -38,7 +40,9 @@ describe('UpdateWorkspaceProvider', () => {
     });
     workspacesRepository.save.mockImplementation((ws) => Promise.resolve(ws));
 
-    const result = await provider.update('ws-1', { name: 'Updated Desk' } as any);
+    const result = await provider.update('ws-1', {
+      name: 'Updated Desk',
+    } as any);
 
     expect(result.name).toBe('Updated Desk');
     expect(workspacesRepository.save).toHaveBeenCalled();

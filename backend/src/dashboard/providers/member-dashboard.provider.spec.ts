@@ -182,10 +182,7 @@ describe('MemberDashboardProvider', () => {
         [{ id: 'booking-1' }],
         1,
       ]);
-      paymentsRepository.findAndCount.mockResolvedValue([
-        [{ id: 'pay-1' }],
-        1,
-      ]);
+      paymentsRepository.findAndCount.mockResolvedValue([[{ id: 'pay-1' }], 1]);
 
       const result = await provider.getMemberDashboard('user-1');
 

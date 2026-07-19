@@ -91,11 +91,7 @@ describe('FindInvoicesProvider', () => {
     it('caps limit to 100', async () => {
       const qb = mockQueryBuilder({ total: 0, data: [] });
 
-      await provider.findAll(
-        { limit: 500 },
-        'admin-1',
-        UserRole.ADMIN,
-      );
+      await provider.findAll({ limit: 500 }, 'admin-1', UserRole.ADMIN);
 
       expect(qb.take).toHaveBeenCalledWith(100);
     });
@@ -103,16 +99,24 @@ describe('FindInvoicesProvider', () => {
 
   describe('findById', () => {
     it('returns invoice when found and owned by user', async () => {
-      const qb = mockQueryBuilder({ invoice: { id: 'inv-1', userId: 'user-1' } });
+      const qb = mockQueryBuilder({
+        invoice: { id: 'inv-1', userId: 'user-1' },
+      });
 
       const result = await provider.findById('inv-1', 'user-1', UserRole.USER);
       expect(result).toEqual({ id: 'inv-1', userId: 'user-1' });
     });
 
     it('returns invoice for admin regardless of ownership', async () => {
-      const qb = mockQueryBuilder({ invoice: { id: 'inv-1', userId: 'user-2' } });
+      const qb = mockQueryBuilder({
+        invoice: { id: 'inv-1', userId: 'user-2' },
+      });
 
-      const result = await provider.findById('inv-1', 'admin-1', UserRole.ADMIN);
+      const result = await provider.findById(
+        'inv-1',
+        'admin-1',
+        UserRole.ADMIN,
+      );
       expect(result).toEqual({ id: 'inv-1', userId: 'user-2' });
     });
 

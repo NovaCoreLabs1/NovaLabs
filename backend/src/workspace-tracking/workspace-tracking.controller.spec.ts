@@ -19,9 +19,7 @@ describe('WorkspaceTrackingController', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [WorkspaceTrackingController],
-      providers: [
-        { provide: WorkspaceTrackingService, useValue: service },
-      ],
+      providers: [{ provide: WorkspaceTrackingService, useValue: service }],
     }).compile();
 
     controller = module.get<WorkspaceTrackingController>(

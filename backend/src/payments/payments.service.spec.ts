@@ -66,11 +66,7 @@ describe('PaymentsService', () => {
     it('delegates to RefundPaymentProvider', async () => {
       const payment = { id: 'p1', status: 'refunded' } as any;
       refundProvider.refund.mockResolvedValue(payment);
-      const result = await service.refund(
-        'p1',
-        'user-1',
-        UserRole.SUPER_ADMIN,
-      );
+      const result = await service.refund('p1', 'user-1', UserRole.SUPER_ADMIN);
       expect(refundProvider.refund).toHaveBeenCalledWith(
         'p1',
         'user-1',
@@ -90,7 +86,11 @@ describe('PaymentsService', () => {
         limit: 20,
       });
       const result = await service.findAll(query, 'user-1', UserRole.USER);
-      expect(findProvider.findAll).toHaveBeenCalledWith(query, 'user-1', UserRole.USER);
+      expect(findProvider.findAll).toHaveBeenCalledWith(
+        query,
+        'user-1',
+        UserRole.USER,
+      );
       expect(result.total).toBe(0);
     });
   });

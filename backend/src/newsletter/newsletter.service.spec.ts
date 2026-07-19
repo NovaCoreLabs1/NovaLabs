@@ -46,7 +46,10 @@ describe('NewsletterService', () => {
       };
       subscriptionProvider.subscribe.mockResolvedValue(result);
 
-      const response = await service.subscribe('alice@example.com', '192.168.1.1');
+      const response = await service.subscribe(
+        'alice@example.com',
+        '192.168.1.1',
+      );
 
       expect(response).toEqual(result);
       expect(subscriptionProvider.subscribe).toHaveBeenCalledWith({

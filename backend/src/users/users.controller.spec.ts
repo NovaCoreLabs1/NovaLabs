@@ -55,7 +55,10 @@ describe('UsersController', () => {
 
       expect(result).toEqual({
         message: 'Profile picture updated successfully',
-        data: { id: 'user-1', profilePicture: 'https://cloudinary.com/pic.jpg' },
+        data: {
+          id: 'user-1',
+          profilePicture: 'https://cloudinary.com/pic.jpg',
+        },
       });
       expect(usersService.uploadUserProfilePicture).toHaveBeenCalledWith(
         'user-1',

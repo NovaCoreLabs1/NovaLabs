@@ -60,8 +60,14 @@ describe('computeProfileCompleteness', () => {
   });
 
   it('does not add points for INACTIVE or SUSPENDED status', () => {
-    const inactive = { ...baseUser, membershipStatus: MembershipStatus.INACTIVE };
-    const suspended = { ...baseUser, membershipStatus: MembershipStatus.SUSPENDED };
+    const inactive = {
+      ...baseUser,
+      membershipStatus: MembershipStatus.INACTIVE,
+    };
+    const suspended = {
+      ...baseUser,
+      membershipStatus: MembershipStatus.SUSPENDED,
+    };
     expect(computeProfileCompleteness(inactive as User)).toBe(0);
     expect(computeProfileCompleteness(suspended as User)).toBe(0);
   });

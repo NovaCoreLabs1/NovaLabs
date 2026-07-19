@@ -70,7 +70,10 @@ describe('DashboardController', () => {
 
   describe('getAdminUsers', () => {
     it('returns paginated users with defaults', async () => {
-      const data = { data: [], meta: { total: 0, page: 1, limit: 10, totalPages: 0 } };
+      const data = {
+        data: [],
+        meta: { total: 0, page: 1, limit: 10, totalPages: 0 },
+      };
       dashboardService.getUsers.mockResolvedValue(data);
 
       const result = await controller.getAdminUsers('1', '10');
@@ -101,7 +104,10 @@ describe('DashboardController', () => {
     it('returns admin analytics', async () => {
       dashboardService.getAdminAnalytics.mockResolvedValue({ revenue: {} });
 
-      const result = await controller.getAdminAnalytics('2024-01-01', '2024-01-31');
+      const result = await controller.getAdminAnalytics(
+        '2024-01-01',
+        '2024-01-31',
+      );
 
       expect(result).toEqual({ success: true, data: { revenue: {} } });
       expect(dashboardService.getAdminAnalytics).toHaveBeenCalledWith(
@@ -144,7 +150,10 @@ describe('DashboardController', () => {
 
       const result = await controller.getMemberPayments('user-1', '1', '10');
 
-      expect(result).toEqual({ success: true, ...{ data: [], meta: { total: 0 } } });
+      expect(result).toEqual({
+        success: true,
+        ...{ data: [], meta: { total: 0 } },
+      });
     });
   });
 
@@ -157,7 +166,10 @@ describe('DashboardController', () => {
 
       const result = await controller.getMemberInvoices('user-1', '1', '10');
 
-      expect(result).toEqual({ success: true, ...{ data: [], meta: { total: 0 } } });
+      expect(result).toEqual({
+        success: true,
+        ...{ data: [], meta: { total: 0 } },
+      });
     });
   });
 
@@ -168,7 +180,10 @@ describe('DashboardController', () => {
       const result = await controller.getMemberCheckIns('user-1', '10');
 
       expect(result).toEqual({ success: true, data: [] });
-      expect(dashboardService.getMemberCheckIns).toHaveBeenCalledWith('user-1', 10);
+      expect(dashboardService.getMemberCheckIns).toHaveBeenCalledWith(
+        'user-1',
+        10,
+      );
     });
   });
 });

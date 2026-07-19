@@ -59,7 +59,9 @@ describe('WorkspaceTrackingService', () => {
 
   describe('getActiveCheckIn', () => {
     it('delegates to CheckInProvider.getActiveCheckIn', async () => {
-      checkInProvider.getActiveCheckIn.mockResolvedValue({ id: 'log-1' } as any);
+      checkInProvider.getActiveCheckIn.mockResolvedValue({
+        id: 'log-1',
+      } as any);
 
       const result = await service.getActiveCheckIn('user-1', 'ws-1');
       expect(result).toEqual({ id: 'log-1' });
@@ -129,7 +131,9 @@ describe('WorkspaceTrackingService', () => {
 
   describe('getRecentLogs', () => {
     it('delegates to OccupancyProvider.getRecentLogs', async () => {
-      occupancyProvider.getRecentLogs.mockResolvedValue([{ id: 'log-1' }] as any);
+      occupancyProvider.getRecentLogs.mockResolvedValue([
+        { id: 'log-1' },
+      ] as any);
 
       const result = await service.getRecentLogs('ws-1', 20);
       expect(result).toEqual([{ id: 'log-1' }]);

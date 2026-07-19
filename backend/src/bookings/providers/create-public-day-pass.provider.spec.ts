@@ -103,9 +103,7 @@ describe('CreatePublicDayPassProvider', () => {
     mockWorkspaceQuery({ id: 'ws-1', isActive: true, totalSeats: 10 });
     mockOverlapQuery(10);
 
-    await expect(provider.create(validDto)).rejects.toThrow(
-      ConflictException,
-    );
+    await expect(provider.create(validDto)).rejects.toThrow(ConflictException);
   });
 
   it('creates a day-pass booking with payment initialization', async () => {

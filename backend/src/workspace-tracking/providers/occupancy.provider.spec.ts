@@ -61,9 +61,11 @@ describe('OccupancyProvider', () => {
       const workspaceQb = {
         where: jest.fn().mockReturnThis(),
         andWhere: jest.fn().mockReturnThis(),
-        getMany: jest.fn().mockResolvedValue([
-          { id: 'ws-1', name: 'Main Hall', totalSeats: 50 },
-        ]),
+        getMany: jest
+          .fn()
+          .mockResolvedValue([
+            { id: 'ws-1', name: 'Main Hall', totalSeats: 50 },
+          ]),
       };
       workspacesRepository.createQueryBuilder.mockReturnValue(workspaceQb);
       logsRepository.count.mockResolvedValueOnce(5);
@@ -80,9 +82,11 @@ describe('OccupancyProvider', () => {
       const workspaceQb = {
         where: jest.fn().mockReturnThis(),
         andWhere: jest.fn().mockReturnThis(),
-        getMany: jest.fn().mockResolvedValue([
-          { id: 'ws-3', name: 'Open Area', totalSeats: 0 },
-        ]),
+        getMany: jest
+          .fn()
+          .mockResolvedValue([
+            { id: 'ws-3', name: 'Open Area', totalSeats: 0 },
+          ]),
       };
       workspacesRepository.createQueryBuilder.mockReturnValue(workspaceQb);
       logsRepository.count.mockResolvedValueOnce(0);
@@ -261,10 +265,9 @@ describe('OccupancyProvider', () => {
       qb.getMany.mockResolvedValue([]);
 
       await provider.getRecentLogs('ws-1', 20);
-      expect(qb.where).toHaveBeenCalledWith(
-        'log.workspaceId = :workspaceId',
-        { workspaceId: 'ws-1' },
-      );
+      expect(qb.where).toHaveBeenCalledWith('log.workspaceId = :workspaceId', {
+        workspaceId: 'ws-1',
+      });
     });
 
     it('returns empty array when no logs exist', async () => {
