@@ -70,7 +70,6 @@ export class AuditLogInterceptor implements NestInterceptor {
               error: err.message,
             },
           });
-          throw err;
         },
       }),
     );
