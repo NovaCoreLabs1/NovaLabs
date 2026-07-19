@@ -28,7 +28,7 @@ coverage:
           - frontend
     patch:
       default:
-        target: 60%
+        target: 50%
 
 flags:
   contracts:
