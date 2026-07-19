@@ -66,10 +66,19 @@ export class AuthService {
 
     const validPassword = this.userHelper.isValidPassword(
       createUserDto.password,
+      UserRole.USER,
     );
     if (!validPassword) {
       throw new ConflictException(UserMessages.IS_VALID_PASSWORD);
     }
+
+    const isBreached = await this.userHelper.checkPasswordBreached(
+      createUserDto.password,
+    );
+    if (isBreached) {
+      throw new ConflictException(UserMessages.PASSWORD_BREACHED);
+    }
+
     const hashedPassword = await this.userHelper.hashPassword(
       createUserDto.password,
     );
@@ -112,10 +121,19 @@ export class AuthService {
 
     const validPassword = this.userHelper.isValidPassword(
       createUserDto.password,
+      UserRole.ADMIN,
     );
     if (!validPassword) {
       throw new ConflictException(UserMessages.IS_VALID_PASSWORD);
     }
+
+    const isBreached = await this.userHelper.checkPasswordBreached(
+      createUserDto.password,
+    );
+    if (isBreached) {
+      throw new ConflictException(UserMessages.PASSWORD_BREACHED);
+    }
+
     const hashedPassword = await this.userHelper.hashPassword(
       createUserDto.password,
     );
@@ -462,8 +480,13 @@ export class AuthService {
       throw new UnauthorizedException(UserMessages.OTP_EXPIRED);
     }
 
-    if (!this.userHelper.isValidPassword(newPassword)) {
+    if (!this.userHelper.isValidPassword(newPassword, user.role)) {
       throw new BadRequestException(UserMessages.IS_VALID_PASSWORD);
+    }
+
+    const isBreached = await this.userHelper.checkPasswordBreached(newPassword);
+    if (isBreached) {
+      throw new BadRequestException(UserMessages.PASSWORD_BREACHED);
     }
 
     if (newPassword !== confirmNewPassword) {

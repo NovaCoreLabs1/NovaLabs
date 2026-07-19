@@ -21,6 +21,6 @@ export class CreateUserDto {
   lastname: string;
 
   @IsNotEmpty({ message: 'password can not be empty' })
-  @MinLength(6, { message: 'password must be at least 6 character long' })
+  @MinLength(8, { message: 'password must be at least 8 characters long' })
   password: string;
 }

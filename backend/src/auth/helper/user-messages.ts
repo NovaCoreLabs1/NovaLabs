@@ -13,7 +13,9 @@ export const UserMessages = {
   ACCESS_TOKEN_SECRET_NOT_SET:
     'ACCESS_TOKEN_SECRET environment variable is not defined',
   IS_VALID_PASSWORD:
-    'Password must be at least 8 characters long, contain uppercase and lowercase letters, and at least one digit.',
+    'Password does not meet the security policy. It must be at least 8 characters (12 for admin accounts), must not be a commonly-used password, and must draw from at least two character pools (e.g. letters and digits).',
+  PASSWORD_BREACHED:
+    'This password has appeared in a known data breach. Please choose a different password.',
   INVALID_OTP: 'Invalid otp code',
   OTP_EXPIRED: 'Otp code has Expired',
   EMAIL_REQUIRED: 'Email is required',
