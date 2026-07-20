@@ -6,6 +6,8 @@
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
     "start": "next start",
+    "e2e:install": "npx playwright install || true",
+    "test:e2e": "npx playwright test",
     "lint": "eslint"
   },
   "dependencies": {
@@ -34,6 +36,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
+    "@playwright/test": "^1.40.0",
     "@types/js-cookie": "^3.0.6",
     "@types/node": "^20",
     "@types/react": "^19",
