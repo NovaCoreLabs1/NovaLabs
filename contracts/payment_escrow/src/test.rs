@@ -622,3 +622,330 @@ fn test_set_dispute_window_applies_to_new_escrows() {
     // New escrow picks up the updated window
     assert_eq!(escrow.dispute_window, 172_800u64);
 }
+
+// ── Negative-path tests ──────────────────────────────────────────────────────
+
+#[test]
+#[should_panic(expected = "Error(Contract, #4)")]
+fn test_release_nonexistent_escrow_fails() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let token = Address::generate(&env);
+
+    let contract_id = setup_contract(&env);
+    let client = init(&env, &contract_id, &admin, &token);
+
+    // EscrowNotFound = 4
+    client.release(&admin, &String::from_str(&env, "no-such-escrow"));
+}
+
+#[test]
+#[should_panic(expected = "Error(Contract, #4)")]
+fn test_refund_nonexistent_escrow_fails() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let token = Address::generate(&env);
+
+    let contract_id = setup_contract(&env);
+    let client = init(&env, &contract_id, &admin, &token);
+
+    // EscrowNotFound = 4
+    client.refund(&admin, &String::from_str(&env, "no-such-escrow"));
+}
+
+#[test]
+#[should_panic(expected = "Error(Contract, #4)")]
+fn test_get_nonexistent_escrow_fails() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let token = Address::generate(&env);
+
+    let contract_id = setup_contract(&env);
+    let client = init(&env, &contract_id, &admin, &token);
+
+    // EscrowNotFound = 4
+    client.get_escrow(&String::from_str(&env, "no-such-escrow"));
+}
+
+#[test]
+#[should_panic(expected = "Error(Contract, #6)")]
+fn test_refund_already_released_escrow_fails() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let depositor = Address::generate(&env);
+    let beneficiary = Address::generate(&env);
+    let token = setup_token(&env, &admin, &depositor, 10_000);
+
+    let contract_id = setup_contract(&env);
+    let client = init(&env, &contract_id, &admin, &token);
+
+    client.create_escrow(
+        &depositor,
+        &String::from_str(&env, "esc-001"),
+        &beneficiary,
+        &5_000i128,
+        &String::from_str(&env, "Deposit"),
+        &0u64,
+    );
+
+    client.release(&admin, &String::from_str(&env, "esc-001"));
+    // EscrowNotPending = 6
+    client.refund(&admin, &String::from_str(&env, "esc-001"));
+}
+
+#[test]
+#[should_panic(expected = "Error(Contract, #6)")]
+fn test_claim_already_released_escrow_fails() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let depositor = Address::generate(&env);
+    let beneficiary = Address::generate(&env);
+    let token = setup_token(&env, &admin, &depositor, 10_000);
+
+    let contract_id = setup_contract(&env);
+    let client = init(&env, &contract_id, &admin, &token);
+
+    let now = env.ledger().timestamp();
+    let release_after = now + 100;
+
+    client.create_escrow(
+        &depositor,
+        &String::from_str(&env, "esc-001"),
+        &beneficiary,
+        &5_000i128,
+        &String::from_str(&env, "Time-locked"),
+        &release_after,
+    );
+
+    advance_time(&env, 200);
+    client.claim(&beneficiary, &String::from_str(&env, "esc-001"));
+
+    // EscrowNotPending = 6
+    client.claim(&beneficiary, &String::from_str(&env, "esc-001"));
+}
+
+#[test]
+#[should_panic(expected = "Error(Contract, #2)")]
+fn test_refund_non_admin_fails() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let depositor = Address::generate(&env);
+    let beneficiary = Address::generate(&env);
+    let token = setup_token(&env, &admin, &depositor, 10_000);
+
+    let contract_id = setup_contract(&env);
+    let client = init(&env, &contract_id, &admin, &token);
+
+    client.create_escrow(
+        &depositor,
+        &String::from_str(&env, "esc-001"),
+        &beneficiary,
+        &5_000i128,
+        &String::from_str(&env, "Deposit"),
+        &0u64,
+    );
+
+    // Unauthorized = 2: depositor cannot refund
+    client.refund(&depositor, &String::from_str(&env, "esc-001"));
+}
+
+#[test]
+#[should_panic(expected = "Error(Contract, #2)")]
+fn test_resolve_dispute_non_admin_fails() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let depositor = Address::generate(&env);
+    let beneficiary = Address::generate(&env);
+    let token = setup_token(&env, &admin, &depositor, 10_000);
+
+    let contract_id = setup_contract(&env);
+    let client = init(&env, &contract_id, &admin, &token);
+
+    client.create_escrow(
+        &depositor,
+        &String::from_str(&env, "esc-001"),
+        &beneficiary,
+        &5_000i128,
+        &String::from_str(&env, "Deposit"),
+        &0u64,
+    );
+
+    client.raise_dispute(&depositor, &String::from_str(&env, "esc-001"));
+
+    // Unauthorized = 2: depositor cannot resolve dispute
+    client.resolve_dispute(&depositor, &String::from_str(&env, "esc-001"), &true);
+}
+
+#[test]
+#[should_panic(expected = "Error(Contract, #2)")]
+fn test_raise_dispute_non_depositor_fails() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let depositor = Address::generate(&env);
+    let beneficiary = Address::generate(&env);
+    let token = setup_token(&env, &admin, &depositor, 10_000);
+
+    let contract_id = setup_contract(&env);
+    let client = init(&env, &contract_id, &admin, &token);
+
+    client.create_escrow(
+        &depositor,
+        &String::from_str(&env, "esc-001"),
+        &beneficiary,
+        &5_000i128,
+        &String::from_str(&env, "Deposit"),
+        &0u64,
+    );
+
+    // Unauthorized = 2: beneficiary cannot raise dispute
+    client.raise_dispute(&beneficiary, &String::from_str(&env, "esc-001"));
+}
+
+#[test]
+#[should_panic(expected = "Error(Contract, #2)")]
+fn test_claim_non_beneficiary_fails() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let depositor = Address::generate(&env);
+    let beneficiary = Address::generate(&env);
+    let stranger = Address::generate(&env);
+    let token = setup_token(&env, &admin, &depositor, 10_000);
+
+    let contract_id = setup_contract(&env);
+    let client = init(&env, &contract_id, &admin, &token);
+
+    let now = env.ledger().timestamp();
+
+    client.create_escrow(
+        &depositor,
+        &String::from_str(&env, "esc-001"),
+        &beneficiary,
+        &5_000i128,
+        &String::from_str(&env, "Time-locked"),
+        &(now + 100),
+    );
+
+    advance_time(&env, 200);
+
+    // Unauthorized = 2: stranger is not the beneficiary
+    client.claim(&stranger, &String::from_str(&env, "esc-001"));
+}
+
+#[test]
+#[should_panic(expected = "Error(Contract, #11)")]
+fn test_create_escrow_negative_amount_fails() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let depositor = Address::generate(&env);
+    let beneficiary = Address::generate(&env);
+    let token = setup_token(&env, &admin, &depositor, 10_000);
+
+    let contract_id = setup_contract(&env);
+    let client = init(&env, &contract_id, &admin, &token);
+
+    // InvalidAmount = 11
+    client.create_escrow(
+        &depositor,
+        &String::from_str(&env, "esc-001"),
+        &beneficiary,
+        &(-1i128),
+        &String::from_str(&env, "Negative"),
+        &0u64,
+    );
+}
+
+#[test]
+#[should_panic(expected = "Error(Contract, #6)")]
+fn test_raise_dispute_already_disputed_fails() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let depositor = Address::generate(&env);
+    let beneficiary = Address::generate(&env);
+    let token = setup_token(&env, &admin, &depositor, 10_000);
+
+    let contract_id = setup_contract(&env);
+    let client = init(&env, &contract_id, &admin, &token);
+
+    client.create_escrow(
+        &depositor,
+        &String::from_str(&env, "esc-001"),
+        &beneficiary,
+        &5_000i128,
+        &String::from_str(&env, "Deposit"),
+        &0u64,
+    );
+
+    client.raise_dispute(&depositor, &String::from_str(&env, "esc-001"));
+
+    // EscrowNotPending = 6 (already disputed, not pending)
+    client.raise_dispute(&depositor, &String::from_str(&env, "esc-001"));
+}
+
+#[test]
+#[should_panic(expected = "Error(Contract, #7)")]
+fn test_resolve_dispute_already_released_fails() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let depositor = Address::generate(&env);
+    let beneficiary = Address::generate(&env);
+    let token = setup_token(&env, &admin, &depositor, 10_000);
+
+    let contract_id = setup_contract(&env);
+    let client = init(&env, &contract_id, &admin, &token);
+
+    client.create_escrow(
+        &depositor,
+        &String::from_str(&env, "esc-001"),
+        &beneficiary,
+        &5_000i128,
+        &String::from_str(&env, "Deposit"),
+        &0u64,
+    );
+
+    client.raise_dispute(&depositor, &String::from_str(&env, "esc-001"));
+    client.resolve_dispute(&admin, &String::from_str(&env, "esc-001"), &true);
+
+    // EscrowNotDisputed = 7 (already released, not disputed)
+    client.resolve_dispute(&admin, &String::from_str(&env, "esc-001"), &true);
+}
+
+#[test]
+#[should_panic(expected = "Error(Contract, #2)")]
+fn test_set_dispute_window_non_admin_fails() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let member = Address::generate(&env);
+    let token = Address::generate(&env);
+
+    let contract_id = setup_contract(&env);
+    let client = init(&env, &contract_id, &admin, &token);
+
+    // Unauthorized = 2
+    client.set_dispute_window(&member, &100_000u64);
+}
