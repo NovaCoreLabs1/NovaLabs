@@ -25,7 +25,9 @@
     "typeorm:revert-migration": "npm run typeorm -- migration:revert -d ./src/config/typeorm.config.ts",
     "demo:seed": "node scripts/demo-data.js seed",
     "demo:clear": "node scripts/demo-data.js clear",
-    "demo:info": "node scripts/demo-data.js info"
+    "demo:info": "node scripts/demo-data.js info",
+    "db:diagram": "node --require ts-node/register/transpile-only node_modules/erdia/dist/cjs/cli.cjs build -d src/config/typeorm.config.ts -o docs/erd --format md --components er",
+    "test:mutation": "stryker run"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.972.0",
@@ -92,6 +94,8 @@
   "devDependencies": {
     "@nestjs/schematics": "^10.0.0",
     "@nestjs/testing": "^10.0.0",
+    "@stryker-mutator/core": "^9.6.1",
+    "@stryker-mutator/jest-runner": "^9.6.1",
     "@types/bcrypt": "^6.0.0",
     "@types/express": "^5.0.0",
     "@types/jest": "^29.5.2",
@@ -106,6 +110,7 @@
     "@types/swagger-ui-express": "^4.1.8",
     "@typescript-eslint/eslint-plugin": "^8.0.0",
     "@typescript-eslint/parser": "^8.0.0",
+    "erdia": "^3.7.1",
     "eslint": "^8.0.0",
     "eslint-config-prettier": "^9.0.0",
     "eslint-plugin-prettier": "^5.0.0",
@@ -135,6 +140,9 @@
     },
     "collectCoverageFrom": [
       "**/*.(t|j)s"
+    ],
+    "transformIgnorePatterns": [
+      "node_modules/(?!(bcrypt|@aws-sdk|@nestjs|otplib|@otplib|@noble|@scure)/)"
     ],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node"

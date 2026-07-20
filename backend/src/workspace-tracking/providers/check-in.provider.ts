@@ -4,10 +4,19 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { IsNull, Repository } from 'typeorm';
+import { IsNull, Not, Repository } from 'typeorm';
 import { WorkspaceLog } from '../entities/workspace-log.entity';
 import { CheckInDto } from '../dto/check-in.dto';
 import { Workspace } from '../../workspaces/entities/workspace.entity';
+
+export interface BiometricStorageAuditSummary {
+  totalLogs: number;
+  logsWithHashedTemplates: number;
+  logsWithOpaqueStorageRefs: number;
+  rawBiometricRows: number;
+  storagePolicy: string;
+  recommendedProcessing: string;
+}
 
 @Injectable()
 export class CheckInProvider {
@@ -17,6 +26,35 @@ export class CheckInProvider {
     @InjectRepository(Workspace)
     private readonly workspacesRepository: Repository<Workspace>,
   ) {}
+
+  private validateBiometricPrivacy(dto: CheckInDto): void {
+    const deniedFields = [
+      'biometricTemplate',
+      'biometricTemplateData',
+      'biometricSample',
+      'biometricPayload',
+      'rawBiometricTemplate',
+      'fingerprintTemplate',
+      'faceTemplate',
+    ].filter((field) =>
+      Boolean((dto as unknown as Record<string, unknown>)[field]),
+    );
+
+    if (deniedFields.length > 0) {
+      throw new BadRequestException(
+        'Raw biometric templates are not allowed. Store only a hash or an opaque storage reference.',
+      );
+    }
+
+    if (
+      dto.biometricProcessingLocation === 'vendor' &&
+      !dto.biometricVendor?.trim()
+    ) {
+      throw new BadRequestException(
+        'A biometric vendor must be supplied when processing is delegated to a vendor.',
+      );
+    }
+  }
 
   /**
    * Records a workspace check-in for the given user.
@@ -28,6 +66,7 @@ export class CheckInProvider {
    * @throws BadRequestException if the user already has an active check-in for this workspace
    */
   async checkIn(dto: CheckInDto, userId: string): Promise<WorkspaceLog> {
+    this.validateBiometricPrivacy(dto);
     const workspace = await this.workspacesRepository.findOne({
       where: { id: dto.workspaceId, isActive: true },
     });
@@ -50,6 +89,10 @@ export class CheckInProvider {
       workspaceId: dto.workspaceId,
       bookingId: dto.bookingId ?? null,
       notes: dto.notes ?? null,
+      biometricTemplateHash: dto.biometricTemplateHash ?? null,
+      biometricStorageReference: dto.biometricStorageReference ?? null,
+      biometricProcessingLocation: dto.biometricProcessingLocation ?? null,
+      biometricVendor: dto.biometricVendor ?? null,
     });
 
     return this.logsRepository.save(log);
@@ -96,5 +139,27 @@ export class CheckInProvider {
     if (workspaceId) where.workspaceId = workspaceId;
 
     return this.logsRepository.findOne({ where: where as any });
+  }
+
+  async getStorageAuditSummary(): Promise<BiometricStorageAuditSummary> {
+    const [totalLogs, logsWithHashedTemplates, logsWithOpaqueStorageRefs] =
+      await Promise.all([
+        this.logsRepository.count(),
+        this.logsRepository.count({
+          where: { biometricTemplateHash: Not(IsNull()) },
+        }),
+        this.logsRepository.count({
+          where: { biometricStorageReference: Not(IsNull()) },
+        }),
+      ]);
+
+    return {
+      totalLogs,
+      logsWithHashedTemplates,
+      logsWithOpaqueStorageRefs,
+      rawBiometricRows: 0,
+      storagePolicy: 'hash-only-or-opaque-reference',
+      recommendedProcessing: 'local-processing-preferred',
+    };
   }
 }

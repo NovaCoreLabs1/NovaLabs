@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <style>
+    body { font-family: Arial, sans-serif; background: #f4f4f7; margin: 0; padding: 0; }
+    .container { max-width: 560px; margin: 40px auto; background: #fff; border-radius: 8px; padding: 40px; }
+    .footer { text-align: center; color: #718096; font-size: 13px; margin-top: 32px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Session Revoked for Security</h2>
+    <p>Hi {{fullName}},</p>
+    <p>Your refresh token session was revoked because we detected a potential reuse of an old token. As a precaution, all active sessions for your account have been invalidated.</p>
+    <p>If this was you, you can simply log in again to continue using your account. If you did not perform this action, please contact support immediately.</p>
+    <div class="footer">&copy; {{year}} NovaLabs</div>
+  </div>
+</body>
+</html>

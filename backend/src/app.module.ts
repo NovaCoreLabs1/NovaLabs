@@ -20,6 +20,7 @@ import { PaymentsModule } from './payments/payments.module';
 import { InvoicesModule } from './invoices/invoices.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { WorkspaceTrackingModule } from './workspace-tracking/workspace-tracking.module';
+import { AuditLogModule } from './audit-log/audit-log.module';
 
 @Module({
   imports: [
@@ -99,6 +100,7 @@ import { WorkspaceTrackingModule } from './workspace-tracking/workspace-tracking
     InvoicesModule,
     NotificationsModule,
     WorkspaceTrackingModule,
+    AuditLogModule,
   ],
   controllers: [AppController],
   providers: [

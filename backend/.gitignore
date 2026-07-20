@@ -47,6 +47,9 @@ lerna-debug.log*
 .temp
 .tmp
 
+# Stryker temporary files
+.stryker-tmp
+
 # Runtime data
 pids
 *.pid

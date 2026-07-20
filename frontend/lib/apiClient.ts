@@ -1,6 +1,18 @@
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:6001/api";
 
+const CSRF_COOKIE_NAME = "csrf";
+const CSRF_HEADER_NAME = "x-csrf-token";
+const STATE_CHANGING_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
+
+function getCsrfToken(): string | null {
+  if (typeof document === "undefined") return null;
+  const match = document.cookie.match(
+    new RegExp("(?:^|; )" + CSRF_COOKIE_NAME + "=([^;]*)")
+  );
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
 /**
  * Lightweight HTTP client for the NovaLabs frontend.
  * Wraps the Fetch API with automatic Bearer token injection,
@@ -39,8 +51,17 @@ class ApiClient {
       headers["Authorization"] = `Bearer ${this.token}`;
     }
 
+    const method = options.method || "GET";
+    if (STATE_CHANGING_METHODS.has(method)) {
+      const csrfToken = getCsrfToken();
+      if (csrfToken) {
+        headers[CSRF_HEADER_NAME] = csrfToken;
+      }
+    }
+
     const config: RequestInit = {
       ...options,
+      credentials: "include",
       headers,
     };
 
@@ -70,7 +91,6 @@ class ApiClient {
   async post<T, D = unknown>(endpoint: string, data?: D): Promise<T> {
     return this.request<T>(endpoint, {
       method: "POST",
-      credentials: "include",
       body: data ? JSON.stringify(data) : undefined,
     });
   }

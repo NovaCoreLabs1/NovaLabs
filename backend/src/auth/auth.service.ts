@@ -28,6 +28,10 @@ import { Setup2faDto } from './dto/setup-2fa.dto';
 import { VerifyTotpDto } from './dto/verify-totp.dto';
 import { UseBackupCodeDto } from './dto/use-backup-code.dto';
 import { Disable2faDto } from './dto/disable-2fa.dto';
+import { RefreshTokenRepositoryOperations } from './providers/refreshToken.repository';
+import { RefreshToken } from './entities/refreshToken.entity';
+import { AuditLogService } from '../audit-log/providers/audit-log.service';
+import { AuditAction } from '../audit-log/entities/audit-log.entity';
 
 @Injectable()
 export class AuthService {
@@ -40,6 +44,8 @@ export class AuthService {
     private readonly setupTotpProvider: SetupTotpProvider,
     private readonly verifyTotpProvider: VerifyTotpProvider,
     private readonly manageTotpProvider: ManageTotpProvider,
+    private readonly refreshTokenRepositoryOperations: RefreshTokenRepositoryOperations,
+    private readonly auditLogService: AuditLogService,
   ) {}
 
   /**
@@ -165,11 +171,15 @@ export class AuthService {
     await this.userRepository.save(user);
 
     const tokens = this.jwtHelper.generateTokens(user);
+    await this.refreshTokenRepositoryOperations.saveRefreshToken(
+      user,
+      tokens.refreshToken,
+    );
 
     return {
       message: UserMessages.VERIFY_OTP_SUCCESS,
       user: this.userHelper.formatUserResponse(user),
-      tokens: tokens,
+      tokens,
     };
   }
 
@@ -231,10 +241,14 @@ export class AuthService {
       return { requiresTwoFactor: true, tempToken };
     }
 
-    const { accessToken } = this.jwtHelper.generateTokens(user);
+    const tokens = this.jwtHelper.generateTokens(user);
+    await this.refreshTokenRepositoryOperations.saveRefreshToken(
+      user,
+      tokens.refreshToken,
+    );
     return {
       user: this.userHelper.formatUserResponse(user),
-      accessToken,
+      ...tokens,
     };
   }
   async refreshToken(refreshToken: string) {
@@ -245,8 +259,58 @@ export class AuthService {
     if (!user) {
       throw new UnauthorizedException(UserMessages.INVALID_REFRESH_TOKEN);
     }
-    const accessToken = this.jwtHelper.generateAccessToken(user);
-    return { accessToken };
+
+    const storedToken =
+      await this.refreshTokenRepositoryOperations.findByToken(refreshToken);
+
+    if (!storedToken) {
+      throw new UnauthorizedException(UserMessages.INVALID_REFRESH_TOKEN);
+    }
+
+    if (storedToken.revoked || storedToken.consumedAt) {
+      await this.refreshTokenRepositoryOperations.revokeFamily(
+        storedToken.familyId,
+      );
+      await this.auditLogService.create({
+        actorId: user.id,
+        actorEmail: user.email,
+        actorRole: user.role,
+        action: AuditAction.REFRESH_FAMILY_REVOKED,
+        targetType: 'refresh_token_family',
+        targetId: storedToken.familyId,
+        ipAddress: null,
+        userAgent: null,
+        metadata: {
+          reason: 'refresh_token_reuse_detected',
+          revokedTokenId: storedToken.id,
+        },
+      });
+      this.emailService
+        .sendRefreshTokenFamilyRevokedEmail(user.email, user.fullName)
+        .catch((err) =>
+          console.error('Failed to send family revoked email:', err.message),
+        );
+      throw new UnauthorizedException(UserMessages.INVALID_REFRESH_TOKEN);
+    }
+
+    if (storedToken.expiresAt && storedToken.expiresAt.getTime() < Date.now()) {
+      throw new UnauthorizedException(UserMessages.INVALID_REFRESH_TOKEN);
+    }
+
+    await this.refreshTokenRepositoryOperations.markTokenConsumed(storedToken);
+
+    const tokens = this.jwtHelper.generateTokens(user);
+    await this.refreshTokenRepositoryOperations.createRefreshToken(
+      user,
+      tokens.refreshToken,
+      storedToken.familyId,
+      storedToken.version + 1,
+    );
+
+    return {
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+    };
   }
   async retrieveUserById(userId: string) {
     const user = await this.userRepository.findOne({

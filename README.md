@@ -9,6 +9,9 @@ NovaLabs is a full-stack platform built to power the next generation of coworkin
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-novalabs.vercel.app-black?style=for-the-badge&logo=vercel)](https://novalabs.vercel.app/)
 [![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
 [![Contributors](https://img.shields.io/badge/Contributors-96%2B-brightgreen?style=for-the-badge)](https://github.com/NovaCoreLabs1/NovaLabs/graphs/contributors)
+[![Contracts](https://img.shields.io/codecov/c/github/NovaCoreLabs1/NovaLabs?flag=contracts&label=Contracts&logo=codecov&style=for-the-badge)](https://codecov.io/gh/NovaCoreLabs1/NovaLabs)
+[![Backend](https://img.shields.io/codecov/c/github/NovaCoreLabs1/NovaLabs?flag=backend&label=Backend&logo=codecov&style=for-the-badge)](https://codecov.io/gh/NovaCoreLabs1/NovaLabs)
+[![Frontend](https://img.shields.io/codecov/c/github/NovaCoreLabs1/NovaLabs?flag=frontend&label=Frontend&logo=codecov&style=for-the-badge)](https://codecov.io/gh/NovaCoreLabs1/NovaLabs)
 
 </div>
 
@@ -19,16 +22,17 @@ NovaLabs is a full-stack platform built to power the next generation of coworkin
 1. [About](#about)
 2. [Key Features](#key-features)
 3. [Tech Stack](#tech-stack)
-4. [Getting Started](#getting-started)
+4. [Code Coverage](#code-coverage)
+5. [Getting Started](#getting-started)
    - [Prerequisites](#prerequisites)
    - [Installation](#installation)
    - [Environment Variables](#environment-variables)
-5. [Usage](#usage)
-6. [Project Structure](#project-structure)
-7. [Contributing](#contributing)
-8. [Roadmap](#roadmap)
-9. [License](#license)
-10. [Acknowledgements](#acknowledgements)
+6. [Usage](#usage)
+7. [Project Structure](#project-structure)
+8. [Contributing](#contributing)
+9. [Roadmap](#roadmap)
+10. [License](#license)
+11. [Acknowledgements](#acknowledgements)
 
 ---
 
@@ -75,6 +79,20 @@ NovaLabs uses a modern, production-grade full-stack technology stack:
 | **CI/CD** | GitHub Actions |
 
 > **Why NestJS + Next.js?** NestJS handles complex business logic, auth flows, and multi-client API needs with a structured, maintainable architecture — something Next.js API routes alone aren't optimized for at scale. This combination gives NovaLabs both a great developer experience and a solid production foundation.
+
+---
+
+## Code Coverage
+
+Code coverage is automatically measured and uploaded to [Codecov](https://codecov.io/gh/NovaCoreLabs1/NovaLabs) on every PR and push to `main`. The badges above show the current line coverage for each area of the codebase:
+
+| Badge | Area | Tool | Target |
+|-------|------|------|--------|
+| **Contracts** | Rust smart contracts (`contracts/`) | `cargo-tarpaulin` | ≥ 80% |
+| **Backend** | NestJS TypeScript API (`backend/src/`) | Jest (`test:cov`) | ≥ 80% |
+| **Frontend** | Next.js app (`frontend/`) | Vitest (`test:cov`) | ≥ 20% |
+
+Targets are configured in [`codecov.yml`](codecov.yml) and enforced via GitHub Actions status checks. You can drill into per-file coverage and historical trends on the [Codecov dashboard](https://codecov.io/gh/NovaCoreLabs1/NovaLabs).
 
 ---
 
@@ -200,7 +218,7 @@ Contributions are welcome! Whether it's a bug fix, new feature, documentation im
 4. Push to your fork: `git push origin feature/your-feature-name`
 5. Open a Pull Request against `main`
 
-Please follow the existing code style, naming conventions, and module architecture when contributing. See [CONTRIBUTING.md](CONTRIBUTING.md) if available.
+Please follow the existing code style, naming conventions, and module architecture when contributing. See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the full checklist, and the [PostgreSQL data model](backend/docs/data-model.md) if your change touches any entity, migration, or schema.
 
 ---
 
@@ -211,7 +229,7 @@ Please follow the existing code style, naming conventions, and module architectu
 - [ ] Multi-hub / multi-location support
 - [ ] Public API for third-party integrations
 - [ ] Webhook support for payment providers
-- [ ] Dark mode UI
+- [x] Dark mode UI (next-themes + ThemeToggle component)
 - [ ] Offline biometric fallback support
 
 ---

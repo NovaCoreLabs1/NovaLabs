@@ -106,4 +106,12 @@ export class WorkspaceTrackingController {
     );
     return { message: 'Recent logs retrieved', data };
   }
+
+  @Get('audit/storage-summary')
+  @Roles(UserRole.STAFF, UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @ApiOperation({ summary: 'Get biometric storage audit summary' })
+  async getStorageAuditSummary() {
+    const data = await this.workspaceTrackingService.getStorageAuditSummary();
+    return { message: 'Biometric storage audit summary retrieved', data };
+  }
 }

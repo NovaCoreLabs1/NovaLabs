@@ -1,0 +1,25 @@
+# Gitleaks configuration for NovaLabs.
+#
+# Extends the gitleaks default ruleset. The default detectors cover high-entropy
+# secrets and known provider patterns (AWS, Stripe, GitHub, private keys, etc.).
+# Committed secrets block the merge via .github/workflows/secrets-scan.yml.
+
+# Use the built-in default rules.
+title = "NovaLabs gitleaks config"
+
+[extend]
+# Inherits all default gitleaks rules.
+useDefault = true
+
+# Paths that should never be scanned for secrets.
+[allowlist]
+paths = [
+    # Dependency lockfiles are generated and contain no first-party secrets.
+    '''**/Cargo.lock''',
+    '''**/package-lock.json''',
+    # Test fixtures are intentionally fake values.
+    '''**/test.rs''',
+    '''**/reentrancy.rs''',
+    # Env templates only hold placeholder values.
+    '''**/.env.example''',
+]

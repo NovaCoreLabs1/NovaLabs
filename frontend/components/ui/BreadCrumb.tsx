@@ -23,9 +23,9 @@ const BreadCrumb = ({ links }: LinkList) => {
   return (
     <nav className='flex' aria-label='Breadcrumb'>
       <ul className=' flex items-center gap-2'>
-        {links.map((link) => (
+        {links.map((link, index) => (
           <li
-            key={link.href}
+            key={link.href || `crumb-${index}`}
             className='text-sm font-medium flex items-center gap-2'
           >
             {link.href ? (

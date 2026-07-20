@@ -5,10 +5,14 @@
 #![allow(deprecated)]
 
 mod errors;
+mod guards;
 mod types;
 
 #[cfg(test)]
 mod test;
+
+#[cfg(test)]
+mod reentrancy;
 
 pub use errors::Error;
 pub use types::{
@@ -293,7 +297,13 @@ impl WorkspaceBookingContract {
         let duration_hours = duration_secs.div_ceil(3600);
         let amount: u128 = workspace.hourly_rate * duration_hours as u128;
 
-        // Collect payment from member → contract
+        // ── Reentrancy guard ──
+        // Acquire the lock BEFORE any cross-contract interaction. The token
+        // transfer below could invoke a malicious contract that calls back into
+        // `book_workspace`; the guard reverts any such re-entrant attempt.
+        let _guard = guards::reentrancy_protect(&env, &guards::ReentrancyKey::Book)?;
+
+        // Cross-contract interaction: collect payment from member → contract.
         let payment_token = Self::get_payment_token(&env)?;
         token::Client::new(&env, &payment_token).transfer(
             &member,
@@ -368,7 +378,13 @@ impl WorkspaceBookingContract {
             return Err(Error::BookingNotActive);
         }
 
-        // Refund payment from contract → member
+        // ── Reentrancy guard ──
+        // Acquire the lock BEFORE the refund. A malicious member token could
+        // re-enter `cancel_booking` from within the transfer callback; the guard
+        // reverts any such re-entrant attempt.
+        let _guard = guards::reentrancy_protect(&env, &guards::ReentrancyKey::Cancel)?;
+
+        // Cross-contract interaction: refund payment from contract → member.
         let payment_token = Self::get_payment_token(&env)?;
         token::Client::new(&env, &payment_token).transfer(
             &env.current_contract_address(),

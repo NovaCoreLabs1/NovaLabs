@@ -1,0 +1,11 @@
+* @NovaCoreLabs1/owners
+/backend/* @NovaCoreLabs1/backend-team
+/frontend/* @NovaCoreLabs1/frontend-team
+/infra/* @NovaCoreLabs1/infra-team
+/docs/* @NovaCoreLabs1/docs-team
+/.github/* @NovaCoreLabs1/infra-team
+/.env.example @NovaCoreLabs1/infra-team
+Dockerfile @NovaCoreLabs1/infra-team
+README.md @NovaCoreLabs1/docs-team
+tsconfig.json @NovaCoreLabs1/frontend-team
+eslint.config.js @NovaCoreLabs1/frontend-team
