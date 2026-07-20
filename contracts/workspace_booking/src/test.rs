@@ -704,13 +704,15 @@ fn test_book_workspace_end_in_past_fails() {
         &500u128,
     );
 
-    // InvalidTimeRange = 8: end <= now (timestamp is 0 by default)
+    // InvalidTimeRange = 8: end <= now
+    // Advance ledger so that end=1 is clearly in the past
+    advance_time(&env, 1_000);
     client.book_workspace(
         &member,
         &String::from_str(&env, "bk-001"),
         &String::from_str(&env, "ws-001"),
         &0u64,
-        &1u64, // end <= now
+        &1u64, // end (1) <= now (1000)
     );
 }
 
@@ -793,7 +795,7 @@ fn test_cancel_nonexistent_booking_fails() {
 }
 
 #[test]
-#[should_panic(expected = "Error(Contract, #106)")]
+#[should_panic(expected = "Error(Contract, #103)")]
 fn test_cancel_completed_booking_fails() {
     let env = Env::default();
     env.mock_all_auths();
@@ -827,7 +829,7 @@ fn test_cancel_completed_booking_fails() {
     advance_time(&env, 4_000);
     client.complete_booking(&admin, &String::from_str(&env, "bk-001"));
 
-    // BookingAlreadyCompleted = 106
+    // BookingNotActive = 103 (completed booking is no longer active)
     client.cancel_booking(&member, &String::from_str(&env, "bk-001"));
 }
 
@@ -871,7 +873,7 @@ fn test_complete_already_completed_booking_fails() {
 }
 
 #[test]
-#[should_panic(expected = "Error(Contract, #107)")]
+#[should_panic(expected = "#6")]
 fn test_book_workspace_insufficient_balance_fails() {
     let env = Env::default();
     env.mock_all_auths();
@@ -895,7 +897,7 @@ fn test_book_workspace_insufficient_balance_fails() {
     );
 
     let now = env.ledger().timestamp();
-    // InsufficientBalance = 107 (needs 500 but only has 100)
+    // Token transfer fails with StellarAssetContract InsufficientBalance (error #6)
     client.book_workspace(
         &member,
         &String::from_str(&env, "bk-001"),
@@ -986,7 +988,7 @@ fn test_book_unavailable_workspace_fails() {
 }
 
 #[test]
-#[should_panic(expected = "Error(Contract, #201)")]
+#[should_panic(expected = "Error(Contract, #200)")]
 fn test_set_availability_nonexistent_workspace_fails() {
     let env = Env::default();
     env.mock_all_auths();
