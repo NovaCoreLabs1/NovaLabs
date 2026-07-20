@@ -8,9 +8,39 @@ import { Logger } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
 
+/**
+ * Returns allowed WebSocket origins based on NODE_ENV.
+ *
+ * In production, restricts to the known deployment domains.
+ * In development, allows localhost origins so the frontend can connect.
+ *
+ * This mirrors the CORS policy configured in main.ts for the HTTP server.
+ */
+function getWebSocketCorsConfig(): { origin: string | string[]; credentials: boolean } {
+  if (process.env.NODE_ENV === 'production') {
+    return {
+      origin: [
+        'https://novalabs.vercel.app',
+        'https://www.novalabs.vercel.app',
+      ],
+      credentials: true,
+    };
+  }
+
+  return {
+    origin: [
+      'http://localhost:3000',
+      'http://localhost:3001',
+      'http://localhost:3002',
+      'http://localhost:3003',
+    ],
+    credentials: true,
+  };
+}
+
 @WebSocketGateway({
   namespace: 'notifications',
-  cors: { origin: '*' },
+  cors: getWebSocketCorsConfig(),
 })
 export class NotificationsGateway
   implements OnGatewayConnection, OnGatewayDisconnect

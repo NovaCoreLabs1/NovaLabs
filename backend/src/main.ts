@@ -3,6 +3,7 @@ import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ValidationPipe, ClassSerializerInterceptor } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import helmet from 'helmet';
 import { HttpLogger } from './common/middlewares/httpLogger.middleware';
 import { CsrfMiddleware } from './common/middlewares/csrf.middleware';
 import { CsrfGuard } from './common/guards/csrf.guard';
@@ -10,6 +11,25 @@ import { AuditLogInterceptor } from './audit-log/interceptors/audit-log.intercep
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { rawBody: true });
+
+  // SECURITY HEADERS (helmet)
+  // Applied early so all subsequent middleware and routes are covered.
+  // CSP directives are relaxed for Swagger UI resources.
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: [`'self'`],
+          styleSrc: [`'self'`, `'unsafe-inline'`],
+          imgSrc: [`'self'`, 'data:', 'validator.swagger.io'],
+          scriptSrc: [`'self'`, `'unsafe-inline'`],
+          fontSrc: [`'self'`, 'data:'],
+          objectSrc: [`'none'`],
+          upgradeInsecureRequests: [],
+        },
+      },
+    }),
+  );
 
   app.use(new HttpLogger().use);
   app.use(new CsrfMiddleware().use);

@@ -253,33 +253,31 @@ jobs:
           echo "  No placeholder test files found."
 
   # SEMGREP — Reentrancy guard enforcement
-  # (TEMPORARILY DISABLED — uncomment to re-enable)
   # ─────────────────────────────────────────────
-  # semgrep:
-  #   name: Semgrep (Reentrancy Guard)
-  #   runs-on: ubuntu-latest
-  #   container:
-  #     image: returntocorp/semgrep
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - name: Run semgrep reentrancy rules
-  #       # Fails the build only when guard violations are found (semgrep exits 1
-  #       # with --error). Other exit codes (e.g. benign version warnings) are
-  #       # tolerated so the job does not fail spuriously.
-  #       run: |
-  #         set +e
-  #         semgrep scan --config .semgrep/reentrancy.yml --error --quiet
-  #         code=$?
-  #         if [ "$code" -eq 1 ]; then
-  #           echo "::error::Reentrancy guard violations detected — see findings above."
-  #           exit 1
-  #         fi
-  #         echo "semgrep: no reentrancy guard violations (exit $code)."
-  #       env:
-  #         SEMGREP_RULES: .semgrep/reentrancy.yml
-  #         SEMGREP_APP_TOKEN: ""
-  #         SEMGREP_REPO_NAME: novalabs
-
+  semgrep:
+    name: Semgrep (Reentrancy Guard)
+    runs-on: ubuntu-latest
+    container:
+      image: returntocorp/semgrep
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run semgrep reentrancy rules
+        # Fails the build only when guard violations are found (semgrep exits 1
+        # with --error). Other exit codes (e.g. benign version warnings) are
+        # tolerated so the job does not fail spuriously.
+        run: |
+          set +e
+          semgrep scan --config .semgrep/reentrancy.yml --error --quiet
+          code=$?
+          if [ "$code" -eq 1 ]; then
+            echo "::error::Reentrancy guard violations detected — see findings above."
+            exit 1
+          fi
+          echo "semgrep: no reentrancy guard violations (exit $code)."
+        env:
+          SEMGREP_RULES: .semgrep/reentrancy.yml
+          SEMGREP_APP_TOKEN: ""
+          SEMGREP_REPO_NAME: novalabs
 
   # ─────────────────────────────────────────────
   # BACKEND — NestJS

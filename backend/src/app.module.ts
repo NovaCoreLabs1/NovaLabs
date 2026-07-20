@@ -47,6 +47,12 @@ import { AuditLogModule } from './audit-log/audit-log.module';
       { name: 'newsletter', ttl: 60_000, limit: 10 },
       { name: 'contact', ttl: 60_000, limit: 5 },
       { name: 'feedback', ttl: 60_000, limit: 10 },
+      // Auth endpoint throttlers (overridden per-endpoint via @Throttle)
+      { name: 'authRegister', ttl: 60_000, limit: 10 },
+      { name: 'authLogin', ttl: 60_000, limit: 10 },
+      { name: 'authForgotPassword', ttl: 60_000, limit: 10 },
+      { name: 'authOtp', ttl: 60_000, limit: 10 },
+      { name: 'authRefresh', ttl: 60_000, limit: 10 },
     ]),
     BullModule.forRootAsync({
       imports: [ConfigModule],
