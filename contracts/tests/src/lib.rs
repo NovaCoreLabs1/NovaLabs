@@ -1,11 +1,15 @@
 #![cfg(test)]
-extern crate std;
 
 use soroban_sdk::{
-    testutils::Address as _, token::StellarAssetClient, Address, Env, String,
+    testutils::Address as _,
+    token::StellarAssetClient,
+    Address, Env, String,
 };
 use payment_escrow::{PaymentEscrowContract, PaymentEscrowContractClient};
-use workspace_booking::{WorkspaceBookingContract, WorkspaceBookingContractClient, WorkspaceType};
+use workspace_booking::{
+    WorkspaceBookingContract, WorkspaceBookingContractClient,
+    WorkspaceType,
+};
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -20,11 +24,14 @@ fn create_test_env() -> (Env, Address, Address, Address) {
     (env, admin, member, operator)
 }
 
-fn create_token(env: &Env, admin: &Address) -> (Address, StellarAssetClient) {
+fn create_token(
+    env: &Env,
+    admin: &Address,
+) -> (Address, StellarAssetClient) {
     let token_address = env
         .register_stellar_asset_contract_v2(admin.clone())
         .address();
-    let token_client = StellarAssetClient::new(&env, &token_address);
+    let token_client = StellarAssetClient::new(env, &token_address);
     (token_address, token_client)
 }
 
@@ -34,7 +41,8 @@ fn setup_booking_contract(
     token_address: &Address,
 ) -> WorkspaceBookingContractClient {
     let contract_id = env.register(WorkspaceBookingContract, ());
-    let client = WorkspaceBookingContractClient::new(&env, &contract_id);
+    let client =
+        WorkspaceBookingContractClient::new(env, &contract_id);
     client.initialize(admin, token_address);
     client
 }
@@ -45,8 +53,9 @@ fn setup_escrow_contract(
     token_address: &Address,
 ) -> PaymentEscrowContractClient {
     let contract_id = env.register(PaymentEscrowContract, ());
-    let client = PaymentEscrowContractClient::new(&env, &contract_id);
-    client.initialize(admin, token_address, &3600u64); // 1 hour dispute window
+    let client =
+        PaymentEscrowContractClient::new(env, &contract_id);
+    client.initialize(admin, token_address, &3600u64);
     client
 }
 
