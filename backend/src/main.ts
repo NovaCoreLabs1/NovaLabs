@@ -15,6 +15,8 @@ async function bootstrap() {
   // SECURITY HEADERS (helmet)
   // Applied early so all subsequent middleware and routes are covered.
   // CSP directives are relaxed for Swagger UI resources.
+  // upgradeInsecureRequests is production-only to avoid interfering with
+  // local development over plain HTTP (e.g. hot-reload servers).
   app.use(
     helmet({
       contentSecurityPolicy: {
@@ -25,7 +27,9 @@ async function bootstrap() {
           scriptSrc: [`'self'`, `'unsafe-inline'`],
           fontSrc: [`'self'`, 'data:'],
           objectSrc: [`'none'`],
-          upgradeInsecureRequests: [],
+          ...(process.env.NODE_ENV === 'production'
+            ? { upgradeInsecureRequests: [] }
+            : {}),
         },
       },
     }),
