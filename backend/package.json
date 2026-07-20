@@ -26,7 +26,7 @@
     "demo:seed": "node scripts/demo-data.js seed",
     "demo:clear": "node scripts/demo-data.js clear",
     "demo:info": "node scripts/demo-data.js info",
-    "db:diagram": "node --require ts-node/register/transpile-only node_modules/erdia/dist/cli.js build -d src/config/typeorm.config.ts -o docs/erd --format md --components er",
+    "db:diagram": "node --require ts-node/register/transpile-only node_modules/erdia/dist/cjs/cli.cjs build -d src/config/typeorm.config.ts -o docs/erd --format md --components er",
     "test:mutation": "stryker run"
   },
   "dependencies": {

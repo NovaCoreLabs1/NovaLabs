@@ -1,7 +1,4 @@
-import {
-  BadRequestException,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -37,7 +34,9 @@ describe('InitializePaymentProvider', () => {
       findOne: jest.fn(),
     };
     paystackProvider = { initializeTransaction: jest.fn() };
-    configService = { get: jest.fn().mockReturnValue('https://example.com/callback') };
+    configService = {
+      get: jest.fn().mockReturnValue('https://example.com/callback'),
+    };
 
     provider = new InitializePaymentProvider(
       paymentsRepository as any,
@@ -99,9 +98,7 @@ describe('InitializePaymentProvider', () => {
       const result = await provider.initialize('booking-1', 'user-1');
 
       expect(result.paymentId).toBe('pay-1');
-      expect(result.authorizationUrl).toBe(
-        'https://paystack.com/authorize',
-      );
+      expect(result.authorizationUrl).toBe('https://paystack.com/authorize');
       expect(result.reference).toBe('paystack-ref-1');
       expect(paymentsRepository.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -144,9 +141,9 @@ describe('InitializePaymentProvider', () => {
     it('throws NotFoundException when booking does not exist', async () => {
       bookingsRepository.findOne.mockResolvedValue(null);
 
-      await expect(
-        provider.initialize('unknown', 'user-1'),
-      ).rejects.toThrow(NotFoundException);
+      await expect(provider.initialize('unknown', 'user-1')).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('throws BadRequestException when booking is not PENDING', async () => {
@@ -155,9 +152,9 @@ describe('InitializePaymentProvider', () => {
         status: BookingStatus.CONFIRMED,
       });
 
-      await expect(
-        provider.initialize('booking-1', 'user-1'),
-      ).rejects.toThrow(BadRequestException);
+      await expect(provider.initialize('booking-1', 'user-1')).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 });

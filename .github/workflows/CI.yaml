@@ -154,7 +154,7 @@ jobs:
             echo ""
             echo "========================================================"
             echo " Coverage for crate: $crate"
-            echo "================================================================"
+            echo "========================================================"
             if ! cargo tarpaulin \
                 --manifest-path "$crate/Cargo.toml" \
                 --engine llvm \
@@ -186,6 +186,71 @@ jobs:
           flags: contracts
           fail_ci_if_error: true
           verbose: true
+
+  # ─────────────────────────────────────────────
+  # NO PLACEHOLDER TESTS
+  # Fails if any test file contains placeholder-style content or filenames.
+  # Placeholder tests (e.g. expect(1+1).toBe(2)) are often created as
+  # scaffolding and accidentally committed.
+  # ─────────────────────────────────────────────
+  no-placeholders:
+    name: No Placeholder Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check for placeholder test files
+        run: |
+          set -euo pipefail
+          HAS_PLACEHOLDER=false
+
+          # Check 1: Filename-based — flag files with "placeholder" or "template"
+          # in the name that look like test files.
+          # Exclude node_modules/ to avoid false positives from dependency files.
+          MATCHES_BY_NAME=$(find . -type f -not -path '*/node_modules/*' \
+            \( -name '*placeholder*' -o -name '*template*' \) \
+            \( -name '*.test.*' -o -name '*.spec.*' \) 2>/dev/null || true)
+
+          if [ -n "$MATCHES_BY_NAME" ]; then
+            echo "::error::Test files with placeholder/template in filename:"
+            echo "$MATCHES_BY_NAME" | sed 's/^/  /'
+            HAS_PLACEHOLDER=true
+          fi
+
+          # Check 2: Content-based — flag test files whose describe() or it()
+          # description suggests a placeholder or template.
+          if command -v rg &>/dev/null; then
+            MATCHES_BY_CONTENT=$(
+              rg -l \
+                --glob '*.test.*' \
+                --glob '*.spec.*' \
+                -e 'describe\(("placeholder"|'"'"'placeholder'"'"'|"template"|'"'"'template'"'"')' \
+                -e 'it\(("should pass"|'"'"'should pass'"'"'|"is a placeholder"|'"'"'is a placeholder'"'"')' \
+                2>/dev/null || true
+            )
+          else
+            # fallback to grep
+            MATCHES_BY_CONTENT=$(
+              grep -rl \
+                --include='*.test.*' \
+                --include='*.spec.*' \
+                -E "describe\(\"placeholder\"|describe\('placeholder'|describe\(\"template\"|describe\('template'|it\(\"should pass\"|it\('should pass'|it\(\"is a placeholder\"|it\('is a placeholder'" \
+                2>/dev/null || true
+            )
+          fi
+
+          if [ -n "$MATCHES_BY_CONTENT" ]; then
+            echo "::error::Test files with placeholder-style descriptions:"
+            echo "$MATCHES_BY_CONTENT" | sed 's/^/  /'
+            HAS_PLACEHOLDER=true
+          fi
+
+          if [ "$HAS_PLACEHOLDER" = true ]; then
+            echo ""
+            echo "::error::Placeholder test files detected — remove or replace them with real tests."
+            exit 1
+          fi
+
+          echo "  No placeholder test files found."
 
   # SEMGREP — Reentrancy guard enforcement
   # (TEMPORARILY DISABLED — uncomment to re-enable)
@@ -426,16 +491,16 @@ jobs:
           if [ -d "$OUTPUT_DIR" ]; then
             CHANGES="$(git status --porcelain -- "$OUTPUT_DIR/" 2>/dev/null || true)"
             if [ -z "$CHANGES" ]; then
-              echo "✅ Generated ER diagram matches committed version."
+              echo "Generated ER diagram matches committed version."
             else
-              echo "❌ Generated ER diagram differs from committed version."
+              echo "Generated ER diagram differs from committed version."
               echo "   Run 'npm run db:diagram' locally and commit the changes."
               echo ""
               git status -- "$OUTPUT_DIR/"
               exit 1
             fi
           else
-            echo "⚠️  erdia output directory not found — run erdia locally first."
+            echo "erdia output directory not found - run erdia locally first."
             echo "   npm run db:diagram"
             echo "   Then commit the docs/erd/ directory."
           fi

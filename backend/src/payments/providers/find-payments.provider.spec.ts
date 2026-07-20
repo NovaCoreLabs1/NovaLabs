@@ -90,10 +90,9 @@ describe('FindPaymentsProvider', () => {
         UserRole.ADMIN,
       );
 
-      expect(qb.andWhere).toHaveBeenCalledWith(
-        'payment.provider = :provider',
-        { provider: PaymentProvider.PAYSTACK },
-      );
+      expect(qb.andWhere).toHaveBeenCalledWith('payment.provider = :provider', {
+        provider: PaymentProvider.PAYSTACK,
+      });
     });
 
     it('filters by date range', async () => {
@@ -105,14 +104,12 @@ describe('FindPaymentsProvider', () => {
         UserRole.ADMIN,
       );
 
-      expect(qb.andWhere).toHaveBeenCalledWith(
-        'payment.createdAt >= :from',
-        { from: '2024-01-01' },
-      );
-      expect(qb.andWhere).toHaveBeenCalledWith(
-        'payment.createdAt <= :to',
-        { to: '2024-01-31' },
-      );
+      expect(qb.andWhere).toHaveBeenCalledWith('payment.createdAt >= :from', {
+        from: '2024-01-01',
+      });
+      expect(qb.andWhere).toHaveBeenCalledWith('payment.createdAt <= :to', {
+        to: '2024-01-31',
+      });
     });
 
     it('applies pagination with defaults', async () => {

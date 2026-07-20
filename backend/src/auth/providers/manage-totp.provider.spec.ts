@@ -98,9 +98,9 @@ describe('ManageTotpProvider', () => {
     it('throws UnauthorizedException when user not found', async () => {
       usersRepository.findOne.mockResolvedValue(null);
 
-      await expect(
-        provider.get2faStatus('unknown'),
-      ).rejects.toThrow(UnauthorizedException);
+      await expect(provider.get2faStatus('unknown')).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
   });
 });

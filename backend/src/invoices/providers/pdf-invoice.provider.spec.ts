@@ -29,15 +29,17 @@ describe('PdfInvoiceProvider', () => {
     jest.clearAllMocks();
 
     // Set up event handlers
-    mockPdfMethods.on.mockImplementation((event: string, handler: Function) => {
-      if (event === 'data') {
-        // Don't trigger data — just resolve
-      }
-      if (event === 'end') {
-        // Don't trigger end — just set up
-      }
-      return mockPdfMethods;
-    });
+    mockPdfMethods.on.mockImplementation(
+      (event: string, handler: (...args: any[]) => void) => {
+        if (event === 'data') {
+          // Don't trigger data — just resolve
+        }
+        if (event === 'end') {
+          // Don't trigger end — just set up
+        }
+        return mockPdfMethods;
+      },
+    );
   });
 
   const mockInvoice = {
@@ -51,12 +53,14 @@ describe('PdfInvoiceProvider', () => {
 
   it('generates a PDF buffer', async () => {
     // Simulate successful PDF generation
-    mockPdfMethods.on.mockImplementation((event: string, handler: Function) => {
-      if (event === 'end') {
-        setTimeout(() => handler(), 10);
-      }
-      return mockPdfMethods;
-    });
+    mockPdfMethods.on.mockImplementation(
+      (event: string, handler: (...args: any[]) => void) => {
+        if (event === 'end') {
+          setTimeout(() => handler(), 10);
+        }
+        return mockPdfMethods;
+      },
+    );
 
     const result = await provider.generate(mockInvoice);
     expect(Buffer.isBuffer(result)).toBe(true);
@@ -66,12 +70,14 @@ describe('PdfInvoiceProvider', () => {
   });
 
   it('renders invoice with line items when present', async () => {
-    mockPdfMethods.on.mockImplementation((event: string, handler: Function) => {
-      if (event === 'end') {
-        setTimeout(() => handler(), 10);
-      }
-      return mockPdfMethods;
-    });
+    mockPdfMethods.on.mockImplementation(
+      (event: string, handler: (...args: any[]) => void) => {
+        if (event === 'end') {
+          setTimeout(() => handler(), 10);
+        }
+        return mockPdfMethods;
+      },
+    );
 
     const invoiceWithItems = {
       ...mockInvoice,
@@ -90,12 +96,14 @@ describe('PdfInvoiceProvider', () => {
   });
 
   it('handles PDF generation errors', async () => {
-    mockPdfMethods.on.mockImplementation((event: string, handler: Function) => {
-      if (event === 'error') {
-        setTimeout(() => handler(new Error('PDF error')), 10);
-      }
-      return mockPdfMethods;
-    });
+    mockPdfMethods.on.mockImplementation(
+      (event: string, handler: (...args: any[]) => void) => {
+        if (event === 'error') {
+          setTimeout(() => handler(new Error('PDF error')), 10);
+        }
+        return mockPdfMethods;
+      },
+    );
 
     await expect(provider.generate(mockInvoice)).rejects.toThrow('PDF error');
   });

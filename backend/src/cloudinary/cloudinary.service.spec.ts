@@ -46,7 +46,7 @@ describe('CloudinaryService', () => {
     it('uploads image with default folder', async () => {
       configService.get.mockReturnValue(undefined);
       cloudinaryUploader.upload_stream.mockImplementation(
-        (_options: any, callback: Function) => {
+        (_options: any, callback: (...args: any[]) => void) => {
           callback(null, {
             secure_url:
               'https://res.cloudinary.com/demo/image/upload/v1/profile-pictures/abc123',
@@ -65,7 +65,7 @@ describe('CloudinaryService', () => {
 
     it('uploads image with custom folder', async () => {
       cloudinaryUploader.upload_stream.mockImplementation(
-        (_options: any, callback: Function) => {
+        (_options: any, callback: (...args: any[]) => void) => {
           callback(null, {
             secure_url:
               'https://res.cloudinary.com/demo/image/upload/v1/custom/test123',
@@ -82,7 +82,7 @@ describe('CloudinaryService', () => {
 
     it('rejects on upload error', async () => {
       cloudinaryUploader.upload_stream.mockImplementation(
-        (_options: any, callback: Function) => {
+        (_options: any, callback: (...args: any[]) => void) => {
           callback(new Error('Upload failed'), null);
           return mockUploadStream;
         },

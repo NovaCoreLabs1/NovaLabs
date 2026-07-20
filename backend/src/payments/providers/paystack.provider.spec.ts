@@ -53,9 +53,7 @@ describe('PaystackProvider', () => {
           }),
         }),
       );
-      expect(result.authorization_url).toBe(
-        'https://paystack.com/authorize',
-      );
+      expect(result.authorization_url).toBe('https://paystack.com/authorize');
       expect(result.reference).toBe('ref-1');
     });
   });

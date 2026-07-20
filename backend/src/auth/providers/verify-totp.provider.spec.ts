@@ -21,10 +21,7 @@ describe('VerifyTotpProvider', () => {
       verifyTempToken: jest.fn(),
       generateTokens: jest.fn(),
     };
-    provider = new VerifyTotpProvider(
-      usersRepository,
-      jwtHelper as any,
-    );
+    provider = new VerifyTotpProvider(usersRepository, jwtHelper as any);
   });
 
   const mockUser = {
@@ -37,7 +34,10 @@ describe('VerifyTotpProvider', () => {
 
   describe('verifyTotpLogin', () => {
     it('verifies TOTP code and returns tokens', async () => {
-      jwtHelper.verifyTempToken.mockReturnValue({ sub: 'user-1', type: '2fa_pending' });
+      jwtHelper.verifyTempToken.mockReturnValue({
+        sub: 'user-1',
+        type: '2fa_pending',
+      });
       usersRepository.findOne.mockResolvedValue(mockUser);
       jest.spyOn(otplib, 'verifySync').mockReturnValue({ valid: true } as any);
       jwtHelper.generateTokens.mockReturnValue({
@@ -61,7 +61,10 @@ describe('VerifyTotpProvider', () => {
     });
 
     it('throws UnauthorizedException when TOTP code is invalid', async () => {
-      jwtHelper.verifyTempToken.mockReturnValue({ sub: 'user-1', type: '2fa_pending' });
+      jwtHelper.verifyTempToken.mockReturnValue({
+        sub: 'user-1',
+        type: '2fa_pending',
+      });
       usersRepository.findOne.mockResolvedValue(mockUser);
       jest.spyOn(otplib, 'verifySync').mockReturnValue({ valid: false } as any);
 
@@ -71,7 +74,10 @@ describe('VerifyTotpProvider', () => {
     });
 
     it('throws UnauthorizedException when user not found', async () => {
-      jwtHelper.verifyTempToken.mockReturnValue({ sub: 'user-1', type: '2fa_pending' });
+      jwtHelper.verifyTempToken.mockReturnValue({
+        sub: 'user-1',
+        type: '2fa_pending',
+      });
       usersRepository.findOne.mockResolvedValue(null);
 
       await expect(
@@ -82,7 +88,10 @@ describe('VerifyTotpProvider', () => {
 
   describe('verifyBackupCode', () => {
     it('verifies a backup code and removes it', async () => {
-      jwtHelper.verifyTempToken.mockReturnValue({ sub: 'user-1', type: '2fa_pending' });
+      jwtHelper.verifyTempToken.mockReturnValue({
+        sub: 'user-1',
+        type: '2fa_pending',
+      });
       usersRepository.findOne.mockResolvedValue(mockUser);
       (bcrypt.compare as jest.Mock)
         .mockResolvedValueOnce(false)
@@ -103,7 +112,10 @@ describe('VerifyTotpProvider', () => {
     });
 
     it('throws UnauthorizedException when no backup codes match', async () => {
-      jwtHelper.verifyTempToken.mockReturnValue({ sub: 'user-1', type: '2fa_pending' });
+      jwtHelper.verifyTempToken.mockReturnValue({
+        sub: 'user-1',
+        type: '2fa_pending',
+      });
       usersRepository.findOne.mockResolvedValue(mockUser);
       (bcrypt.compare as jest.Mock).mockResolvedValue(false);
 
@@ -116,7 +128,10 @@ describe('VerifyTotpProvider', () => {
     });
 
     it('throws UnauthorizedException when user has no backup codes', async () => {
-      jwtHelper.verifyTempToken.mockReturnValue({ sub: 'user-1', type: '2fa_pending' });
+      jwtHelper.verifyTempToken.mockReturnValue({
+        sub: 'user-1',
+        type: '2fa_pending',
+      });
       usersRepository.findOne.mockResolvedValue({
         ...mockUser,
         totpBackupCodes: null,

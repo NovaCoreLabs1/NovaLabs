@@ -19,10 +19,7 @@ describe('RefundPaymentProvider', () => {
       save: jest.fn(),
     };
     paystackProvider = { initiateRefund: jest.fn() };
-    provider = new RefundPaymentProvider(
-      paymentsRepository,
-      paystackProvider,
-    );
+    provider = new RefundPaymentProvider(paymentsRepository, paystackProvider);
   });
 
   describe('refund', () => {

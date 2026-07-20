@@ -23,8 +23,12 @@ describe('SetupTotpProvider', () => {
     jest.spyOn(otplib, 'generateSecret').mockReturnValue('MOCK_SECRET');
     jest
       .spyOn(otplib, 'generateURI')
-      .mockReturnValue('otpauth://totp/NovaLabs:user@test.com?secret=MOCK_SECRET');
-    (QRCode.toDataURL as jest.Mock).mockResolvedValue('data:image/png;base64,qrcode');
+      .mockReturnValue(
+        'otpauth://totp/NovaLabs:user@test.com?secret=MOCK_SECRET',
+      );
+    (QRCode.toDataURL as jest.Mock).mockResolvedValue(
+      'data:image/png;base64,qrcode',
+    );
     (bcrypt.hash as jest.Mock).mockResolvedValue('$2b$10$hashed');
   });
 
@@ -36,7 +40,10 @@ describe('SetupTotpProvider', () => {
         totpSecret: null,
       };
       usersRepository.findOne.mockResolvedValue(user);
-      usersRepository.save.mockResolvedValue({ ...user, totpSecret: 'MOCK_SECRET' });
+      usersRepository.save.mockResolvedValue({
+        ...user,
+        totpSecret: 'MOCK_SECRET',
+      });
 
       const result = await provider.initiate2faSetup('user-1');
 
@@ -55,9 +62,9 @@ describe('SetupTotpProvider', () => {
     it('throws UnauthorizedException when user not found', async () => {
       usersRepository.findOne.mockResolvedValue(null);
 
-      await expect(
-        provider.initiate2faSetup('unknown'),
-      ).rejects.toThrow(UnauthorizedException);
+      await expect(provider.initiate2faSetup('unknown')).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
   });
 

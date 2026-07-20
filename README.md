@@ -89,10 +89,10 @@ Code coverage is automatically measured and uploaded to [Codecov](https://codeco
 | Badge | Area | Tool | Target |
 |-------|------|------|--------|
 | **Contracts** | Rust smart contracts (`contracts/`) | `cargo-tarpaulin` | ≥ 80% |
-| **Backend** | NestJS TypeScript API (`backend/src/`) | Jest (`test:cov`) | ≥ 70% |
-| **Frontend** | Next.js app (`frontend/`) | Vitest (`test:cov`) | ≥ 60% |
+| **Backend** | NestJS TypeScript API (`backend/src/`) | Jest (`test:cov`) | ≥ 80% |
+| **Frontend** | Next.js app (`frontend/`) | Vitest (`test:cov`) | ≥ 20% |
 
-If a PR drops coverage below the target threshold, the CI pipeline will flag it. You can drill into per-file coverage and historical trends on the [Codecov dashboard](https://codecov.io/gh/NovaCoreLabs1/NovaLabs).
+Targets are configured in [`codecov.yml`](codecov.yml) and enforced via GitHub Actions status checks. You can drill into per-file coverage and historical trends on the [Codecov dashboard](https://codecov.io/gh/NovaCoreLabs1/NovaLabs).
 
 ---
 
@@ -229,7 +229,7 @@ Please follow the existing code style, naming conventions, and module architectu
 - [ ] Multi-hub / multi-location support
 - [ ] Public API for third-party integrations
 - [ ] Webhook support for payment providers
-- [ ] Dark mode UI
+- [x] Dark mode UI (next-themes + ThemeToggle component)
 - [ ] Offline biometric fallback support
 
 ---

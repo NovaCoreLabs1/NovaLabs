@@ -70,8 +70,11 @@ erDiagram
         uuid    id PK
         uuid    userId FK "indexed, ON DELETE CASCADE"
         text    token "unique index"
+        string  familyId "varchar(255), token rotation family"
+        int     version "rotation version counter"
         timestamptz expiresAt "nullable"
         bool    revoked
+        timestamptz consumedAt "nullable"
         timestamptz createdAt
         timestamptz updatedAt
     }
@@ -79,7 +82,7 @@ erDiagram
     WORKSPACE {
         uuid    id PK
         string  name
-        enum    type "HOT_DESK | MEETING_ROOM | ..."
+        enum    type "HOT_DESK | DEDICATED_DESK | PRIVATE_OFFICE | MEETING_ROOM | VIRTUAL | HYBRID"
         int     totalSeats "default 1"
         int     availableSeats "default 1"
         bigint  hourlyRate "amount in kobo"
@@ -95,7 +98,7 @@ erDiagram
         uuid    id PK
         uuid    userId FK "nullable, ON DELETE RESTRICT, indexed"
         uuid    workspaceId FK "ON DELETE RESTRICT, indexed"
-        enum    planType "HOURLY | DAILY | WEEKLY | MONTHLY | QUARTERLY | YEARLY"
+        enum    planType "DAILY | WEEKLY | MONTHLY | QUARTERLY | YEARLY"
         date    startDate
         date    endDate
         bigint  totalAmount "amount in kobo"
@@ -116,7 +119,7 @@ erDiagram
         uuid    userId FK "nullable, indexed, ON DELETE RESTRICT"
         bigint  amount "amount in kobo"
         varchar currency "ISO-4217, default 'NGN'"
-        enum    provider "PAYSTACK | FLUTTERWAVE | ..."
+        enum    provider "PAYSTACK | SOROBAN"
         string  providerReference "indexed, nullable"
         enum    status "PENDING | SUCCESSFUL | FAILED | ..."
         timestamptz paidAt "nullable"
@@ -133,7 +136,7 @@ erDiagram
         uuid    paymentId FK "nullable, ON DELETE SET NULL"
         bigint  amountKobo "amount in kobo"
         varchar currency "default 'NGN'"
-        enum    status "PENDING | PAID | OVERDUE | ..."
+        enum    status "PENDING | PAID | VOID"
         timestamptz paidAt "nullable"
         jsonb   lineItems "immutable snapshot"
         timestamptz createdAt
@@ -149,12 +152,16 @@ erDiagram
         timestamptz checkedOutAt "nullable"
         int     durationMinutes "nullable, computed on checkout"
         text    notes "nullable"
+        string  biometricTemplateHash "nullable, varchar(128)"
+        string  biometricStorageReference "nullable, varchar(255)"
+        string  biometricProcessingLocation "nullable, varchar(32)"
+        string  biometricVendor "nullable, varchar(64)"
     }
 
     NOTIFICATION {
         uuid    id PK
         uuid    userId FK "ON DELETE CASCADE, composite index (userId,isRead)"
-        enum    type "BOOKING | PAYMENT | ..."
+        enum    type "BOOKING_CONFIRMED | PAYMENT_SUCCESS | ..."
         varchar title
         text    message
         bool    isRead
@@ -192,6 +199,20 @@ erDiagram
         bool    isRead
         timestamptz createdAt
         timestamptz updatedAt
+    }
+
+    AUDIT_LOG {
+        uuid    id PK
+        uuid    actorId "nullable"
+        varchar actorEmail "nullable, max 255"
+        varchar actorRole "nullable, max 50"
+        varchar action "max 100"
+        varchar targetType "nullable, max 100"
+        uuid    targetId "nullable"
+        varchar ipAddress "nullable, max 45"
+        text    userAgent "nullable"
+        jsonb   metadata "nullable"
+        timestamptz createdAt
     }
 ```
 
@@ -274,6 +295,19 @@ erDiagram
 | `invoice_generated` | New invoice |
 | `general` | General notification |
 
+### `AuditAction`
+| Value | Description |
+|---|---|
+| `create` | Resource created |
+| `update` | Resource updated |
+| `delete` | Resource deleted |
+| `refund` | Payment refunded |
+| `login` | User logged in |
+| `logout` | User logged out |
+| `impersonate` | Admin impersonated a user |
+| `cancel` | Booking cancelled |
+| `auth.refresh.family.revoked` | Refresh token family revoked |
+
 ---
 
 ## 3. Relationship Cheat-Sheet
@@ -293,8 +327,8 @@ erDiagram
 | `Booking`     | 1 → 0..* | `WorkspaceLog`  | `workspace_logs.bookingId`    | `SET NULL` | yes |
 | `Payment`     | 1 → 0..1 | `Invoice`       | `invoices.paymentId`          | `SET NULL` | yes |
 
-`NewsletterSubscriber` and `ContactMessage` are intentionally standalone — they do
-not reference any other table and are isolated from the core user domain.
+`NewsletterSubscriber`, `ContactMessage`, and `AuditLog` are intentionally standalone — they do
+not reference any other table via TypeORM relationships and are isolated from the core user domain.
 
 ---
 
@@ -304,7 +338,9 @@ not reference any other table and are isolated from the core user domain.
 |---|---|---|---|
 | `users`                  | PK                        | `id`            | uuid |
 | `refresh_tokens`         | unique                    | `token`         | hashed |
+| `refresh_tokens`         | unique                    | `familyId`, `version` | token rotation |
 | `refresh_tokens`         | btree                     | `userId`        | |
+| `refresh_tokens`         | btree                     | `familyId`      | |
 | `bookings`               | btree                     | `userId`        | |
 | `bookings`               | btree                     | `workspaceId`   | |
 | `bookings`               | btree                     | `status`        | |
@@ -342,6 +378,9 @@ not reference any other table and are isolated from the core user domain.
   (refresh tokens, notifications). Domain entities (`Booking`, `Payment`,
   `Invoice`, `WorkspaceLog`) refuse to delete their parent user/workspace to
   preserve audit trails — `RESTRICT` is enforced at the database level.
+- **Biometric data:** `WorkspaceLog` stores only privacy-safe markers (hash,
+  vendor reference, processing location) — never raw biometric templates.
+  See [`docs/THREAT-MODEL.md`](../../docs/THREAT-MODEL.md) for the full threat model.
 
 ---
 

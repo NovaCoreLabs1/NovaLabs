@@ -136,8 +136,8 @@ cargo tarpaulin --all --engine llvm --out Xml --fail-under 80
 | Area | Target | Threshold | Tool |
 |------|-------:|----------:|------|
 | Contracts | 80% | 5% | cargo-tarpaulin |
-| Backend | 10% | 5% | Jest |
-| Frontend | 10% | 5% | Vitest |
+| Backend | 80% | 5% | Jest |
+| Frontend | 20% | 5% | Vitest |
 
 Targets are intentionally set near current levels and will be raised as more
 tests are written. The Codecov status check will not block your PR — it appears
