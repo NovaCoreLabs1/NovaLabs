@@ -1,0 +1,58 @@
+# .dockerignore — keep `docker build` context tight and avoid leaking
+# secrets, large build artefacts, or local development noise into the image.
+
+# VCS
+.git
+.gitignore
+.gitattributes
+
+# CI / GitHub
+.github
+
+# Editor / OS noise
+.idea
+.vscode
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Tests / coverage / mutation reports
+coverage
+.nyc_output
+reports
+backend/coverage
+backend/reports
+
+# Dependencies (built inside the image)
+node_modules
+backend/node_modules
+frontend/node_modules
+
+# Build outputs
+backend/dist
+frontend/.next
+frontend/out
+contracts/target
+
+# SourceTree / docs-only folders we don't ship in the image
+docs
+*.md
+
+# Docker meta
+Dockerfile
+.dockerignore
+docker-compose*.yml
+
+# Environment & secrets — NEVER bake these into the image
+.env
+.env.*
+*.pem
+*.key
+
+# Frontend — backend image doesn't need it, ignore recursively
+frontend
