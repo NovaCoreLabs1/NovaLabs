@@ -1,15 +1,12 @@
 #![cfg(test)]
 
 use soroban_sdk::{
-    testutils::Address as _,
+    testutils::{Address as _, Ledger},
     token::StellarAssetClient,
     Address, Env, String,
 };
 use payment_escrow::{PaymentEscrowContract, PaymentEscrowContractClient};
-use workspace_booking::{
-    WorkspaceBookingContract, WorkspaceBookingContractClient,
-    WorkspaceType,
-};
+use workspace_booking::{WorkspaceBookingContract, WorkspaceBookingContractClient, WorkspaceType};
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -24,10 +21,10 @@ fn create_test_env() -> (Env, Address, Address, Address) {
     (env, admin, member, operator)
 }
 
-fn create_token(
-    env: &Env,
+fn create_token<'a>(
+    env: &'a Env,
     admin: &Address,
-) -> (Address, StellarAssetClient) {
+) -> (Address, StellarAssetClient<'a>) {
     let token_address = env
         .register_stellar_asset_contract_v2(admin.clone())
         .address();
@@ -35,33 +32,31 @@ fn create_token(
     (token_address, token_client)
 }
 
-fn setup_booking_contract(
-    env: &Env,
+fn setup_booking_contract<'a>(
+    env: &'a Env,
     admin: &Address,
     token_address: &Address,
-) -> WorkspaceBookingContractClient {
+) -> WorkspaceBookingContractClient<'a> {
     let contract_id = env.register(WorkspaceBookingContract, ());
-    let client =
-        WorkspaceBookingContractClient::new(env, &contract_id);
+    let client = WorkspaceBookingContractClient::new(env, &contract_id);
     client.initialize(admin, token_address);
     client
 }
 
-fn setup_escrow_contract(
-    env: &Env,
+fn setup_escrow_contract<'a>(
+    env: &'a Env,
     admin: &Address,
     token_address: &Address,
-) -> PaymentEscrowContractClient {
+) -> PaymentEscrowContractClient<'a> {
     let contract_id = env.register(PaymentEscrowContract, ());
-    let client =
-        PaymentEscrowContractClient::new(env, &contract_id);
+    let client = PaymentEscrowContractClient::new(env, &contract_id);
     client.initialize(admin, token_address, &3600u64);
     client
 }
 
 fn register_workspace(
     env: &Env,
-    client: &WorkspaceBookingContractClient,
+    client: &WorkspaceBookingContractClient<'_>,
     admin: &Address,
 ) -> String {
     let ws_id = String::from_str(env, "ws-001");
@@ -84,8 +79,10 @@ fn test_booking_then_escrow_deposit_release() {
     let (env, admin, member, operator) = create_test_env();
     let (token_address, token) = create_token(&env, &admin);
 
-    let booking_client = setup_booking_contract(&env, &admin, &token_address);
-    let escrow_client = setup_escrow_contract(&env, &admin, &token_address);
+    let booking_client =
+        setup_booking_contract(&env, &admin, &token_address);
+    let escrow_client =
+        setup_escrow_contract(&env, &admin, &token_address);
 
     // Register workspace
     let ws_id = register_workspace(&env, &booking_client, &admin);
@@ -112,12 +109,16 @@ fn test_booking_then_escrow_deposit_release() {
 
     let booking = booking_client.get_booking(&booking_id);
     assert_eq!(booking.amount_paid, 10000u128);
-    assert_eq!(booking.status, workspace_booking::BookingStatus::Active);
+    assert_eq!(
+        booking.status,
+        workspace_booking::BookingStatus::Active
+    );
 
     // Member creates security deposit escrow (beneficiary = operator/hub)
     let escrow_id = String::from_str(&env, "esc-001");
     let deposit_amount: i128 = 5000;
-    let description = String::from_str(&env, "Security deposit for booking bk-001");
+    let description =
+        String::from_str(&env, "Security deposit for booking bk-001");
 
     escrow_client.create_escrow(
         &member,
@@ -129,7 +130,10 @@ fn test_booking_then_escrow_deposit_release() {
     );
 
     let escrow = escrow_client.get_escrow(&escrow_id);
-    assert_eq!(escrow.status, payment_escrow::EscrowStatus::Pending);
+    assert_eq!(
+        escrow.status,
+        payment_escrow::EscrowStatus::Pending
+    );
     assert_eq!(escrow.amount, deposit_amount);
 
     // Member balance: 100000 - 10000 (booking) - 5000 (escrow) = 85000
@@ -138,12 +142,18 @@ fn test_booking_then_escrow_deposit_release() {
     // Admin completes the booking
     booking_client.complete_booking(&admin, &booking_id);
     let booking = booking_client.get_booking(&booking_id);
-    assert_eq!(booking.status, workspace_booking::BookingStatus::Completed);
+    assert_eq!(
+        booking.status,
+        workspace_booking::BookingStatus::Completed
+    );
 
     // Admin releases escrow to operator
     escrow_client.release(&admin, &escrow_id);
     let escrow = escrow_client.get_escrow(&escrow_id);
-    assert_eq!(escrow.status, payment_escrow::EscrowStatus::Released);
+    assert_eq!(
+        escrow.status,
+        payment_escrow::EscrowStatus::Released
+    );
 
     // Operator received the deposit
     assert_eq!(token.balance(&operator), 100_000 + 5000);
@@ -154,8 +164,10 @@ fn test_booking_cancel_then_escrow_refund() {
     let (env, admin, member, operator) = create_test_env();
     let (token_address, token) = create_token(&env, &admin);
 
-    let booking_client = setup_booking_contract(&env, &admin, &token_address);
-    let escrow_client = setup_escrow_contract(&env, &admin, &token_address);
+    let booking_client =
+        setup_booking_contract(&env, &admin, &token_address);
+    let escrow_client =
+        setup_escrow_contract(&env, &admin, &token_address);
 
     let ws_id = register_workspace(&env, &booking_client, &admin);
     token.mint(&member, &100_000);
@@ -177,14 +189,24 @@ fn test_booking_cancel_then_escrow_refund() {
     let deposit: i128 = 5000;
     let desc = String::from_str(&env, "Security deposit for bk-002");
 
-    escrow_client.create_escrow(&member, &escrow_id, &operator, &deposit, &desc, &0u64);
+    escrow_client.create_escrow(
+        &member,
+        &escrow_id,
+        &operator,
+        &deposit,
+        &desc,
+        &0u64,
+    );
 
     assert_eq!(token.balance(&member), 100_000 - 5000 - 5000);
 
     // Member cancels booking → refund booking payment
     booking_client.cancel_booking(&member, &booking_id);
     let booking = booking_client.get_booking(&booking_id);
-    assert_eq!(booking.status, workspace_booking::BookingStatus::Cancelled);
+    assert_eq!(
+        booking.status,
+        workspace_booking::BookingStatus::Cancelled
+    );
 
     // Member got booking refund back (5000)
     assert_eq!(token.balance(&member), 100_000 - 5000);
@@ -192,7 +214,10 @@ fn test_booking_cancel_then_escrow_refund() {
     // Admin refunds escrow → member gets deposit back
     escrow_client.refund(&admin, &escrow_id);
     let escrow = escrow_client.get_escrow(&escrow_id);
-    assert_eq!(escrow.status, payment_escrow::EscrowStatus::Refunded);
+    assert_eq!(
+        escrow.status,
+        payment_escrow::EscrowStatus::Refunded
+    );
 
     // Member fully refunded
     assert_eq!(token.balance(&member), 100_000);
@@ -203,8 +228,10 @@ fn test_dispute_flow_on_escrow_after_booking() {
     let (env, admin, member, operator) = create_test_env();
     let (token_address, token) = create_token(&env, &admin);
 
-    let booking_client = setup_booking_contract(&env, &admin, &token_address);
-    let escrow_client = setup_escrow_contract(&env, &admin, &token_address);
+    let booking_client =
+        setup_booking_contract(&env, &admin, &token_address);
+    let escrow_client =
+        setup_escrow_contract(&env, &admin, &token_address);
 
     let ws_id = register_workspace(&env, &booking_client, &admin);
     token.mint(&member, &100_000);
@@ -238,12 +265,18 @@ fn test_dispute_flow_on_escrow_after_booking() {
     // Member raises dispute
     escrow_client.raise_dispute(&member, &escrow_id);
     let escrow = escrow_client.get_escrow(&escrow_id);
-    assert_eq!(escrow.status, payment_escrow::EscrowStatus::Disputed);
+    assert_eq!(
+        escrow.status,
+        payment_escrow::EscrowStatus::Disputed
+    );
 
     // Admin resolves in favor of member (refund)
     escrow_client.resolve_dispute(&admin, &escrow_id, &false);
     let escrow = escrow_client.get_escrow(&escrow_id);
-    assert_eq!(escrow.status, payment_escrow::EscrowStatus::Refunded);
+    assert_eq!(
+        escrow.status,
+        payment_escrow::EscrowStatus::Refunded
+    );
 
     // Member got deposit back
     assert_eq!(token.balance(&member), 100_000 - 5000);
@@ -257,8 +290,10 @@ fn test_auto_claim_escrow_after_booking_period() {
     let (env, admin, member, operator) = create_test_env();
     let (token_address, token) = create_token(&env, &admin);
 
-    let booking_client = setup_booking_contract(&env, &admin, &token_address);
-    let escrow_client = setup_escrow_contract(&env, &admin, &token_address);
+    let booking_client =
+        setup_booking_contract(&env, &admin, &token_address);
+    let escrow_client =
+        setup_escrow_contract(&env, &admin, &token_address);
 
     let ws_id = register_workspace(&env, &booking_client, &admin);
     token.mint(&member, &100_000);
@@ -278,7 +313,8 @@ fn test_auto_claim_escrow_after_booking_period() {
 
     // Create escrow with auto-claim after 7200 seconds (2 hours from now)
     let escrow_id = String::from_str(&env, "esc-004");
-    let desc = String::from_str(&env, "Deposit for bk-004 with auto-claim");
+    let desc =
+        String::from_str(&env, "Deposit for bk-004 with auto-claim");
     let release_after: u64 = 1000 + 7200; // 2 hours from creation
     escrow_client.create_escrow(
         &member,
@@ -298,7 +334,10 @@ fn test_auto_claim_escrow_after_booking_period() {
     // Operator (beneficiary) claims the escrow
     escrow_client.claim(&operator, &escrow_id);
     let escrow = escrow_client.get_escrow(&escrow_id);
-    assert_eq!(escrow.status, payment_escrow::EscrowStatus::Released);
+    assert_eq!(
+        escrow.status,
+        payment_escrow::EscrowStatus::Released
+    );
     assert_eq!(token.balance(&operator), 3000);
 }
 
@@ -307,8 +346,10 @@ fn test_claim_too_early_fails() {
     let (env, admin, member, operator) = create_test_env();
     let (token_address, token) = create_token(&env, &admin);
 
-    let booking_client = setup_booking_contract(&env, &admin, &token_address);
-    let escrow_client = setup_escrow_contract(&env, &admin, &token_address);
+    let booking_client =
+        setup_booking_contract(&env, &admin, &token_address);
+    let escrow_client =
+        setup_escrow_contract(&env, &admin, &token_address);
 
     let ws_id = register_workspace(&env, &booking_client, &admin);
     token.mint(&member, &100_000);
@@ -337,8 +378,10 @@ fn test_dispute_after_window_fails() {
     let (env, admin, member, operator) = create_test_env();
     let (token_address, token) = create_token(&env, &admin);
 
-    let booking_client = setup_booking_contract(&env, &admin, &token_address);
-    let escrow_client = setup_escrow_contract(&env, &admin, &token_address);
+    let booking_client =
+        setup_booking_contract(&env, &admin, &token_address);
+    let escrow_client =
+        setup_escrow_contract(&env, &admin, &token_address);
 
     let ws_id = register_workspace(&env, &booking_client, &admin);
     token.mint(&member, &100_000);
@@ -346,7 +389,8 @@ fn test_dispute_after_window_fails() {
     env.ledger().with_mut(|l| l.timestamp = 1000);
 
     let escrow_id = String::from_str(&env, "esc-006");
-    let desc = String::from_str(&env, "Deposit for dispute test");
+    let desc =
+        String::from_str(&env, "Deposit for dispute test");
     escrow_client.create_escrow(
         &member,
         &escrow_id,
@@ -360,7 +404,8 @@ fn test_dispute_after_window_fails() {
     env.ledger().with_mut(|l| l.timestamp = 5000);
 
     // Try to dispute — should fail
-    let result = escrow_client.try_raise_dispute(&member, &escrow_id);
+    let result =
+        escrow_client.try_raise_dispute(&member, &escrow_id);
     assert!(result.is_err());
 }
 
@@ -369,8 +414,10 @@ fn test_sequential_bookings_with_shared_escrow_pool() {
     let (env, admin, member1, member2) = create_test_env();
     let (token_address, token) = create_token(&env, &admin);
 
-    let booking_client = setup_booking_contract(&env, &admin, &token_address);
-    let escrow_client = setup_escrow_contract(&env, &admin, &token_address);
+    let booking_client =
+        setup_booking_contract(&env, &admin, &token_address);
+    let escrow_client =
+        setup_escrow_contract(&env, &admin, &token_address);
 
     let ws_id = register_workspace(&env, &booking_client, &admin);
     token.mint(&member1, &100_000);
@@ -380,7 +427,13 @@ fn test_sequential_bookings_with_shared_escrow_pool() {
 
     // Member1 books slot 1
     let bk1 = String::from_str(&env, "bk-006");
-    booking_client.book_workspace(&member1, &bk1, &ws_id, &1000u64, &(1000 + 3600));
+    booking_client.book_workspace(
+        &member1,
+        &bk1,
+        &ws_id,
+        &1000u64,
+        &(1000 + 3600),
+    );
 
     // Member2 cannot book overlapping slot
     let bk2 = String::from_str(&env, "bk-007");
@@ -409,8 +462,22 @@ fn test_sequential_bookings_with_shared_escrow_pool() {
     let desc1 = String::from_str(&env, "Deposit for bk-006");
     let desc2 = String::from_str(&env, "Deposit for bk-008");
 
-    escrow_client.create_escrow(&member1, &esc1, &admin, &5000i128, &desc1, &0u64);
-    escrow_client.create_escrow(&member2, &esc2, &admin, &5000i128, &desc2, &0u64);
+    escrow_client.create_escrow(
+        &member1,
+        &esc1,
+        &admin,
+        &5000i128,
+        &desc1,
+        &0u64,
+    );
+    escrow_client.create_escrow(
+        &member2,
+        &esc2,
+        &admin,
+        &5000i128,
+        &desc2,
+        &0u64,
+    );
 
     // Both bookings complete
     booking_client.complete_booking(&admin, &bk1);
