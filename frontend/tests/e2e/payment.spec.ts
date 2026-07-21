@@ -1,5 +1,11 @@
 import { test, expect } from '@playwright/test';
-import fs from 'fs';
+import { readFileSync } from 'fs';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const fixturePath = join(__dirname, '../fixtures/paystack-webhook-success.json');
+const fixture = JSON.parse(readFileSync(fixturePath, 'utf8'));
 
 test.describe('Payment & refund flow (mocked Paystack)', () => {
   test.beforeEach(async () => {
@@ -7,8 +13,6 @@ test.describe('Payment & refund flow (mocked Paystack)', () => {
   });
 
   test('pay -> succeed (mock verify)', async ({ page }) => {
-    const fixture = JSON.parse(fs.readFileSync(process.cwd() + '/frontend/tests/fixtures/paystack-webhook-success.json', 'utf8'));
-
     await page.route('https://api.paystack.co/transaction/verify*', async (route) => {
       await route.fulfill({
         status: 200,
@@ -28,8 +32,6 @@ test.describe('Payment & refund flow (mocked Paystack)', () => {
   });
 
   test('pay -> retry (idempotent) - repeated verify returns same', async ({ page }) => {
-    const fixture = JSON.parse(fs.readFileSync(process.cwd() + '/frontend/tests/fixtures/paystack-webhook-success.json', 'utf8'));
-
     await page.route('https://api.paystack.co/transaction/verify*', async (route) => {
       await route.fulfill({
         status: 200,
