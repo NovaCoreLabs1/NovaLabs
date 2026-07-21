@@ -5,8 +5,6 @@ import { AnonymiseUserProvider } from './anonymise-user.provider';
 import { User } from '../entities/user.entity';
 import { RefreshToken } from '../../auth/entities/refreshToken.entity';
 import { WorkspaceLog } from '../../workspace-tracking/entities/workspace-log.entity';
-import { Booking } from '../../bookings/entities/booking.entity';
-import { Payment } from '../../payments/entities/payment.entity';
 import { AuditLogService } from '../../audit-log/providers/audit-log.service';
 
 describe('AnonymiseUserProvider', () => {
@@ -231,7 +229,3 @@ describe('AnonymiseUserProvider', () => {
     });
   });
 });
-
-// Suppress unused import warnings for entities only referenced in test.
-void Booking;
-void Payment;

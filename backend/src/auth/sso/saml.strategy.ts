@@ -1,26 +1,27 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { PassportStrategy } from '@nestjs/passport';
 import { Strategy, Profile } from '@node-saml/passport-saml';
-import { Request } from 'express';
 import { buildSamlConfig, SamlConfig } from './saml.config';
 import { SamlUserProvisioningService } from './saml-user-provisioning.service';
 
 /**
- * passport-saml strategy registered as `saml`.
+ * passport-saml strategy — extends the raw `@node-saml/passport-saml`
+ * `Strategy` directly. We deliberately do NOT extend the NestJS
+ * `PassportStrategy` mixin because passport-saml is session-based and
+ * expects its verify callback as a constructor argument (the NestJS
+ * mixin assumes a `validate` class method, which passport-saml does not
+ * use).
  *
- * Two callbacks:
- *  - `validate` runs after the IdP POSTs to the ACS. We resolve the
- *    assertion into a NovaLabs user via the provisioning service.
- *  - `logoutResponse` runs when the IdP confirms an SLO request.
+ * The strategy is registered with passport in `SsoModule.onModuleInit`
+ * under the name `'saml'`. The SsoController then invokes it via
+ * `passport.authenticate('saml')`.
  *
- * When SAML is not configured (no `SAML_ENTRY_POINT` etc.), the
- * `passport-saml` constructor throws. We catch that and expose a no-op
- * `enabled` getter so the controller can respond with 503 instead of
- * crashing the app.
+ * If the SAML_* env vars are missing, passport-saml's constructor is
+ * still invoked (with placeholder values) so the app boots; the
+ * controller's `samlConfig.enabled` check shortcuts routes to 503.
  */
 @Injectable()
-export class SamlStrategy extends PassportStrategy(Strategy, 'saml') {
+export class SamlStrategy extends Strategy {
   public readonly config: SamlConfig;
 
   constructor(
@@ -34,17 +35,14 @@ export class SamlStrategy extends PassportStrategy(Strategy, 'saml') {
         issuer: samlConfig.issuer ?? 'urn:novalabs:invalid',
         callbackUrl: samlConfig.callbackUrl ?? 'https://api.invalid/acs',
         idpCert: samlConfig.idpCert ?? '',
-        // We do NOT want passport-saml crying if env is missing at
-        // construction time — we still want Nest to boot in development.
         wantAssertionsSigned: !samlConfig.disableSignatureValidation,
         wantAuthnResponseSigned: !samlConfig.disableSignatureValidation,
         signatureAlgorithm: 'sha256',
         digestAlgorithm: 'sha256',
         identifierFormat: samlConfig.nameIdFormat,
-        // We accept the default RelayState for redirect-back purposes.
         acceptedClockSkewMs: 5_000,
       },
-      // validate — runs after ACS POST
+      // signonVerify — invoked after the IdP POSTs to the ACS
       async (profile: Profile | null, done: (err: any, user?: any) => void) => {
         try {
           if (!profile) {
@@ -54,10 +52,7 @@ export class SamlStrategy extends PassportStrategy(Strategy, 'saml') {
             nameID: profile.nameID,
             email:
               (profile as any).email ??
-              (typeof profile['urn:oid:0.9.2342.19200300.100.1.3'] ===
-              'string'
-                ? (profile as any)['urn:oid:0.9.2342.19200300.100.1.3']
-                : undefined),
+              (profile as any)['urn:oid:0.9.2342.19200300.100.1.3'],
             firstName:
               (profile as any).givenName ??
               (profile as any).firstName ??
@@ -66,14 +61,14 @@ export class SamlStrategy extends PassportStrategy(Strategy, 'saml') {
               (profile as any).sn ??
               (profile as any).lastName ??
               (profile as any)['urn:oid:2.5.4.4'],
-            attributes: profile as any,
+            attributes: profile as Record<string, unknown>,
           });
           done(null, provisioned.user);
         } catch (error) {
           done(error);
         }
       },
-      // logoutResponse — runs after SLO confirmation
+      // logoutVerify — invoked on SLO completion
       async (profile: Profile | null, done: (err: any, user?: any) => void) => {
         done(null, profile);
       },

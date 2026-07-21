@@ -45,7 +45,8 @@ transaction:
 ### Defensive background sweep
 
 The `AnonymisationHardeningCron` (`audit-log/providers/anonymisation-hardening.cron.ts`,
-registered in `UsersModule`) runs daily at **03:00 UTC** and:
+registered in **`UsersModule`** — not in `AuditLogModule` — to avoid the
+`UsersModule ↔ AuditLogModule` circular import) runs daily at **03:00 UTC** and:
 
 - hard-deletes any refresh tokens belonging to `isDeleted=true` users
 - hard-deletes any workspace logs belonging to `isDeleted=true` users
