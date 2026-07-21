@@ -13,6 +13,8 @@ import {
   BookOpen,
   AlertCircle,
   Info,
+  ReceiptText,
+  RefreshCw,
 } from "lucide-react";
 
 function NotificationIcon({ type }: { type: Notification["type"] }) {
@@ -22,10 +24,16 @@ function NotificationIcon({ type }: { type: Notification["type"] }) {
       return <CreditCard className={`${cls} text-emerald-600`} />;
     case "PAYMENT_FAILED":
       return <AlertCircle className={`${cls} text-red-500`} />;
+    case "PAYMENT_REFUNDED":
+      return <RefreshCw className={`${cls} text-violet-500`} />;
     case "BOOKING_CONFIRMED":
       return <BookOpen className={`${cls} text-blue-500`} />;
     case "BOOKING_CANCELLED":
       return <BookOpen className={`${cls} text-orange-500`} />;
+    case "BOOKING_COMPLETED":
+      return <BookOpen className={`${cls} text-emerald-500`} />;
+    case "INVOICE_GENERATED":
+      return <ReceiptText className={`${cls} text-amber-500`} />;
     default:
       return <Info className={`${cls} text-gray-400`} />;
   }
@@ -42,18 +50,27 @@ function timeAgo(iso: string): string {
   return `${days}d ago`;
 }
 
+type Filter = "all" | "unread";
+
 export default function NotificationsPage() {
   const [page, setPage] = useState(1);
-  const { data, isLoading } = useGetNotifications(page, 20);
+  const [filter, setFilter] = useState<Filter>("all");
+  const isReadParam = filter === "unread" ? false : undefined;
+  const { data, isLoading } = useGetNotifications(page, 20, isReadParam);
   const markRead = useMarkNotificationRead();
   const markAll = useMarkAllRead();
 
   const notifications = data?.data ?? [];
   const meta = data?.meta;
 
+  function handleFilterChange(next: Filter) {
+    setFilter(next);
+    setPage(1);
+  }
+
   return (
     <DashboardLayout>
-      <div className="mb-8 flex items-center justify-between">
+      <div className="mb-6 flex items-center justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Notifications</h1>
           <p className="text-gray-500 mt-1 text-sm">
@@ -75,8 +92,26 @@ export default function NotificationsPage() {
         )}
       </div>
 
+      {/* Filter tabs */}
+      <div className="flex gap-1 mb-6 p-1 bg-gray-100 rounded-lg w-fit">
+        {(["all", "unread"] as Filter[]).map((f) => (
+          <button
+            key={f}
+            type="button"
+            onClick={() => handleFilterChange(f)}
+            className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors capitalize ${
+              filter === f
+                ? "bg-white text-gray-900 shadow-sm"
+                : "text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            {f}
+          </button>
+        ))}
+      </div>
+
       {isLoading ? (
-        <div className="space-y-3">
+        <div className="space-y-3 max-w-2xl">
           {[1, 2, 3, 4].map((i) => (
             <div
               key={i}
@@ -88,10 +123,12 @@ export default function NotificationsPage() {
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <Bell className="w-10 h-10 text-gray-200 mb-4" />
           <p className="text-sm font-medium text-gray-500">
-            No notifications yet
+            {filter === "unread" ? "No unread notifications" : "No notifications yet"}
           </p>
           <p className="text-xs text-gray-400 mt-1">
-            You&apos;ll be notified about bookings, payments, and more.
+            {filter === "unread"
+              ? 'Switch to "All" to see your notification history.'
+              : "You'll be notified about bookings, payments, and more."}
           </p>
         </div>
       ) : (
@@ -100,9 +137,7 @@ export default function NotificationsPage() {
             <div
               key={n.id}
               className={`bg-white rounded-xl border p-4 flex items-start gap-3 transition-colors ${
-                n.isRead
-                  ? "border-gray-100"
-                  : "border-gray-200 bg-gray-50/50"
+                n.isRead ? "border-gray-100" : "border-gray-200 bg-gray-50/50"
               }`}
             >
               <span className="w-8 h-8 rounded-lg bg-white border border-gray-100 flex items-center justify-center shrink-0 mt-0.5">
@@ -128,7 +163,6 @@ export default function NotificationsPage() {
             </div>
           ))}
 
-          {/* Pagination */}
           {meta && meta.totalPages > 1 && (
             <div className="flex items-center justify-between pt-4">
               <button

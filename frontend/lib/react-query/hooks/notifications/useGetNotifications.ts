@@ -5,7 +5,7 @@ import { apiClient } from "@/lib/apiClient";
 import { queryKeys } from "@/lib/react-query/keys/queryKeys";
 import { Notification } from "@/lib/types/notification";
 
-interface NotificationsResponse {
+export interface NotificationsResponse {
   success: boolean;
   data: Notification[];
   meta: {
@@ -17,13 +17,24 @@ interface NotificationsResponse {
   };
 }
 
-export const useGetNotifications = (page = 1, limit = 20) => {
+export const useGetNotifications = (
+  page = 1,
+  limit = 20,
+  isRead?: boolean
+) => {
   return useQuery({
-    queryKey: queryKeys.notifications.list({ page, limit }),
-    queryFn: () =>
-      apiClient.get<NotificationsResponse>(
-        `/notifications?page=${page}&limit=${limit}`
-      ),
+    queryKey: queryKeys.notifications.list({ page, limit, isRead }),
+    queryFn: () => {
+      const params = new URLSearchParams({
+        page: String(page),
+        limit: String(limit),
+      });
+      if (isRead !== undefined) params.set("isRead", String(isRead));
+      return apiClient.get<NotificationsResponse>(
+        `/notifications?${params.toString()}`
+      );
+    },
     staleTime: 30_000,
+    refetchInterval: 60_000,
   });
 };
