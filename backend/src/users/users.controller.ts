@@ -12,11 +12,14 @@ import {
   Delete,
   HttpStatus,
   Logger,
+  Res,
+  StreamableFile,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { UsersService } from './providers/users.service';
 import { GetCurrentUser } from '../auth/decorators/getCurrentUser.decorator';
 import { UserRole } from './enums/userRoles.enum';
+import { Response } from 'express';
 import {
   ApiTags,
   ApiOperation,
@@ -116,5 +119,21 @@ export class UsersController {
   async remove(@Param('id', new ParseUUIDPipe()) id: string) {
     await this.usersService.deleteUser(id);
     return;
+  }
+
+  // GET /me/export.json
+  @Get('me/export.json')
+  @ApiOperation({ summary: 'Export all user data (GDPR/CCPA compliance)' })
+  async exportUserData(
+    @GetCurrentUser('id') userId: string,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<StreamableFile> {
+    this.logger.log(`Exporting data for user ${userId}`);
+    const stream = await this.usersService.exportUserData(userId);
+    response.set({
+      'Content-Type': 'application/zip',
+      'Content-Disposition': `attachment; filename="user-data-${userId}.zip"`,
+    });
+    return new StreamableFile(stream);
   }
 }

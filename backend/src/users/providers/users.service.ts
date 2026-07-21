@@ -26,6 +26,12 @@ import { GetMemberStatsProvider } from './get-member-stats.provider';
 import { MemberQueryDto } from '../dto/member-query.dto';
 import { MembershipStatus } from '../enums/membership-status.enum';
 import { computeProfileCompleteness } from '../utils/profile-completeness.util';
+import { Booking } from '../../bookings/entities/booking.entity';
+import { Payment } from '../../payments/entities/payment.entity';
+import { WorkspaceLog } from '../../workspace-tracking/entities/workspace-log.entity';
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const archiver = require('archiver');
+import { Readable } from 'stream';
 
 @Injectable()
 export class UsersService {
@@ -45,6 +51,15 @@ export class UsersService {
 
     @InjectRepository(User)
     private readonly usersRepository: Repository<User>,
+
+    @InjectRepository(Booking)
+    private readonly bookingsRepository: Repository<Booking>,
+
+    @InjectRepository(Payment)
+    private readonly paymentsRepository: Repository<Payment>,
+
+    @InjectRepository(WorkspaceLog)
+    private readonly workspaceLogsRepository: Repository<WorkspaceLog>,
 
     private readonly findAllUsersProvider: FindAllUsersProvider,
     private readonly updateUserProvider: UpdateUserProvider,
@@ -199,5 +214,48 @@ export class UsersService {
       user.profileCompleteness = completeness;
     }
     return user;
+  }
+
+  async exportUserData(userId: string): Promise<Readable> {
+    const user = await this.findUserById(userId);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const { password, ...userWithoutPassword } = user as any;
+
+    const bookings = await this.bookingsRepository.find({
+      where: { userId },
+    });
+
+    const payments = await this.paymentsRepository.find({
+      where: { userId },
+    });
+
+    const workspaceLogs = await this.workspaceLogsRepository.find({
+      where: { userId },
+    });
+
+    const archive = archiver('zip', { zlib: { level: 9 } });
+
+    archive.append(JSON.stringify(userWithoutPassword, null, 2), {
+      name: 'user-profile.json',
+    });
+
+    archive.append(JSON.stringify(bookings, null, 2), {
+      name: 'bookings.json',
+    });
+
+    archive.append(JSON.stringify(payments, null, 2), {
+      name: 'payments.json',
+    });
+
+    archive.append(JSON.stringify(workspaceLogs, null, 2), {
+      name: 'check-ins.json',
+    });
+
+    archive.finalize();
+
+    return archive as unknown as Readable;
   }
 }

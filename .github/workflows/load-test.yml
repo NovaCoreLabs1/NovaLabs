@@ -1,0 +1,68 @@
+name: Load Test
+
+on:
+  schedule:
+    # Run weekly on Monday at 00:00 UTC
+    - cron: '0 0 * * 1'
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'Base URL to test'
+        required: false
+        default: 'http://localhost:3000'
+      duration:
+        description: 'Test duration (e.g., 2m, 5m)'
+        required: false
+        default: '2m'
+
+env:
+  BASE_URL: ${{ github.event.inputs.base_url || 'http://localhost:3000' }}
+
+jobs:
+  load-test:
+    name: k6 Load Test
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install k6
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y curl
+          curl -s https://dl.k6.io/key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/k6-archive-keyring.gpg
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install -y k6
+
+      - name: Run load test
+        run: |
+          k6 run \
+            --out json=tests/load/results.json \
+            tests/load/load-test.js
+
+      - name: Generate report
+        if: always()
+        run: |
+          echo "## Load Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Configuration" >> $GITHUB_STEP_SUMMARY
+          echo "- Base URL: ${{ env.BASE_URL }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Duration: ${{ github.event.inputs.duration || '2m' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Target: p95 < 800ms at 200 RPS" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Metrics" >> $GITHUB_STEP_SUMMARY
+          if [ -f tests/load/summary.json ]; then
+            cat tests/load/summary.json >> $GITHUB_STEP_SUMMARY
+          else
+            echo "No summary available" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: load-test-results
+          path: tests/load/
+          retention-days: 30

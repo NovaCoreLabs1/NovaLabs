@@ -74,12 +74,12 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             contracts/target
-          key: ${{ runner.os }}-cargo-test-${{ hashFiles('contracts/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-test-v2-${{ hashFiles('contracts/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-test-
             ${{ runner.os }}-cargo-
-      - name: Run tests
-        run: cargo test --all --verbose
+      - name: Run tests (release profile for fuzz reduction)
+        run: cargo test --all --release
 
   build:
     name: Build Check

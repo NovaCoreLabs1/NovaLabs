@@ -60,8 +60,10 @@ export class PaymentsController {
   })
   async webhook(@Req() req: RawBodyRequest<Request>) {
     const signature = (req.headers['x-paystack-signature'] as string) ?? '';
+    const requestTime =
+      (req.headers['x-paystack-request-time'] as string) ?? '';
     const rawBody = req.rawBody ?? Buffer.from('');
-    await this.paymentsService.handleWebhook(rawBody, signature);
+    await this.paymentsService.handleWebhook(rawBody, signature, requestTime);
     return { received: true };
   }
 

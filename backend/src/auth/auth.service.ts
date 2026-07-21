@@ -32,6 +32,7 @@ import { RefreshTokenRepositoryOperations } from './providers/refreshToken.repos
 import { RefreshToken } from './entities/refreshToken.entity';
 import { AuditLogService } from '../audit-log/providers/audit-log.service';
 import { AuditAction } from '../audit-log/entities/audit-log.entity';
+import { PasswordBreachService } from './providers/password-breach.service';
 
 @Injectable()
 export class AuthService {
@@ -46,6 +47,7 @@ export class AuthService {
     private readonly manageTotpProvider: ManageTotpProvider,
     private readonly refreshTokenRepositoryOperations: RefreshTokenRepositoryOperations,
     private readonly auditLogService: AuditLogService,
+    private readonly passwordBreachService: PasswordBreachService,
   ) {}
 
   /**
@@ -70,6 +72,7 @@ export class AuthService {
     if (!validPassword) {
       throw new ConflictException(UserMessages.IS_VALID_PASSWORD);
     }
+    await this.passwordBreachService.checkPassword(createUserDto.password);
     const hashedPassword = await this.userHelper.hashPassword(
       createUserDto.password,
     );
@@ -116,6 +119,7 @@ export class AuthService {
     if (!validPassword) {
       throw new ConflictException(UserMessages.IS_VALID_PASSWORD);
     }
+    await this.passwordBreachService.checkPassword(createUserDto.password);
     const hashedPassword = await this.userHelper.hashPassword(
       createUserDto.password,
     );
@@ -469,6 +473,7 @@ export class AuthService {
     if (newPassword !== confirmNewPassword) {
       throw new BadRequestException(UserMessages.PASSWORDS_DO_NOT_MATCH);
     }
+    await this.passwordBreachService.checkPassword(newPassword);
     user.password = await this.userHelper.hashPassword(newPassword);
     user.passwordResetCode = undefined;
     user.passwordResetCodeExpiresAt = undefined;

@@ -7,6 +7,8 @@ import { PaymentsService } from './payments.service';
 import { PaymentsController } from './payments.controller';
 import { PaystackProvider } from './providers/paystack.provider';
 import { SorobanEscrowProvider } from './providers/soroban-escrow.provider';
+import { RealSorobanRpcClient } from './providers/real-soroban-rpc.client';
+import { SOROBAN_RPC_CLIENT } from './providers/soroban-rpc-client.interface';
 import { InitializePaymentProvider } from './providers/initialize-payment.provider';
 import { HandleWebhookProvider } from './providers/handle-webhook.provider';
 import { RefundPaymentProvider } from './providers/refund-payment.provider';
@@ -26,6 +28,10 @@ import { NotificationsModule } from '../notifications/notifications.module';
   providers: [
     PaymentsService,
     PaystackProvider,
+    {
+      provide: SOROBAN_RPC_CLIENT,
+      useClass: RealSorobanRpcClient,
+    },
     SorobanEscrowProvider,
     InitializePaymentProvider,
     HandleWebhookProvider,

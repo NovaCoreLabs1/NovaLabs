@@ -21,10 +21,13 @@ import { GetMembersProvider } from './providers/get-members.provider';
 import { UpdateMemberStatusProvider } from './providers/update-member-status.provider';
 import { GetMemberStatsProvider } from './providers/get-member-stats.provider';
 import { MembersController } from './members.controller';
+import { Booking } from '../bookings/entities/booking.entity';
+import { Payment } from '../payments/entities/payment.entity';
+import { WorkspaceLog } from '../workspace-tracking/entities/workspace-log.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User]),
+    TypeOrmModule.forFeature([User, Booking, Payment, WorkspaceLog]),
     forwardRef(() => AuthModule),
     CloudinaryModule,
   ],

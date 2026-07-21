@@ -14,6 +14,9 @@ mod test;
 #[cfg(test)]
 mod reentrancy;
 
+#[cfg(test)]
+mod fuzz;
+
 pub use errors::Error;
 pub use types::{
     Booking, BookingStatus, UnavailabilityReason, Workspace, WorkspaceAvailability, WorkspaceType,

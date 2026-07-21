@@ -6,7 +6,9 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Res,
 } from '@nestjs/common';
+import { Response } from 'express';
 import { AuthService } from './auth.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { LoginUserDto } from './dto/login-user.dto';
@@ -27,6 +29,48 @@ import { VerifyTotpDto } from './dto/verify-totp.dto';
 import { UseBackupCodeDto } from './dto/use-backup-code.dto';
 import { Disable2faDto } from './dto/disable-2fa.dto';
 
+const isProduction = process.env.NODE_ENV === 'production';
+
+function setAuthCookies(
+  res: Response,
+  accessToken: string,
+  refreshToken?: string,
+) {
+  res.cookie('authAccessToken', accessToken, {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: 'lax',
+    path: '/',
+    maxAge: 60 * 60 * 24, // 1 day
+  });
+  if (refreshToken) {
+    res.cookie('authRefreshToken', refreshToken, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: 'lax',
+      path: '/api/auth/refresh-token',
+      maxAge: 60 * 60 * 24 * 7, // 7 days
+    });
+  }
+}
+
+function clearAuthCookies(res: Response) {
+  res.cookie('authAccessToken', '', {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: 'lax',
+    path: '/',
+    maxAge: 0,
+  });
+  res.cookie('authRefreshToken', '', {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: 'lax',
+    path: '/api/auth/refresh-token',
+    maxAge: 0,
+  });
+}
+
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
@@ -38,15 +82,33 @@ export class AuthController {
   @Public()
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
-  create(@Body() createUserDto: CreateUserDto) {
-    return this.authService.createUser(createUserDto);
+  async create(
+    @Body() createUserDto: CreateUserDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.authService.createUser(createUserDto);
+    if (result.accessToken) {
+      setAuthCookies(res, result.accessToken);
+    }
+    return result;
   }
 
   @Public()
   @Post('verify-otp')
   @HttpCode(HttpStatus.OK)
-  verifyOtp(@Body() verifyOtpDto: VerifyOtpDto) {
-    return this.authService.verifyOtp(verifyOtpDto);
+  async verifyOtp(
+    @Body() verifyOtpDto: VerifyOtpDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.authService.verifyOtp(verifyOtpDto);
+    if (result.tokens?.accessToken) {
+      setAuthCookies(
+        res,
+        result.tokens.accessToken,
+        result.tokens.refreshToken,
+      );
+    }
+    return result;
   }
   @Public()
   @Post('resend-verification-otp')
@@ -65,14 +127,28 @@ export class AuthController {
   @Public()
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  login(@Body() loginUserDto: LoginUserDto) {
-    return this.authService.login(loginUserDto);
+  async login(
+    @Body() loginUserDto: LoginUserDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.authService.login(loginUserDto);
+    if (result && 'accessToken' in result) {
+      setAuthCookies(res, result.accessToken, result.refreshToken);
+    }
+    return result;
   }
   @Public()
   @Post('refresh-token')
   @HttpCode(HttpStatus.OK)
-  refreshToken(@Body('refreshToken') refreshToken: string) {
-    return this.authService.refreshToken(refreshToken);
+  async refreshToken(
+    @Body('refreshToken') refreshToken: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.authService.refreshToken(refreshToken);
+    if (result.accessToken) {
+      setAuthCookies(res, result.accessToken, result.refreshToken);
+    }
+    return result;
   }
 
   @Get('current-user')
@@ -135,15 +211,29 @@ export class AuthController {
   @Public()
   @Post('2fa/verify')
   @HttpCode(HttpStatus.OK)
-  verifyTotpLogin(@Body() dto: VerifyTotpDto) {
-    return this.authService.verifyTotpLogin(dto);
+  async verifyTotpLogin(
+    @Body() dto: VerifyTotpDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.authService.verifyTotpLogin(dto);
+    if (result.accessToken) {
+      setAuthCookies(res, result.accessToken, result.refreshToken);
+    }
+    return result;
   }
 
   @Public()
   @Post('2fa/backup-code')
   @HttpCode(HttpStatus.OK)
-  verifyBackupCode(@Body() dto: UseBackupCodeDto) {
-    return this.authService.verifyBackupCode(dto);
+  async verifyBackupCode(
+    @Body() dto: UseBackupCodeDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.authService.verifyBackupCode(dto);
+    if (result.accessToken) {
+      setAuthCookies(res, result.accessToken, result.refreshToken);
+    }
+    return result;
   }
 
   @Post('2fa/disable')

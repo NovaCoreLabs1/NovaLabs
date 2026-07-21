@@ -1,8 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { ConfigService } from '@nestjs/config';
 import { AuditLogService } from './providers/audit-log.service';
 import { CreateAuditLogProvider } from './providers/create-audit-log.provider';
 import { FindAuditLogsProvider } from './providers/find-audit-logs.provider';
+import { SecurityIpLogService } from './providers/security-ip-log.service';
 import { AuditLog } from './entities/audit-log.entity';
+import { SecurityIpLog } from './entities/security-ip-log.entity';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { UserRole } from '../users/enums/userRoles.enum';
 
@@ -13,7 +16,7 @@ describe('AuditLogService', () => {
 
   const mockAuditLogRepository = {
     create: jest.fn((entity) => entity),
-    save: jest.fn(async (entity) => entity),
+    save: jest.fn(async (entity) => ({ ...entity, id: 'test-uuid' })),
     createQueryBuilder: jest.fn(() => ({
       where: jest.fn().mockReturnThis(),
       andWhere: jest.fn().mockReturnThis(),
@@ -27,15 +30,34 @@ describe('AuditLogService', () => {
     })),
   };
 
+  const mockSecurityIpLogRepository = {
+    create: jest.fn((entity) => entity),
+    save: jest.fn(async (entity) => entity),
+    delete: jest.fn(async () => ({ affected: 0 })),
+  };
+
+  const mockConfigService = {
+    get: jest.fn().mockReturnValue(undefined),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         CreateAuditLogProvider,
         FindAuditLogsProvider,
+        SecurityIpLogService,
         AuditLogService,
         {
           provide: getRepositoryToken(AuditLog),
           useValue: mockAuditLogRepository,
+        },
+        {
+          provide: getRepositoryToken(SecurityIpLog),
+          useValue: mockSecurityIpLogRepository,
+        },
+        {
+          provide: ConfigService,
+          useValue: mockConfigService,
         },
       ],
     }).compile();

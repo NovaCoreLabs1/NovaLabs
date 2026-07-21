@@ -1,5 +1,6 @@
 import {
   BadGatewayException,
+  Inject,
   Injectable,
   Logger,
   NotFoundException,
@@ -16,6 +17,10 @@ import {
   mapScValToescrow,
   mapScValToescrowStatus,
 } from 'src/utils/soroban-types';
+import {
+  SorobanRpcClientInterface,
+  SOROBAN_RPC_CLIENT,
+} from './soroban-rpc-client.interface';
 
 const TTL = 10 * 60; // 10 minutes
 
@@ -23,11 +28,14 @@ const TTL = 10 * 60; // 10 minutes
 export class SorobanEscrowProvider {
   private readonly logger = new Logger(SorobanEscrowProvider.name);
   private readonly contractId: string;
-  private readonly server: SorobanRpc.Server;
   private readonly source: Keypair | null;
   private readonly networkPassphrase: string;
 
-  constructor(private readonly configService: ConfigService) {
+  constructor(
+    private readonly configService: ConfigService,
+    @Inject(SOROBAN_RPC_CLIENT)
+    private readonly rpcClient: SorobanRpcClientInterface,
+  ) {
     this.contractId = this.configService.get<string>(
       'STELLAR_ESCROW_CONTRACT_ID',
       '',
@@ -39,14 +47,6 @@ export class SorobanEscrowProvider {
 
     const secretKey = this.configService.get<string>('STELLAR_SECRET_KEY');
     this.source = secretKey ? Keypair.fromSecret(secretKey) : null;
-
-    this.server = new SorobanRpc.Server(
-      this.configService.get<string>(
-        'STELLAR_HORIZON_URL',
-        'https://soroban-testnet.stellar.org',
-      ),
-      { allowHttp: true },
-    );
   }
 
   async createEscrow(
@@ -119,13 +119,13 @@ export class SorobanEscrowProvider {
       .build();
 
     try {
-      const preparedTransaction = await this.server.prepareTransaction(tx);
+      const preparedTransaction = await this.rpcClient.prepareTransaction(tx);
       preparedTransaction.sign(this.getSigningKeypair());
 
       const sentTransaction =
-        await this.server.sendTransaction(preparedTransaction);
+        await this.rpcClient.sendTransaction(preparedTransaction);
 
-      let getTransactionResponse = await this.server.getTransaction(
+      let getTransactionResponse = await this.rpcClient.getTransaction(
         sentTransaction.hash,
       );
 
@@ -141,7 +141,7 @@ export class SorobanEscrowProvider {
         // eslint-disable-next-line no-await-in-loop
         getTransactionResponse =
           // eslint-disable-next-line no-await-in-loop
-          await this.server.getTransaction(sentTransaction.hash);
+          await this.rpcClient.getTransaction(sentTransaction.hash);
       }
 
       if (
@@ -192,13 +192,13 @@ export class SorobanEscrowProvider {
       .build();
 
     try {
-      const preparedTransaction = await this.server.prepareTransaction(tx);
+      const preparedTransaction = await this.rpcClient.prepareTransaction(tx);
       preparedTransaction.sign(this.getSigningKeypair());
 
       const sentTransaction =
-        await this.server.sendTransaction(preparedTransaction);
+        await this.rpcClient.sendTransaction(preparedTransaction);
 
-      let getTransactionResponse = await this.server.getTransaction(
+      let getTransactionResponse = await this.rpcClient.getTransaction(
         sentTransaction.hash,
       );
 
@@ -214,7 +214,7 @@ export class SorobanEscrowProvider {
         // eslint-disable-next-line no-await-in-loop
         getTransactionResponse =
           // eslint-disable-next-line no-await-in-loop
-          await this.server.getTransaction(sentTransaction.hash);
+          await this.rpcClient.getTransaction(sentTransaction.hash);
       }
 
       if (
@@ -265,13 +265,13 @@ export class SorobanEscrowProvider {
       .build();
 
     try {
-      const preparedTransaction = await this.server.prepareTransaction(tx);
+      const preparedTransaction = await this.rpcClient.prepareTransaction(tx);
       preparedTransaction.sign(this.getSigningKeypair());
 
       const sentTransaction =
-        await this.server.sendTransaction(preparedTransaction);
+        await this.rpcClient.sendTransaction(preparedTransaction);
 
-      let getTransactionResponse = await this.server.getTransaction(
+      let getTransactionResponse = await this.rpcClient.getTransaction(
         sentTransaction.hash,
       );
 
@@ -287,7 +287,7 @@ export class SorobanEscrowProvider {
         // eslint-disable-next-line no-await-in-loop
         getTransactionResponse =
           // eslint-disable-next-line no-await-in-loop
-          await this.server.getTransaction(sentTransaction.hash);
+          await this.rpcClient.getTransaction(sentTransaction.hash);
       }
 
       if (
@@ -338,9 +338,9 @@ export class SorobanEscrowProvider {
       .build();
 
     try {
-      const preparedTransaction = await this.server.prepareTransaction(tx);
+      const preparedTransaction = await this.rpcClient.prepareTransaction(tx);
       const simulatedTransaction =
-        await this.server.simulateTransaction(preparedTransaction);
+        await this.rpcClient.simulateTransaction(preparedTransaction);
 
       if (
         !SorobanRpc.Api.isSimulationSuccess(simulatedTransaction) ||
@@ -377,6 +377,8 @@ export class SorobanEscrowProvider {
   }
 
   private async getSourceAccount() {
-    return await this.server.getAccount(this.getSigningKeypair().publicKey());
+    return await this.rpcClient.getAccount(
+      this.getSigningKeypair().publicKey(),
+    );
   }
 }

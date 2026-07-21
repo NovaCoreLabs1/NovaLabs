@@ -18,6 +18,7 @@ import { SetupTotpProvider } from './providers/setup-totp.provider';
 import { VerifyTotpProvider } from './providers/verify-totp.provider';
 import { ManageTotpProvider } from './providers/manage-totp.provider';
 import { PasskeyModule } from './passkey/passkey.module';
+import { PasswordBreachService } from './providers/password-breach.service';
 
 @Module({
   imports: [
@@ -49,6 +50,7 @@ import { PasskeyModule } from './passkey/passkey.module';
     SetupTotpProvider,
     VerifyTotpProvider,
     ManageTotpProvider,
+    PasswordBreachService,
   ],
   exports: [
     AuthService,

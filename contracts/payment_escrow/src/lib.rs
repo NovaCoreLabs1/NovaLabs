@@ -12,6 +12,9 @@ mod test;
 #[cfg(test)]
 mod reentrancy;
 
+#[cfg(test)]
+mod fuzz;
+
 pub use errors::Error;
 pub use types::{Escrow, EscrowStatus};
 

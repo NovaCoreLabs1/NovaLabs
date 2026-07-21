@@ -33,8 +33,8 @@ export class PaymentsService {
    * @param rawBody - Raw request body for signature verification
    * @param signature - Value of the x-paystack-signature header
    */
-  handleWebhook(rawBody: Buffer, signature: string) {
-    return this.handleWebhookProvider.handle(rawBody, signature);
+  handleWebhook(rawBody: Buffer, signature: string, requestTime: string) {
+    return this.handleWebhookProvider.handle(rawBody, signature, requestTime);
   }
 
   /**

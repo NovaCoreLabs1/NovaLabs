@@ -45,6 +45,13 @@ export class AuditLog {
   @Column({ name: 'target_id', type: 'uuid', nullable: true })
   targetId: string | null;
 
+  /**
+   * Masked IP address stored for routine audit purposes.
+   * IPv4 addresses are stored with the last octet zeroed (e.g. 192.168.1.0)
+   * so that the individual host is not identifiable from this table alone.
+   * Raw IPs for security-flagged actions are held in the security_ip_log
+   * table with a short retention window (default 30 days).
+   */
   @Column({ name: 'ip_address', type: 'varchar', length: 45, nullable: true })
   ipAddress: string | null;
 

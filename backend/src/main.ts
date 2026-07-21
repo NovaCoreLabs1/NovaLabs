@@ -7,10 +7,12 @@ import { HttpLogger } from './common/middlewares/httpLogger.middleware';
 import { CsrfMiddleware } from './common/middlewares/csrf.middleware';
 import { CsrfGuard } from './common/guards/csrf.guard';
 import { AuditLogInterceptor } from './audit-log/interceptors/audit-log.interceptor';
+import * as cookieParser from 'cookie-parser';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { rawBody: true });
 
+  app.use(cookieParser());
   app.use(new HttpLogger().use);
   app.use(new CsrfMiddleware().use);
 

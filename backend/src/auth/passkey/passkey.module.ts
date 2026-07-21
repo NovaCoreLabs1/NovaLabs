@@ -17,7 +17,10 @@ import { JwtHelper } from '../helper/jwt-helper';
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
         secret: configService.get<string>('JWT_SECRET') ?? 'dev-secret',
-        signOptions: { expiresIn: (configService.get<string>('JWT_EXPIRATION') ?? '7d') as any },
+        signOptions: {
+          expiresIn: (configService.get<string>('JWT_EXPIRATION') ??
+            '7d') as any,
+        },
       }),
     }),
     PassportModule,

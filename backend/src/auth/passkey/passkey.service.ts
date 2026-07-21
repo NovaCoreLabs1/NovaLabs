@@ -19,7 +19,10 @@ import { UserHelper } from '../helper/user-helper';
 
 @Injectable()
 export class PasskeyService {
-  private readonly challengeStore = new Map<string, { challenge: string; email?: string; userId?: string }>();
+  private readonly challengeStore = new Map<
+    string,
+    { challenge: string; email?: string; userId?: string }
+  >();
 
   constructor(
     @InjectRepository(User)
@@ -30,7 +33,10 @@ export class PasskeyService {
   ) {}
 
   private getOrigin() {
-    return this.configService.get<string>('WEBAUTHN_ORIGIN') ?? 'http://localhost:3000';
+    return (
+      this.configService.get<string>('WEBAUTHN_ORIGIN') ??
+      'http://localhost:3000'
+    );
   }
 
   private getRpId() {
@@ -92,14 +98,20 @@ export class PasskeyService {
     }
 
     const credentials = user.passkeyCredentials ?? [];
-    const credentialId = Buffer.from(verification.registrationInfo.credential.id).toString('base64');
-    const credentialPublicKey = Buffer.from(verification.registrationInfo.credential.publicKey).toString('base64');
+    const credentialId = Buffer.from(
+      verification.registrationInfo.credential.id,
+    ).toString('base64');
+    const credentialPublicKey = Buffer.from(
+      verification.registrationInfo.credential.publicKey,
+    ).toString('base64');
 
     credentials.push({
       id: credentialId,
       publicKey: credentialPublicKey,
       counter: verification.registrationInfo.credential.counter,
-      transports: (response?.response?.transports ?? []).filter((transport: string) => transport) as any,
+      transports: (response?.response?.transports ?? []).filter(
+        (transport: string) => transport,
+      ) as any,
       fmt: response?.response?.fmt ?? 'none',
       credentialDeviceType: 'singleDevice',
       credentialBackedUp: false,
@@ -130,10 +142,12 @@ export class PasskeyService {
     const options = await generateAuthenticationOptions({
       rpID: this.getRpId(),
       userVerification: 'preferred',
-      allowCredentials: (user.passkeyCredentials ?? []).map((credential: any) => ({
-        id: credential.id,
-        transports: credential.transports ?? [],
-      })),
+      allowCredentials: (user.passkeyCredentials ?? []).map(
+        (credential: any) => ({
+          id: credential.id,
+          transports: credential.transports ?? [],
+        }),
+      ),
     });
 
     this.challengeStore.set(`assert:${email}`, {
@@ -157,12 +171,16 @@ export class PasskeyService {
       throw new NotFoundException('User not found');
     }
 
-    const matchingCredential = (user.passkeyCredentials ?? []).find((credential: any) => {
-      return credential.id === response.id;
-    });
+    const matchingCredential = (user.passkeyCredentials ?? []).find(
+      (credential: any) => {
+        return credential.id === response.id;
+      },
+    );
 
     if (!matchingCredential) {
-      throw new UnauthorizedException('This passkey is not registered for this account');
+      throw new UnauthorizedException(
+        'This passkey is not registered for this account',
+      );
     }
 
     const verification = await verifyAuthenticationResponse({
@@ -174,7 +192,9 @@ export class PasskeyService {
         id: response.id,
         publicKey: Buffer.from(matchingCredential.publicKey, 'base64'),
         counter: matchingCredential.counter,
-        transports: (matchingCredential.transports ?? []).filter((transport: string) => transport) as any,
+        transports: (matchingCredential.transports ?? []).filter(
+          (transport: string) => transport,
+        ) as any,
       },
       requireUserVerification: false,
     });

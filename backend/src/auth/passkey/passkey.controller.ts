@@ -29,7 +29,10 @@ export class PasskeyController {
     @GetCurrentUser('id') userId: string,
     @Body() body: { response: any },
   ) {
-    return this.passkeyService.verifyRegistrationResponse(userId, body.response);
+    return this.passkeyService.verifyRegistrationResponse(
+      userId,
+      body.response,
+    );
   }
 
   @Public()
@@ -42,7 +45,12 @@ export class PasskeyController {
   @Public()
   @Post('assertion/verify')
   @HttpCode(HttpStatus.OK)
-  async verifyAssertionResponse(@Body() body: { email: string; response: any }) {
-    return this.passkeyService.verifyAssertionResponse(body.email, body.response);
+  async verifyAssertionResponse(
+    @Body() body: { email: string; response: any },
+  ) {
+    return this.passkeyService.verifyAssertionResponse(
+      body.email,
+      body.response,
+    );
   }
 }

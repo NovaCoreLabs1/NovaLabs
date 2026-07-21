@@ -26,6 +26,8 @@ const LONG_TERM_PLANS = new Set([
   PlanType.YEARLY,
 ]);
 
+const MAX_WEBHOOK_AGE_MS = 5 * 60 * 1000; // 5 minutes
+
 @Injectable()
 export class HandleWebhookProvider {
   private readonly logger = new Logger(HandleWebhookProvider.name);
@@ -46,13 +48,37 @@ export class HandleWebhookProvider {
     private readonly configService: ConfigService,
   ) {}
 
-  async handle(rawBody: Buffer, signature: string): Promise<void> {
+  async handle(
+    rawBody: Buffer,
+    signature: string,
+    requestTime: string,
+  ): Promise<void> {
     const valid = this.paystackProvider.verifyWebhookSignature(
       rawBody,
       signature,
     );
     if (!valid) {
       throw new UnauthorizedException('Invalid Paystack webhook signature');
+    }
+
+    if (requestTime) {
+      const deliveredAt = new Date(requestTime).getTime();
+      if (Number.isNaN(deliveredAt)) {
+        throw new BadRequestException('Invalid webhook timestamp');
+      }
+      const age = Date.now() - deliveredAt;
+      if (age > MAX_WEBHOOK_AGE_MS) {
+        this.logger.warn(
+          `Webhook rejected: timestamp is ${Math.round(age / 1000)}s old (max ${MAX_WEBHOOK_AGE_MS / 1000}s)`,
+        );
+        throw new BadRequestException('Webhook timestamp too old');
+      }
+      if (age < -MAX_WEBHOOK_AGE_MS) {
+        this.logger.warn(
+          `Webhook rejected: timestamp is ${Math.round(-age / 1000)}s in the future`,
+        );
+        throw new BadRequestException('Webhook timestamp is in the future');
+      }
     }
 
     let event: Record<string, unknown>;

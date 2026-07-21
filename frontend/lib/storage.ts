@@ -5,8 +5,9 @@ const AUTH_USER_KEY = "authUser";
 
 /**
  * Client-side storage utilities for persisting auth state.
- * Stores the access token in both localStorage (for JS access) and
- * a cookie (for Next.js middleware access on the server side).
+ * Stores the access token in localStorage for JS access and session restore.
+ * Authentication cookies (HttpOnly) are set by the backend and sent automatically
+ * by the browser — they are not readable or writable by client-side JavaScript.
  * All methods are SSR-safe and no-op when window is undefined.
  */
 export const storage = {
@@ -18,14 +19,11 @@ export const storage = {
   setToken(token: string): void {
     if (typeof window === "undefined") return;
     localStorage.setItem(AUTH_TOKEN_KEY, token);
-    // set the token to cookie as well for middleware access
-    document.cookie = `authToken=${token}; path=/; max-age=${1 * 24 * 60 * 60}`; // 1 day - Access Token
   },
 
   removeToken(): void {
     if (typeof window === "undefined") return;
     localStorage.removeItem(AUTH_TOKEN_KEY);
-    document.cookie = `authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT`;
   },
 
   getUser(): User | null {
@@ -48,6 +46,5 @@ export const storage = {
     if (typeof window === "undefined") return;
     localStorage.removeItem(AUTH_TOKEN_KEY);
     localStorage.removeItem(AUTH_USER_KEY);
-    document.cookie = `authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT`;
   },
 };
