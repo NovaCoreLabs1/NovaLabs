@@ -1,9 +1,12 @@
 /** Categories of notifications dispatched to platform users. */
 export type NotificationType =
-  | "PAYMENT_SUCCESS"
-  | "PAYMENT_FAILED"
   | "BOOKING_CONFIRMED"
   | "BOOKING_CANCELLED"
+  | "BOOKING_COMPLETED"
+  | "PAYMENT_SUCCESS"
+  | "PAYMENT_FAILED"
+  | "PAYMENT_REFUNDED"
+  | "INVOICE_GENERATED"
   | "GENERAL";
 
 /** In-app notification record displayed to a user. */
@@ -16,5 +19,4 @@ export interface Notification {
   isRead: boolean;
   metadata?: Record<string, unknown>;
   createdAt: string;
-  updatedAt: string;
 }

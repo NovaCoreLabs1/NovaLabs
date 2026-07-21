@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { Bell, CheckCheck, CreditCard, BookOpen, AlertCircle, Info } from "lucide-react";
+import { Bell, CheckCheck, CreditCard, BookOpen, AlertCircle, Info, RefreshCw, ReceiptText } from "lucide-react";
 import { useGetNotifications } from "@/lib/react-query/hooks/notifications/useGetNotifications";
 import { useMarkNotificationRead } from "@/lib/react-query/hooks/notifications/useMarkNotificationRead";
 import { useMarkAllRead } from "@/lib/react-query/hooks/notifications/useMarkAllRead";
@@ -15,10 +15,16 @@ function NotificationIcon({ type }: { type: Notification["type"] }) {
       return <CreditCard className={`${cls} text-emerald-600`} />;
     case "PAYMENT_FAILED":
       return <AlertCircle className={`${cls} text-red-500`} />;
+    case "PAYMENT_REFUNDED":
+      return <RefreshCw className={`${cls} text-violet-500`} />;
     case "BOOKING_CONFIRMED":
       return <BookOpen className={`${cls} text-blue-500`} />;
     case "BOOKING_CANCELLED":
       return <BookOpen className={`${cls} text-orange-500`} />;
+    case "BOOKING_COMPLETED":
+      return <BookOpen className={`${cls} text-emerald-500`} />;
+    case "INVOICE_GENERATED":
+      return <ReceiptText className={`${cls} text-amber-500`} />;
     default:
       return <Info className={`${cls} text-gray-400`} />;
   }
