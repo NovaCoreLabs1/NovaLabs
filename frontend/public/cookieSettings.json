@@ -1,0 +1,56 @@
+{
+  "$schema": "https://novalabs.example.com/cookieSettings.schema.json",
+  "version": "1.0.0",
+  "lastUpdated": "2026-07-21",
+  "title": "NovaLabs Cookie Settings",
+  "description": "Public manifest of cookies used by the NovaLabs web application. This file is crawlable and intended to be picked up by GDPR transparency scanners; it MUST NOT contain visitor-specific values.",
+  "categories": {
+    "strictlyNecessary": {
+      "description": "Cookies required for the application to function. These cannot be disabled because the site cannot operate without them (authentication, CSRF protection). They are set on a legitimate-interest basis under GDPR Art. 6(1)(f).",
+      "required": true,
+      "cookies": [
+        {
+          "name": "authAccessToken",
+          "purpose": "Holds the user's JWT access token as an HttpOnly cookie so the backend can authenticate the request without client-side JS.",
+          "duration": "1 day",
+          "type": "httpOnly"
+        },
+        {
+          "name": "authRefreshToken",
+          "purpose": "Holds the user's refresh-token JWT as an HttpOnly cookie scoped to /api/auth/refresh-token so the access token can be renewed without prompting the user.",
+          "duration": "7 days",
+          "type": "httpOnly"
+        },
+        {
+          "name": "csrf",
+          "purpose": "Synchronizer CSRF token — must match the x-csrf-token header on every state-changing request.",
+          "duration": "session",
+          "type": "httpOnly"
+        }
+      ]
+    },
+    "analytics": {
+      "description": "Cookies used to measure aggregated, anonymised usage of the site. Disabled by default. Only set after the user clicks 'Accept' on the cookie banner.",
+      "required": false,
+      "cookies": [
+        {
+          "name": "cookie_consent",
+          "purpose": "Stores the user's consent choice so the banner is not shown again on subsequent visits.",
+          "duration": "365 days",
+          "type": "firstParty"
+        }
+      ]
+    },
+    "marketing": {
+      "description": "Cookies used to deliver targeted marketing or to measure ad performance. NovaLabs does not currently set any cookies in this category.",
+      "required": false,
+      "cookies": []
+    }
+  },
+  "consent": {
+    "controller": "NovaLabs",
+    "lawfulBasis": "GDPR Art. 6(1)(a) consent / Art. 6(1)(f) legitimate interest",
+    "withdrawalMethod": "Click 'Decline' or 'Manage preferences' in the cookie banner at any time — your choice is recorded in the cookie_consent cookie.",
+    "policyUrl": "/privacy-policy"
+  }
+}
