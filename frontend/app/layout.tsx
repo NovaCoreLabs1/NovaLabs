@@ -4,6 +4,7 @@ import Providers from "@/providers/Providers";
 import "./globals.css";
 import { Toaster } from "sonner";
 import { ThemeProvider } from "@/components/theme-provider";
+import { CookieBanner } from "@/components/ui/CookieBanner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -119,6 +120,7 @@ export default function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <Providers>{children}</Providers>
           <Toaster richColors position="top-right" />
+          <CookieBanner />
         </ThemeProvider>
       </body>
     </html>

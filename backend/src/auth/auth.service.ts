@@ -440,6 +440,31 @@ export class AuthService {
     return this.verifyTotpProvider.verifyBackupCode(dto);
   }
 
+  /**
+   * Mints a NovaLabs access + refresh token pair for an already-authenticated
+   * user. Used by the SAML SSO ACS handler so the SPA sees the same
+   * HttpOnly cookie auth state as the email/password login flow.
+   *
+   * Note: we do NOT call `passwordBreachService` or any other validation
+   * gate here — by the time this runs the user has already been
+   * authenticated either by an email-password login or by an IdP
+   * SAML assertion.
+   */
+  async mintAuthTokensForUser(user: User): Promise<{
+    accessToken: string;
+    refreshToken: string;
+  }> {
+    const tokens = this.jwtHelper.generateTokens(user);
+    await this.refreshTokenRepositoryOperations.saveRefreshToken(
+      user,
+      tokens.refreshToken,
+    );
+    return {
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+    };
+  }
+
   disable2fa(userId: string, dto: Disable2faDto) {
     return this.manageTotpProvider.disable2fa(userId, dto);
   }
