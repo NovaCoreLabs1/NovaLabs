@@ -29,6 +29,7 @@ import { computeProfileCompleteness } from '../utils/profile-completeness.util';
 import { Booking } from '../../bookings/entities/booking.entity';
 import { Payment } from '../../payments/entities/payment.entity';
 import { WorkspaceLog } from '../../workspace-tracking/entities/workspace-log.entity';
+import { AnonymiseUserProvider } from './anonymise-user.provider';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const archiver = require('archiver');
 import { Readable } from 'stream';
@@ -75,6 +76,7 @@ export class UsersService {
     private readonly getMembersProvider: GetMembersProvider,
     private readonly updateMemberStatusProvider: UpdateMemberStatusProvider,
     private readonly getMemberStatsProvider: GetMemberStatsProvider,
+    private readonly anonymiseUserProvider: AnonymiseUserProvider,
   ) {}
 
   // CREATE USER
@@ -257,5 +259,31 @@ export class UsersService {
     archive.finalize();
 
     return archive as unknown as Readable;
+  }
+
+  /**
+   * GDPR Art. 17 — Right to be forgotten.
+   *
+   * Delegates to {@link AnonymiseUserProvider} which performs the actual
+   * transactional PII wipe. The service layer is a thin pass-through so
+   * the controller does not take a direct dependency on the provider.
+   */
+  async anonymiseMyAccount(
+    userId: string,
+    reason?: string,
+  ): Promise<void> {
+    return this.anonymiseUserProvider.anonymise(userId, reason);
+  }
+
+  /**
+   * Defensive cleanup used by the scheduled hardening cron. Returns the
+   * number of orphan refresh-token / workspace-log rows purged for users
+   * already marked `isDeleted=true`.
+   */
+  async hardenAnonymisedAccounts(): Promise<{
+    refreshTokens: number;
+    workspaceLogs: number;
+  }> {
+    return this.anonymiseUserProvider.hardenDeletedUsers();
   }
 }

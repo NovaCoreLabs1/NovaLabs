@@ -10,6 +10,11 @@ import { AuditLogInterceptor } from './interceptors/audit-log.interceptor';
 import { SecurityIpLogService } from './providers/security-ip-log.service';
 import { AuditLogPurgeService } from './providers/audit-log-purge.service';
 
+/**
+ * The daily `AnonymisationHardeningCron` that depends on `UsersService` lives
+ * in `UsersModule` (not here). This avoids the circular dependency that would
+ * otherwise be introduced (UsersModule -> AuditLogModule -> UsersModule).
+ */
 @Module({
   imports: [TypeOrmModule.forFeature([AuditLog, SecurityIpLog])],
   controllers: [AuditLogController],

@@ -26,9 +26,11 @@ import {
   ApiConsumes,
   ApiBody,
   ApiBearerAuth,
+  ApiProduces,
 } from '@nestjs/swagger';
 
 import { UpdateUserDto } from './dto/updateUser.dto';
+import { AnonymiseAccountDto } from './dto/anonymise-account.dto';
 
 @ApiTags('users')
 @ApiBearerAuth()
@@ -135,5 +137,35 @@ export class UsersController {
       'Content-Disposition': `attachment; filename="user-data-${userId}.zip"`,
     });
     return new StreamableFile(stream);
+  }
+
+  /**
+   * GDPR Art. 17 — Right to be forgotten.
+   *
+   * Anonymises the caller's account in place: email is one-way hashed with a
+   * per-user salt; credentials, tokens, biometric-tied workspace logs and
+   * all other PII are erased; financial records (bookings, payments) are
+   * decoupled from the user (userId set to NULL) and the action is recorded
+   * in the audit log. Returns HTTP 204 on success.
+   */
+  @Delete('me')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({
+    summary: 'Anonymise the authenticated user (GDPR Art. 17)',
+    description:
+      'Irreversibly deletes the caller’s personal data while preserving ' +
+      'anonymised financial records (bookings, payments) for accounting ' +
+      'compliance. The user row is preserved with a synthetic email so ' +
+      'foreign-key references remain intact but re-authentication is ' +
+      'impossible.',
+  })
+  @ApiProduces('application/json')
+  async anonymiseMe(
+    @GetCurrentUser('id') userId: string,
+    @Body() dto?: AnonymiseAccountDto,
+  ): Promise<void> {
+    this.logger.log(`Anonymising account for user ${userId} (GDPR Art. 17)`);
+    await this.usersService.anonymiseMyAccount(userId, dto?.reason);
+    this.logger.log(`Anonymisation complete for user ${userId}`);
   }
 }
