@@ -1,5 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import {
+  SecretsManagerClient,
+  GetSecretValueCommand,
+} from '@aws-sdk/client-secrets-manager';
 import { SecretsProvider } from './secrets-provider';
 
 /**
@@ -12,8 +16,8 @@ import { SecretsProvider } from './secrets-provider';
  * Authentication is handled by the default AWS credential chain
  * (env vars, ~/.aws/credentials, IAM roles, etc.).
  *
- * Note: Install @aws-sdk/client-secrets-manager before using this provider:
- *   npm install @aws-sdk/client-secrets-manager
+ * The AWS SDK client is lazily instantiated so no network calls happen
+ * at module load time.
  */
 @Injectable()
 export class AwsSecretsProvider extends SecretsProvider {
@@ -24,9 +28,7 @@ export class AwsSecretsProvider extends SecretsProvider {
   private cachedSecrets: Record<string, string> | null = null;
   private cacheExpiresAt = 0;
 
-  private secretsManagerClient: any = null;
-  private getSecretValueCommandCtor: any = null;
-  private clientError: Error | null = null;
+  private client: SecretsManagerClient | null = null;
 
   constructor(configService: ConfigService) {
     super();
@@ -43,28 +45,13 @@ export class AwsSecretsProvider extends SecretsProvider {
   }
 
   /**
-   * Lazy-load the AWS SDK client. Uses CommonJS `require()` so that an
-   * early MODULE_NOT_FOUND is caught and wrapped in a helpful error.
+   * Lazily instantiate the AWS Secrets Manager client.
    */
-  private ensureClient(): void {
-    if (this.secretsManagerClient) return;
-    if (this.clientError) throw this.clientError;
-
-    try {
-      const { SecretsManagerClient, GetSecretValueCommand } = require('@aws-sdk/client-secrets-manager');
-      this.secretsManagerClient = new SecretsManagerClient({ region: this.region });
-      this.getSecretValueCommandCtor = GetSecretValueCommand;
-    } catch (err: any) {
-      if (err.code === 'MODULE_NOT_FOUND') {
-        this.clientError = new Error(
-          'AwsSecretsProvider requires @aws-sdk/client-secrets-manager. ' +
-            'Install it with: npm install @aws-sdk/client-secrets-manager',
-        );
-      } else {
-        this.clientError = err as Error;
-      }
-      throw this.clientError;
+  private getClient(): SecretsManagerClient {
+    if (!this.client) {
+      this.client = new SecretsManagerClient({ region: this.region });
     }
+    return this.client;
   }
 
   /**
@@ -83,11 +70,11 @@ export class AwsSecretsProvider extends SecretsProvider {
     }
 
     try {
-      this.ensureClient();
-      const command = new this.getSecretValueCommandCtor({
+      const client = this.getClient();
+      const command = new GetSecretValueCommand({
         SecretId: this.secretArn,
       });
-      const response = await this.secretsManagerClient.send(command);
+      const response = await client.send(command);
 
       const secretString =
         response.SecretString ||
@@ -151,9 +138,7 @@ export class AwsSecretsProvider extends SecretsProvider {
     return value;
   }
 
-  async getMany(
-    keys: string[],
-  ): Promise<Record<string, string | undefined>> {
+  async getMany(keys: string[]): Promise<Record<string, string | undefined>> {
     const secrets = await this.fetchSecrets();
     const result: Record<string, string | undefined> = {};
     for (const key of keys) {
