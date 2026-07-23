@@ -188,34 +188,28 @@ export class AuthService {
   }
 
   async resendVerificationOtp(email: string) {
-    try {
-      if (!email) {
-        throw new BadRequestException(UserMessages.EMAIL_REQUIRED);
-      }
-
-      const user = await this.userRepository.findOne({ where: { email } });
-      if (!user) {
-        throw new NotFoundException(UserMessages.USER_NOT_FOUND);
-      }
-
-      const verificationCode = this.userHelper.generateVerificationCode();
-
-      user.verificationCode = verificationCode;
-      user.verificationCodeExpiresAt = moment().add(10, 'minutes').toDate();
-      await this.userRepository.save(user);
-
-      await this.emailService.sendVerificationEmail(
-        user.email,
-        verificationCode,
-        `${user.firstname} ${user.lastname}`,
-      );
-
-      return { message: UserMessages.OTP_SENT };
-    } catch (error) {
-      throw new InternalServerErrorException(
-        error || 'Error resending verification code',
-      );
+    if (!email) {
+      throw new BadRequestException(UserMessages.EMAIL_REQUIRED);
     }
+
+    const user = await this.userRepository.findOne({ where: { email } });
+    if (!user) {
+      throw new NotFoundException(UserMessages.USER_NOT_FOUND);
+    }
+
+    const verificationCode = this.userHelper.generateVerificationCode();
+
+    user.verificationCode = verificationCode;
+    user.verificationCodeExpiresAt = moment().add(10, 'minutes').toDate();
+    await this.userRepository.save(user);
+
+    await this.emailService.sendVerificationEmail(
+      user.email,
+      verificationCode,
+      `${user.firstname} ${user.lastname}`,
+    );
+
+    return { message: UserMessages.OTP_SENT };
   }
 
   async login(loginUserDto: LoginUserDto) {

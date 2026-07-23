@@ -27,48 +27,90 @@ import { AuditLogService } from '../audit-log/providers/audit-log.service';
 import { PasswordBreachService } from './providers/password-breach.service';
 import { UserMessages } from './helper/user-messages';
 
+// ---------------------------------------------------------------------------
+// Shared test fixtures (module scope so both describe blocks can use them).
+// ---------------------------------------------------------------------------
+
+const baseUser: Partial<User> = {
+  id: 'user-123',
+  email: 'jane@example.com',
+  firstname: 'Jane',
+  lastname: 'Doe',
+  passwordResetCode: null,
+  passwordResetCodeExpiresAt: null,
+  verificationCode: null,
+  verificationCodeExpiresAt: null,
+};
+
+const baseSignupUser: Partial<User> = {
+  id: 'user-456',
+  email: 'joe@example.com',
+  firstname: 'Joe',
+  lastname: 'Bloggs',
+  isVerified: false,
+  verificationCode: null,
+  verificationCodeExpiresAt: null,
+};
+
+const mockUserRepository: Partial<Record<keyof Repository<User>, jest.Mock>> = {
+  findOne: jest.fn(),
+  save: jest.fn(),
+};
+
+const mockUserHelper = {
+  generateVerificationCode: jest.fn(() => '1234'),
+};
+
+const mockPasswordResetEmailService = {
+  sendPasswordResetEmail: jest.fn().mockResolvedValue(true),
+};
+
+const mockSignupEmailService = {
+  sendVerificationEmail: jest.fn().mockResolvedValue(true),
+};
+
+// Collaborators of AuthService unused by either resend-OTP flow. An empty
+// stub satisfies Nest's DI without exercising their internals.
+const unusedProvider = {};
+
+/** Builds a TestingModule with the shared mocks + a caller-supplied EmailService. */
+async function buildAuthServiceModule(
+  emailServiceMock: Partial<EmailService>,
+): Promise<AuthService> {
+  const moduleRef: TestingModule = await Test.createTestingModule({
+    providers: [
+      AuthService,
+      { provide: getRepositoryToken(User), useValue: mockUserRepository },
+      { provide: UserHelper, useValue: mockUserHelper },
+      { provide: JwtHelper, useValue: unusedProvider },
+      { provide: EmailService, useValue: emailServiceMock },
+      { provide: SetupTotpProvider, useValue: unusedProvider },
+      { provide: VerifyTotpProvider, useValue: unusedProvider },
+      { provide: ManageTotpProvider, useValue: unusedProvider },
+      {
+        provide: RefreshTokenRepositoryOperations,
+        useValue: unusedProvider,
+      },
+      { provide: AuditLogService, useValue: unusedProvider },
+      { provide: PasswordBreachService, useValue: unusedProvider },
+    ],
+  }).compile();
+
+  return moduleRef.get<AuthService>(AuthService);
+}
+
 /**
- * Unit tests for AuthService focused on the forgot-password / password-reset
- * resend flow. These tests pin down the behavioural regression where the
- * `emailService.sendPasswordResetEmail(...)` call inside
- * `resendResetPasswordVerificationOtp` was commented out — leaving users who
- * clicked "resend OTP" on the forgot-password screen with a "code sent"
- * response but no email actually delivered (the new OTP overwrote the old
- * one in the database, so the prior code stopped working too).
- */ describe('AuthService.resendResetPasswordVerificationOtp', () => {
+ * Regression tests for `resendResetPasswordVerificationOtp` (forgot-password
+ * "resend OTP" flow). Pins the bug where the email-send was previously
+ * commented out AND locks the safe "save before notify" ordering and the
+ * absence of the buggy `try/catch → InternalServerErrorException` wrapper.
+ */
+describe('AuthService.resendResetPasswordVerificationOtp', () => {
   let service: AuthService;
-  // Tracks the order of side-effects. We rely on `save` happening before
-  // `sendPasswordResetEmail`: if a future refactor flips them, a DB save
-  // error would overwrite the in-memory OTP and the new code would never
-  // reach the user.
+  // Tracks the order of side-effects. `save` must precede the email; if a
+  // future refactor flips them, a DB save failure would silently rewrite
+  // the OTP without the user ever receiving an email.
   const callOrder: string[] = [];
-
-  const baseUser: Partial<User> = {
-    id: 'user-123',
-    email: 'jane@example.com',
-    firstname: 'Jane',
-    lastname: 'Doe',
-    passwordResetCode: null,
-    passwordResetCodeExpiresAt: null,
-  };
-
-  const mockUserRepository: Partial<Record<keyof Repository<User>, jest.Mock>> =
-    {
-      findOne: jest.fn(),
-      save: jest.fn(),
-    };
-
-  const mockUserHelper = {
-    generateVerificationCode: jest.fn(() => '1234'),
-  };
-
-  const mockEmailService = {
-    sendPasswordResetEmail: jest.fn().mockResolvedValue(true),
-  };
-
-  // These collaborators of AuthService are unused inside the resend-OTP flow;
-  // an empty stub satisfies Nest's DI without exercising their internals.
-  const unusedProvider = {};
 
   beforeEach(async () => {
     callOrder.length = 0;
@@ -78,36 +120,13 @@ import { UserMessages } from './helper/user-messages';
         return Promise.resolve(entity);
       },
     );
-    (mockEmailService.sendPasswordResetEmail as jest.Mock).mockImplementation(
-      () => {
-        callOrder.push('email');
-        return Promise.resolve(true);
-      },
-    );
-
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        AuthService,
-        {
-          provide: getRepositoryToken(User),
-          useValue: mockUserRepository,
-        },
-        { provide: UserHelper, useValue: mockUserHelper },
-        { provide: JwtHelper, useValue: unusedProvider },
-        { provide: EmailService, useValue: mockEmailService },
-        { provide: SetupTotpProvider, useValue: unusedProvider },
-        { provide: VerifyTotpProvider, useValue: unusedProvider },
-        { provide: ManageTotpProvider, useValue: unusedProvider },
-        {
-          provide: RefreshTokenRepositoryOperations,
-          useValue: unusedProvider,
-        },
-        { provide: AuditLogService, useValue: unusedProvider },
-        { provide: PasswordBreachService, useValue: unusedProvider },
-      ],
-    }).compile();
-
-    service = module.get<AuthService>(AuthService);
+    (
+      mockPasswordResetEmailService.sendPasswordResetEmail as jest.Mock
+    ).mockImplementation(() => {
+      callOrder.push('email');
+      return Promise.resolve(true);
+    });
+    service = await buildAuthServiceModule(mockPasswordResetEmailService);
   });
 
   afterEach(() => {
@@ -123,37 +142,28 @@ import { UserMessages } from './helper/user-messages';
       email: 'jane@example.com',
     });
 
-    // Public response stays the same — same UX as the original implementation.
     expect(result).toEqual({ message: UserMessages.OTP_SENT });
 
-    // A fresh OTP was generated and the user row was persisted with it.
     expect(mockUserHelper.generateVerificationCode).toHaveBeenCalledTimes(1);
     expect(mockUserRepository.save).toHaveBeenCalledTimes(1);
 
     const savedUser = (mockUserRepository.save as jest.Mock).mock.calls[0][0];
     expect(savedUser.passwordResetCode).toBe('1234');
-    // OTP must expire roughly 10 minutes from now (the implementation uses
-    // `moment().add(10, 'minutes').toDate()`); allow a 5s slop for clock skew.
     const expiresAtMs = savedUser.passwordResetCodeExpiresAt?.getTime() ?? 0;
     expect(Math.abs(expiresAtMs - Date.now() - 10 * 60 * 1000)).toBeLessThan(
       5000,
     );
 
-    // The previously commented-out email send is invoked with the new OTP and
-    // the user's full name (firstname + lastname), mirroring the sibling
-    // `requestResetPasswordOtp` flow.
-    expect(mockEmailService.sendPasswordResetEmail).toHaveBeenCalledTimes(1);
-
+    expect(
+      mockPasswordResetEmailService.sendPasswordResetEmail,
+    ).toHaveBeenCalledTimes(1);
     const [emailArg, otpArg, fullNameArg] = (
-      mockEmailService.sendPasswordResetEmail as jest.Mock
+      mockPasswordResetEmailService.sendPasswordResetEmail as jest.Mock
     ).mock.calls[0];
     expect(emailArg).toBe('jane@example.com');
     expect(otpArg).toBe('1234');
     expect(fullNameArg).toBe('Jane Doe');
 
-    // Critical ordering: persist before notify. If a future refactor swaps
-    // these, a DB failure could leave the user with an in-memory code
-    // rotation they never receive by email.
     expect(callOrder).toEqual(['save', 'email']);
   });
 
@@ -167,7 +177,9 @@ import { UserMessages } from './helper/user-messages';
     ).rejects.toBeInstanceOf(NotFoundException);
 
     expect(mockUserRepository.save).not.toHaveBeenCalled();
-    expect(mockEmailService.sendPasswordResetEmail).not.toHaveBeenCalled();
+    expect(
+      mockPasswordResetEmailService.sendPasswordResetEmail,
+    ).not.toHaveBeenCalled();
   });
 
   it('throws BadRequestException and short-circuits before any I/O when email is missing', async () => {
@@ -177,6 +189,98 @@ import { UserMessages } from './helper/user-messages';
 
     expect(mockUserRepository.findOne).not.toHaveBeenCalled();
     expect(mockUserRepository.save).not.toHaveBeenCalled();
-    expect(mockEmailService.sendPasswordResetEmail).not.toHaveBeenCalled();
+    expect(
+      mockPasswordResetEmailService.sendPasswordResetEmail,
+    ).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * Sibling regression tests for `resendVerificationOtp` (signup email OTP
+ * resend). Mirrors the password-reset spec but exercises the signup flow
+ * (different email method, different user fields). Same three concerns:
+ * email actually sent, save-before-notify ordering, no
+ * HttpException-to-InternalServerErrorException masking.
+ */
+describe('AuthService.resendVerificationOtp', () => {
+  let service: AuthService;
+  const signupCallOrder: string[] = [];
+
+  beforeEach(async () => {
+    signupCallOrder.length = 0;
+    (mockUserRepository.save as jest.Mock).mockImplementation(
+      (entity: User) => {
+        signupCallOrder.push('save');
+        return Promise.resolve(entity);
+      },
+    );
+    (
+      mockSignupEmailService.sendVerificationEmail as jest.Mock
+    ).mockImplementation(() => {
+      signupCallOrder.push('email');
+      return Promise.resolve(true);
+    });
+    service = await buildAuthServiceModule(
+      // Cast satisfies TS structural typing of `EmailService` (only
+      // `sendVerificationEmail` is exercised in this describe block).
+      mockSignupEmailService as unknown as EmailService,
+    );
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('generates a fresh signup verification OTP, persists it, AND emails it', async () => {
+    (mockUserRepository.findOne as jest.Mock).mockResolvedValue({
+      ...baseSignupUser,
+    });
+
+    const result = await service.resendVerificationOtp('joe@example.com');
+
+    expect(result).toEqual({ message: UserMessages.OTP_SENT });
+
+    expect(mockUserHelper.generateVerificationCode).toHaveBeenCalledTimes(1);
+    expect(mockUserRepository.save).toHaveBeenCalledTimes(1);
+
+    const savedUser = (mockUserRepository.save as jest.Mock).mock.calls[0][0];
+    expect(savedUser.verificationCode).toBe('1234');
+    const expiresAtMs = savedUser.verificationCodeExpiresAt?.getTime() ?? 0;
+    expect(Math.abs(expiresAtMs - Date.now() - 10 * 60 * 1000)).toBeLessThan(
+      5000,
+    );
+
+    expect(mockSignupEmailService.sendVerificationEmail).toHaveBeenCalledTimes(
+      1,
+    );
+    const [emailArg, otpArg, fullNameArg] = (
+      mockSignupEmailService.sendVerificationEmail as jest.Mock
+    ).mock.calls[0];
+    expect(emailArg).toBe('joe@example.com');
+    expect(otpArg).toBe('1234');
+    expect(fullNameArg).toBe('Joe Bloggs');
+
+    expect(signupCallOrder).toEqual(['save', 'email']);
+  });
+
+  it('throws NotFoundException and does not email when the user cannot be found', async () => {
+    (mockUserRepository.findOne as jest.Mock).mockResolvedValue(null);
+
+    await expect(
+      service.resendVerificationOtp('nobody@example.com'),
+    ).rejects.toBeInstanceOf(NotFoundException);
+
+    expect(mockUserRepository.save).not.toHaveBeenCalled();
+    expect(mockSignupEmailService.sendVerificationEmail).not.toHaveBeenCalled();
+  });
+
+  it('throws BadRequestException and short-circuits before any I/O when email is missing', async () => {
+    await expect(service.resendVerificationOtp('')).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+
+    expect(mockUserRepository.findOne).not.toHaveBeenCalled();
+    expect(mockUserRepository.save).not.toHaveBeenCalled();
+    expect(mockSignupEmailService.sendVerificationEmail).not.toHaveBeenCalled();
   });
 });
