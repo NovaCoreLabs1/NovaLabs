@@ -18,6 +18,11 @@ const eslintConfig = [
       "out/**",
       "build/**",
       "next-env.d.ts",
+      // Playwright artifacts — type-checked and linted by Playwright itself.
+      "e2e/**",
+      "playwright.config.ts",
+      "playwright-report/**",
+      "test-results/**",
     ],
   },
   {
