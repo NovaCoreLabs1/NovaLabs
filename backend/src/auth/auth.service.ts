@@ -188,34 +188,28 @@ export class AuthService {
   }
 
   async resendVerificationOtp(email: string) {
-    try {
-      if (!email) {
-        throw new BadRequestException(UserMessages.EMAIL_REQUIRED);
-      }
-
-      const user = await this.userRepository.findOne({ where: { email } });
-      if (!user) {
-        throw new NotFoundException(UserMessages.USER_NOT_FOUND);
-      }
-
-      const verificationCode = this.userHelper.generateVerificationCode();
-
-      user.verificationCode = verificationCode;
-      user.verificationCodeExpiresAt = moment().add(10, 'minutes').toDate();
-      await this.userRepository.save(user);
-
-      await this.emailService.sendVerificationEmail(
-        user.email,
-        verificationCode,
-        `${user.firstname} ${user.lastname}`,
-      );
-
-      return { message: UserMessages.OTP_SENT };
-    } catch (error) {
-      throw new InternalServerErrorException(
-        error || 'Error resending verification code',
-      );
+    if (!email) {
+      throw new BadRequestException(UserMessages.EMAIL_REQUIRED);
     }
+
+    const user = await this.userRepository.findOne({ where: { email } });
+    if (!user) {
+      throw new NotFoundException(UserMessages.USER_NOT_FOUND);
+    }
+
+    const verificationCode = this.userHelper.generateVerificationCode();
+
+    user.verificationCode = verificationCode;
+    user.verificationCodeExpiresAt = moment().add(10, 'minutes').toDate();
+    await this.userRepository.save(user);
+
+    await this.emailService.sendVerificationEmail(
+      user.email,
+      verificationCode,
+      `${user.firstname} ${user.lastname}`,
+    );
+
+    return { message: UserMessages.OTP_SENT };
   }
 
   async login(loginUserDto: LoginUserDto) {
@@ -358,36 +352,30 @@ export class AuthService {
   }
 
   async resendResetPasswordVerificationOtp(resendOtpDto: ResendOtpDto) {
-    try {
-      if (!resendOtpDto.email) {
-        throw new BadRequestException(UserMessages.EMAIL_REQUIRED);
-      }
-
-      const user = await this.userRepository.findOne({
-        where: { email: resendOtpDto.email },
-      });
-      if (!user) {
-        throw new NotFoundException(UserMessages.USER_NOT_FOUND);
-      }
-
-      const otp = this.userHelper.generateVerificationCode();
-
-      user.passwordResetCode = otp;
-      user.passwordResetCodeExpiresAt = moment().add(10, 'minutes').toDate();
-      await this.userRepository.save(user);
-
-      // await this.emailService.sendPasswordResetEmail(
-      //   user.email,
-      //   otp,
-      //   user.fullName,
-      // );
-
-      return { message: UserMessages.OTP_SENT };
-    } catch (error) {
-      throw new InternalServerErrorException(
-        error || 'Error resending verification code',
-      );
+    if (!resendOtpDto.email) {
+      throw new BadRequestException(UserMessages.EMAIL_REQUIRED);
     }
+
+    const user = await this.userRepository.findOne({
+      where: { email: resendOtpDto.email },
+    });
+    if (!user) {
+      throw new NotFoundException(UserMessages.USER_NOT_FOUND);
+    }
+
+    const otp = this.userHelper.generateVerificationCode();
+
+    user.passwordResetCode = otp;
+    user.passwordResetCodeExpiresAt = moment().add(10, 'minutes').toDate();
+    await this.userRepository.save(user);
+
+    await this.emailService.sendPasswordResetEmail(
+      user.email,
+      otp,
+      `${user.firstname} ${user.lastname}`,
+    );
+
+    return { message: UserMessages.OTP_SENT };
   }
 
   async verifyResetPasswordOtp(verifyOtpDto: VerifyOtpDto) {
