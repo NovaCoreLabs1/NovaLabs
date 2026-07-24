@@ -21,7 +21,9 @@ export class AuditLogPurgeService {
     this.logger.log('Starting security IP log purge job');
     try {
       const deleted = await this.securityIpLogService.purgeExpired();
-      this.logger.log(`Security IP log purge complete — deleted ${deleted} row(s)`);
+      this.logger.log(
+        `Security IP log purge complete — deleted ${deleted} row(s)`,
+      );
     } catch (error) {
       this.logger.error(`Security IP log purge failed: ${error.message}`);
     }

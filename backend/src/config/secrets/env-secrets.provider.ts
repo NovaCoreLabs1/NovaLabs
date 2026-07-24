@@ -31,9 +31,7 @@ export class EnvSecretsProvider extends SecretsProvider {
     return value;
   }
 
-  async getMany(
-    keys: string[],
-  ): Promise<Record<string, string | undefined>> {
+  async getMany(keys: string[]): Promise<Record<string, string | undefined>> {
     const result: Record<string, string | undefined> = {};
     for (const key of keys) {
       result[key] = await this.get(key);

@@ -133,9 +133,7 @@ export class VaultSecretsProvider extends SecretsProvider {
     return value;
   }
 
-  async getMany(
-    keys: string[],
-  ): Promise<Record<string, string | undefined>> {
+  async getMany(keys: string[]): Promise<Record<string, string | undefined>> {
     const secrets = await this.fetchSecrets();
     const result: Record<string, string | undefined> = {};
     for (const key of keys) {
