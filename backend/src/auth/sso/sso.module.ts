@@ -45,9 +45,6 @@ export class SsoModule implements OnModuleInit {
     // signature uses a passport-flavoured `Request` while the NestJS
     // express flavour has slightly different typing. The runtime contract
     // is satisfied — the cast is purely a typescript-level adapter.
-    passport.use(
-      'saml',
-      this.samlStrategy as unknown as passport.Strategy,
-    );
+    passport.use('saml', this.samlStrategy as unknown as passport.Strategy);
   }
 }
