@@ -11,11 +11,36 @@ import { AuditLogInterceptor } from './audit-log/interceptors/audit-log.intercep
 import * as cookieParser from 'cookie-parser';
 import * as session from 'express-session';
 import * as passport from 'passport';
+import * as express from 'express';
+import helmet from 'helmet';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     rawBody: true,
   });
+
+  // Security: Per-route body-size limits against DoS (closes #17)
+  app.use(express.json({ limit: '1mb' }));
+  app.use(express.urlencoded({ extended: true, limit: '1mb' }));
+
+  // Security: Baseline HTTP security headers (closes #8)
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          imgSrc: ["'self'", 'data:', 'https://res.cloudinary.com'],
+          connectSrc: ["'self'", 'ws:', 'wss:'],
+          formAction: ["'self'", 'https://login.microsoftonline.com'],
+          frameAncestors: ["'self'"],
+        },
+      },
+      crossOriginEmbedderPolicy: false,
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
+    }),
+  );
 
   app.use(cookieParser());
   app.use(new HttpLogger().use);
