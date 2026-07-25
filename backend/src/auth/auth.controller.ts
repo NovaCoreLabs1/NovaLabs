@@ -28,10 +28,7 @@ import { Setup2faDto } from './dto/setup-2fa.dto';
 import { VerifyTotpDto } from './dto/verify-totp.dto';
 import { UseBackupCodeDto } from './dto/use-backup-code.dto';
 import { Disable2faDto } from './dto/disable-2fa.dto';
-import {
-  setAuthCookies,
-  clearAuthCookies,
-} from './helpers/auth-cookies';
+import { setAuthCookies, clearAuthCookies } from './helpers/auth-cookies';
 
 @Controller('auth')
 export class AuthController {

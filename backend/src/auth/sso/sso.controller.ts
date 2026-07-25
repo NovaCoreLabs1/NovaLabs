@@ -209,8 +209,7 @@ export class SsoController {
           if (!res.headersSent) {
             res.status(HttpStatus.UNAUTHORIZED).json({
               error: 'saml_auth_failed',
-              message:
-                err instanceof Error ? err.message : 'no SAML user',
+              message: err instanceof Error ? err.message : 'no SAML user',
             });
           }
           resolve({ ok: false });

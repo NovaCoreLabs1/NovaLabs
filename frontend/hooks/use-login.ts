@@ -1,18 +1,17 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { useAuthStore } from "@/lib/store/authStore";
+import type { LoginUser } from "@/lib/types/user";
 import { toast } from "sonner";
-
-type LoginBody = {
-  email: string;
-  password: string;
-  rememberMe: boolean;
-};
 
 /**
  * Hook that encapsulates the login flow for the NovaLabs frontend.
  * Calls the auth store's login action, shows a toast on success/error,
  * and redirects the user to the intended page (or /dashboard by default).
+ *
+ * Forwards every field on `LoginUser` to the store so that optional
+ * flags (e.g. `rememberMe`) survive the trip instead of being dropped
+ * silently at the boundary.
  *
  * @returns An object with `login` handler and `loading` state
  */
@@ -23,11 +22,11 @@ export function useLogin() {
 
   const [loading, setLoading] = useState(false);
 
-  const handleLogin = async (payload: LoginBody) => {
+  const handleLogin = async (payload: LoginUser) => {
     setLoading(true);
 
     try {
-      await login({ email: payload.email, password: payload.password });
+      await login(payload);
 
       toast.success("Login successful");
 
