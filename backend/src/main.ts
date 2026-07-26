@@ -11,6 +11,12 @@ import { AuditLogInterceptor } from './audit-log/interceptors/audit-log.intercep
 import * as cookieParser from 'cookie-parser';
 import * as session from 'express-session';
 import * as passport from 'passport';
+import { applyTlsHardening } from './config/tls-hardening';
+
+// PCI DSS: enforce TLS >= 1.2 and requestCert on every outbound https
+// call BEFORE the rest of the app is loaded. Any library instantiated
+// later (Axios, AWS SDK, Stellar SDK) will inherit these defaults.
+applyTlsHardening();
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
