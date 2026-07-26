@@ -239,6 +239,15 @@ export class AuthService {
       return { requiresTwoFactor: true, tempToken };
     }
 
+    // Enforce TOTP 2FA for ADMIN/SUPER_ADMIN on first login (#30)
+    if (
+      (user.role === UserRole.ADMIN || user.role === UserRole.SUPER_ADMIN) &&
+      !user.twoFactorEnabled
+    ) {
+      const tempToken = this.jwtHelper.generateTempToken(user.id);
+      return { requires2faSetup: true, tempToken };
+    }
+
     const tokens = this.jwtHelper.generateTokens(user);
     await this.refreshTokenRepositoryOperations.saveRefreshToken(
       user,
