@@ -6,6 +6,7 @@ import { ValidationPipe, ClassSerializerInterceptor } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { HttpLogger } from './common/middlewares/httpLogger.middleware';
 import { CsrfMiddleware } from './common/middlewares/csrf.middleware';
+import { ContentTypeMiddleware } from './common/middlewares/content-type.middleware';
 import { CsrfGuard } from './common/guards/csrf.guard';
 import { AuditLogInterceptor } from './audit-log/interceptors/audit-log.interceptor';
 import * as cookieParser from 'cookie-parser';
@@ -20,6 +21,8 @@ async function bootstrap() {
   app.use(cookieParser());
   app.use(new HttpLogger().use);
   app.use(new CsrfMiddleware().use);
+  // Enforce application/json content-type on POST/PUT/PATCH requests (Issue #111)
+  app.use(new ContentTypeMiddleware().use.bind(new ContentTypeMiddleware()));
 
   // SAML SSO session middleware. Required by passport-saml to persist the
   // RelayState + InResponseTo across the IdP redirect. Uses an isolated
