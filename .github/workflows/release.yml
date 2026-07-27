@@ -1,0 +1,127 @@
+name: Release & SBOM
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag (e.g. v1.2.3)"
+        required: true
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  sbom-frontend:
+    name: Generate Frontend SBOM (CycloneDX)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci --ignore-scripts
+
+      - name: Install @cyclonedx/cyclonedx-npm
+        run: npm install -g @cyclonedx/cyclonedx-npm
+
+      - name: Generate frontend SBOM
+        working-directory: frontend
+        run: |
+          cyclonedx-npm --output-format JSON --output-file ../sbom-frontend.cdx.json
+          echo "Frontend SBOM generated."
+
+      - name: Upload frontend SBOM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-frontend
+          path: sbom-frontend.cdx.json
+          retention-days: 90
+
+  sbom-backend:
+    name: Generate Backend SBOM (CycloneDX)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm ci --ignore-scripts
+
+      - name: Install @cyclonedx/cyclonedx-npm
+        run: npm install -g @cyclonedx/cyclonedx-npm
+
+      - name: Generate backend SBOM
+        working-directory: backend
+        run: |
+          cyclonedx-npm --output-format JSON --output-file ../sbom-backend.cdx.json
+          echo "Backend SBOM generated."
+
+      - name: Upload backend SBOM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-backend
+          path: sbom-backend.cdx.json
+          retention-days: 90
+
+  sbom-contracts:
+    name: Generate Contracts SBOM (CycloneDX / Cargo)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install cyclonedx-rust-cargo
+        run: cargo install cyclonedx-bom --locked
+
+      - name: Generate contracts SBOM
+        working-directory: contracts
+        run: |
+          cyclonedx-bom --output ../sbom-contracts.cdx.json
+          echo "Contracts SBOM generated."
+
+      - name: Upload contracts SBOM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-contracts
+          path: sbom-contracts.cdx.json
+          retention-days: 90
+
+  attach-to-release:
+    name: Attach SBOMs to GitHub Release
+    runs-on: ubuntu-latest
+    needs: [sbom-frontend, sbom-backend, sbom-contracts]
+    steps:
+      - name: Download all SBOM artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: sbom-artifacts
+
+      - name: Upload SBOMs to release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name || inputs.tag }}
+          files: |
+            sbom-artifacts/sbom-frontend/sbom-frontend.cdx.json
+            sbom-artifacts/sbom-backend/sbom-backend.cdx.json
+            sbom-artifacts/sbom-contracts/sbom-contracts.cdx.json
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
