@@ -11,13 +11,13 @@
  *   <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(userContent) }} />
  */
 
-import DOMPurify from "isomorphic-dompurify";
+import DOMPurify, { type Config } from "isomorphic-dompurify";
 
 /**
  * Default allow-list: strips all scripts, event handlers, and
  * javascript: URIs while preserving safe formatting markup.
  */
-const DEFAULT_CONFIG: DOMPurify.Config = {
+const DEFAULT_CONFIG: Config = {
   USE_PROFILES: { html: true },
   FORBID_TAGS: ["script", "style", "iframe", "object", "embed", "form"],
   FORBID_ATTR: ["onerror", "onload", "onclick", "onmouseover", "onfocus", "onblur"],
@@ -32,7 +32,7 @@ const DEFAULT_CONFIG: DOMPurify.Config = {
  */
 export function sanitizeHtml(
   dirty: string,
-  config: DOMPurify.Config = DEFAULT_CONFIG
+  config: Config = DEFAULT_CONFIG
 ): string {
   if (!dirty) return "";
   return DOMPurify.sanitize(dirty, config) as string;
