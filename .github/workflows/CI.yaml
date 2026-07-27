@@ -105,6 +105,42 @@ jobs:
         run: cargo build --all --verbose
 
   # ─────────────────────────────────────────────
+  # GAS BENCHMARKS — Issue #71
+  # Runs every contracts/*/tests/bench.rs integration test under
+  # `cargo test --release`, parses BENCH lines, and compares against the
+  # checked-in contracts/*/benches/baseline.json. A >20% regression on
+  # any method's CPU or memory cost fails CI.
+  # ─────────────────────────────────────────────
+  gas-benchmarks:
+    name: Gas Benchmarks (Issue #71)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        env:
+          RUSTUP_TOOLCHAIN: stable
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            contracts/target
+          key: ${{ runner.os }}-cargo-bench-${{ hashFiles('contracts/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-bench-
+            ${{ runner.os }}-cargo-
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run bench harness and compare to baseline
+        run: python3 scripts/bench_contracts.py
+        env:
+          BENCH_VERBOSE: "1"
+
+  # ─────────────────────────────────────────────
   # SEMGREP — Reentrancy guard enforcement
   # (TEMPORARILY DISABLED — uncomment to re-enable)
   # ─────────────────────────────────────────────

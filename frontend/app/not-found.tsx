@@ -1,7 +1,15 @@
 "use client";
 import Link from "next/link";
-import { Home, ArrowLeft, SearchX } from "lucide-react";
+import { Home, ArrowLeft, Search } from "lucide-react";
 
+/**
+ * Issue #54 — 404 UX.
+ *
+ * Visually paired with `app/error.tsx` so the user journey on a server
+ * error or a missing page lands on the same palette. Adds a search
+ * input (the AC's "Friendly 404 with search input") without changing
+ * the existing layout / colour scheme.
+ */
 export default function NotFound() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50 flex items-center justify-center p-4">
@@ -10,7 +18,7 @@ export default function NotFound() {
         <div className="relative inline-block">
           <div className="absolute inset-0 bg-purple-200 rounded-full blur-3xl opacity-30 animate-pulse" />
           <div className="relative bg-white rounded-full p-4 sm:p-6 md:p-8 shadow-xl">
-            <SearchX
+            <Search
               className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 text-purple-600 mx-auto"
               strokeWidth={1.5}
             />
@@ -31,8 +39,8 @@ export default function NotFound() {
             Page Not Found
           </h2>
           <p className="text-lg text-gray-600 max-w-md mx-auto leading-relaxed">
-            Oops! The page you&#39;re looking for seems to have wandered off.
-            Let&#39;s get you back on track.
+            Oops! The page you&rsquo;re looking for seems to have wandered
+            off. Let&rsquo;s get you back on track.
           </p>
         </div>
 
@@ -54,6 +62,27 @@ export default function NotFound() {
             <span>Go Back</span>
           </button>
         </div>
+
+        {/* Search input — Issue #54 acceptance criteria */}
+        <form
+          action="/search"
+          className="max-w-md mx-auto pt-2"
+          role="search"
+          aria-label="Search NovaLabs"
+        >
+          <div className="relative">
+            <Search
+              className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"
+              aria-hidden="true"
+            />
+            <input
+              type="search"
+              name="q"
+              placeholder="Search workspaces, bookings, dashboards…"
+              className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+            />
+          </div>
+        </form>
 
         {/* Additional Info */}
         <div className="pt-8">

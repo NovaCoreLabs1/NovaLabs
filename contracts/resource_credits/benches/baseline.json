@@ -1,0 +1,11 @@
+{
+  "contract": "resource_credits",
+  "baseline_established": "2026-07-27",
+  "tolerance_pct": 20,
+  "measurements": {
+    "initialize":       { "cpu": 280000, "mem": 2200 },
+    "mint_credits":     { "cpu": 360000, "mem": 1900 },
+    "transfer_credits": { "cpu": 380000, "mem": 2000 },
+    "balance":          { "cpu": 80000,  "mem": 250  }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "contract": "workspace_booking",
+  "baseline_established": "2026-07-27",
+  "tolerance_pct": 20,
+  "note": "book_workspace baseline intentionally omitted because the bench harness uses an Address::generate() placeholder for the payment-token slot (avoids register_stellar_asset_contract_v2 host-API dependencies). book_workspace cost is reported but the row has no baseline comparison — flagged in compare() output.",
+  "measurements": {
+    "register_workspace": { "cpu": 620000, "mem": 5400 },
+    "check_availability": { "cpu": 220000, "mem": 1200 },
+    "get_workspace":      { "cpu": 110000, "mem": 850 },
+    "get_all_workspaces": { "cpu": 80000,  "mem": 700 }
+  }
+}

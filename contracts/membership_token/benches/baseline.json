@@ -1,0 +1,13 @@
+{
+  "contract": "membership_token",
+  "baseline_established": "2026-07-27",
+  "tolerance_pct": 20,
+  "note": "Initial baseline. Re-baseline manually after a Soroban SDK upgrade or after a deliberate perf optimisation.",
+  "measurements": {
+    "set_admin":      { "cpu": 250000,  "mem": 1200 },
+    "set_minter":     { "cpu": 260000,  "mem": 1300 },
+    "issue_token":    { "cpu": 540000,  "mem": 4800 },
+    "transfer_token": { "cpu": 420000,  "mem": 1900 },
+    "pause":          { "cpu": 225000,  "mem": 850  }
+  }
+}

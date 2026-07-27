@@ -57,7 +57,31 @@ export class AuthService {
    * @returns The created user object and an access token
    * @throws ConflictException if the email is already registered
    */
-  async createUser(createUserDto: CreateUserDto) {
+  /**
+   * Shared user-creation pipeline for both the public sign-up flow
+   * (`createUser`) and the admin-created-account flow (`createAdminUser`).
+   *
+   * Previously both methods inlined ~30 lines of identical `findOne →
+   * isValidPassword → password-breach check → hash → repo.create → repo.save`
+   * logic, so a behavioural fix (e.g. stronger password rules, extra audit
+   * row, breach-check tightening) had to be applied in two places and
+   * routinely drifted.
+   *
+   * The `mustVerifyEmail` option controls whether the new account is
+   * created in the unverified state with an OTP email dispatched. The
+   * admin path deliberately leaves this `false` — admin accounts are
+   * minted by an already-authenticated `ADMIN` via `POST /auth/register-admin`
+   * (see `auth.controller.ts`), so triggering a verification email to
+   * the new admin would be a foot-gun (no real inbox verification path
+   * for staff accounts).
+   *
+   * This intent is recorded in `backend/docs/adr/0008-shared-user-creation.md`.
+   */
+  private async persistNewUser(
+    createUserDto: CreateUserDto,
+    role: UserRole,
+    opts: { mustVerifyEmail: boolean },
+  ) {
     const existingUser = await this.userRepository.findOne({
       where: { email: createUserDto.email },
     });
@@ -66,35 +90,42 @@ export class AuthService {
       throw new ConflictException(UserMessages.EMAIL_ALREADY_EXIST);
     }
 
-    const validPassword = this.userHelper.isValidPassword(
-      createUserDto.password,
-    );
-    if (!validPassword) {
+    if (!this.userHelper.isValidPassword(createUserDto.password)) {
       throw new ConflictException(UserMessages.IS_VALID_PASSWORD);
     }
     await this.passwordBreachService.checkPassword(createUserDto.password);
     const hashedPassword = await this.userHelper.hashPassword(
       createUserDto.password,
     );
-    const verificationCode = this.userHelper.generateVerificationCode();
-    const expiration = moment().add(10, 'minutes').toDate();
-    const newUser = this.userRepository.create({
+
+    const userPayload: Partial<User> = {
       email: createUserDto.email,
       firstname: createUserDto.firstname,
       lastname: createUserDto.lastname,
       password: hashedPassword,
-      role: UserRole.USER,
-      verificationCode: verificationCode,
-      verificationCodeExpiresAt: expiration,
-      isVerified: false,
-    });
+      role,
+    };
+
+    let verificationCode: string | undefined;
+    if (opts.mustVerifyEmail) {
+      verificationCode = this.userHelper.generateVerificationCode();
+      userPayload.verificationCode = verificationCode;
+      userPayload.verificationCodeExpiresAt = moment()
+        .add(10, 'minutes')
+        .toDate();
+      userPayload.isVerified = false;
+    }
+
+    const newUser = this.userRepository.create(userPayload);
     await this.userRepository.save(newUser);
 
-    await this.emailService.sendVerificationEmail(
-      newUser.email,
-      verificationCode,
-      `${newUser.firstname} ${newUser.lastname}`,
-    );
+    if (opts.mustVerifyEmail && verificationCode) {
+      await this.emailService.sendVerificationEmail(
+        newUser.email,
+        verificationCode,
+        `${newUser.firstname} ${newUser.lastname}`,
+      );
+    }
 
     const accessToken = this.jwtHelper.generateAccessToken(newUser);
 
@@ -104,40 +135,34 @@ export class AuthService {
     };
   }
 
-  async createAdminUser(createUserDto: CreateUserDto) {
-    const existingUser = await this.userRepository.findOne({
-      where: { email: createUserDto.email },
+  /**
+   * Registers a new member account, hashes their password, generates a
+   * verification OTP, sends a verification email, and returns an access
+   * token.
+   *
+   * Thin pass-through to {@link persistNewUser}. Kept as a public method
+   * for backwards-compatibility with `AuthController.create` and any
+   * direct consumers in tests.
+   */
+  createUser(createUserDto: CreateUserDto) {
+    return this.persistNewUser(createUserDto, UserRole.USER, {
+      mustVerifyEmail: true,
     });
+  }
 
-    if (existingUser) {
-      throw new ConflictException(UserMessages.EMAIL_ALREADY_EXIST);
-    }
-
-    const validPassword = this.userHelper.isValidPassword(
-      createUserDto.password,
-    );
-    if (!validPassword) {
-      throw new ConflictException(UserMessages.IS_VALID_PASSWORD);
-    }
-    await this.passwordBreachService.checkPassword(createUserDto.password);
-    const hashedPassword = await this.userHelper.hashPassword(
-      createUserDto.password,
-    );
-    const newUser = this.userRepository.create({
-      email: createUserDto.email,
-      firstname: createUserDto.firstname,
-      lastname: createUserDto.lastname,
-      password: hashedPassword,
-      role: UserRole.ADMIN,
+  /**
+   * Mints a new admin account. Deliberately does NOT trigger an email
+   * verification cycle — admin accounts are bootstrapped by an
+   * already-authenticated ADMIN (see `POST /auth/register-admin`). See
+   * `backend/docs/adr/0008-shared-user-creation.md` for the rationale.
+   *
+   * Thin pass-through to {@link persistNewUser} for backwards-compatibility
+   * with `AuthController.createAdmin`.
+   */
+  createAdminUser(createUserDto: CreateUserDto) {
+    return this.persistNewUser(createUserDto, UserRole.ADMIN, {
+      mustVerifyEmail: false,
     });
-    await this.userRepository.save(newUser);
-
-    const accessToken = this.jwtHelper.generateAccessToken(newUser);
-
-    return {
-      user: this.userHelper.formatUserResponse(newUser),
-      accessToken,
-    };
   }
 
   async verifyOtp(verifyOtpDto: VerifyOtpDto) {

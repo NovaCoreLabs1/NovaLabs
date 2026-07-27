@@ -31,9 +31,7 @@ export interface SamlConfig {
   disableSignatureValidation: boolean;
 }
 
-export function buildSamlConfig(
-  configService: ConfigService,
-): SamlConfig {
+export function buildSamlConfig(configService: ConfigService): SamlConfig {
   const entryPoint = configService.get<string>('SAML_ENTRY_POINT') ?? null;
   const issuer = configService.get<string>('SAML_ISSUER') ?? null;
   const callbackUrl = configService.get<string>('SAML_CALLBACK_URL') ?? null;

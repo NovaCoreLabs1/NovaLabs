@@ -1,0 +1,10 @@
+{
+  "contract": "payment_escrow",
+  "baseline_established": "2026-07-27",
+  "tolerance_pct": 20,
+  "measurements": {
+    "initialize":          { "cpu": 360000, "mem": 2700 },
+    "set_dispute_window":  { "cpu": 210000, "mem": 800  },
+    "get_escrow":          { "cpu": 100000, "mem": 350  }
+  }
+}

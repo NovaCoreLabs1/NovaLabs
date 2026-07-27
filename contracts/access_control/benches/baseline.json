@@ -1,0 +1,11 @@
+{
+  "contract": "access_control",
+  "baseline_established": "2026-07-27",
+  "tolerance_pct": 20,
+  "measurements": {
+    "initialize":  { "cpu": 380000, "mem": 3000 },
+    "set_role":    { "cpu": 410000, "mem": 2200 },
+    "check_access":{ "cpu": 110000, "mem": 400  },
+    "pause":       { "cpu": 220000, "mem": 850  }
+  }
+}

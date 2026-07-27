@@ -1,0 +1,9 @@
+{
+  "contract": "manage_hub",
+  "baseline_established": "2026-07-27",
+  "tolerance_pct": 20,
+  "measurements": {
+    "set_admin": { "cpu": 250000, "mem": 1100 },
+    "hello":     { "cpu": 80000,  "mem": 300  }
+  }
+}

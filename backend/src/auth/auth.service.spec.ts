@@ -55,10 +55,39 @@ const baseSignupUser: Partial<User> = {
 const mockUserRepository: Partial<Record<keyof Repository<User>, jest.Mock>> = {
   findOne: jest.fn(),
   save: jest.fn(),
+  create: jest.fn(),
 };
 
 const mockUserHelper = {
   generateVerificationCode: jest.fn(() => '1234'),
+  isValidPassword: jest.fn(() => true),
+  hashPassword: jest.fn(async (plain: string) => `hashed:${plain}`),
+  formatUserResponse: jest.fn((u: Partial<User>) => ({
+    id: u.id ?? 'response-id',
+    email: u.email,
+    firstname: u.firstname,
+    lastname: u.lastname,
+    role: u.role,
+    isActive: u.isActive ?? true,
+    isSuspended: u.isSuspended ?? false,
+    isDeleted: u.isDeleted ?? false,
+  })),
+};
+
+// JwtHelper is invoked by `persistNewUser` (Issue #14 refactor) to mint
+// the access token returned to the controller. The existing resend-OTP
+// specs do not need this and previously relied on an empty stub being
+// ignored; the new specs require a no-op mock that returns a non-empty
+// string so `expect.objectContaining({ accessToken: expect.anything() })`
+// succeeds.
+const mockJwtHelper = {
+  generateAccessToken: jest.fn(() => 'mock-access-token'),
+  generateTokens: jest.fn(() => ({
+    accessToken: 'mock-access-token',
+    refreshToken: 'mock-refresh-token',
+  })),
+  generateTempToken: jest.fn(() => 'mock-temp-token'),
+  validateRefreshToken: jest.fn(() => 'user-123'),
 };
 
 const mockPasswordResetEmailService = {
@@ -70,8 +99,15 @@ const mockSignupEmailService = {
 };
 
 // Collaborators of AuthService unused by either resend-OTP flow. An empty
-// stub satisfies Nest's DI without exercising their internals.
+// stub satisfies Nest's DI without exercising their internals. The
+// mockPasswordBreachService is ALSO a stub but its `checkPassword` is
+// invoked by `persistNewUser` (Issue #14 / ADR 0008 refactor) so we
+// provide a no-op mock that resolves cheaply.
 const unusedProvider = {};
+
+const mockPasswordBreachService = {
+  checkPassword: jest.fn().mockResolvedValue(undefined),
+};
 
 /** Builds a TestingModule with the shared mocks + a caller-supplied EmailService. */
 async function buildAuthServiceModule(
@@ -82,7 +118,7 @@ async function buildAuthServiceModule(
       AuthService,
       { provide: getRepositoryToken(User), useValue: mockUserRepository },
       { provide: UserHelper, useValue: mockUserHelper },
-      { provide: JwtHelper, useValue: unusedProvider },
+      { provide: JwtHelper, useValue: mockJwtHelper },
       { provide: EmailService, useValue: emailServiceMock },
       { provide: SetupTotpProvider, useValue: unusedProvider },
       { provide: VerifyTotpProvider, useValue: unusedProvider },
@@ -92,7 +128,7 @@ async function buildAuthServiceModule(
         useValue: unusedProvider,
       },
       { provide: AuditLogService, useValue: unusedProvider },
-      { provide: PasswordBreachService, useValue: unusedProvider },
+      { provide: PasswordBreachService, useValue: mockPasswordBreachService },
     ],
   }).compile();
 
@@ -192,6 +228,166 @@ describe('AuthService.resendResetPasswordVerificationOtp', () => {
     expect(
       mockPasswordResetEmailService.sendPasswordResetEmail,
     ).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * Behavioural tests for the `createUser` / `createAdminUser` refactor
+ * (Issue #14, ADR 0008). Asserts:
+ *   1. `createUser` dispatches the verification email.
+ *   2. `createUser` writes `isVerified = false` + a fresh OTP + expiry.
+ *   3. `createAdminUser` deliberately does NOT send the verification email
+ *      and does NOT generate an OTP — this is the intentional behaviour
+ *      documented in ADR 0008.
+ *   4. Save-before-notify ordering for the verification path (a DB save
+ *      failure must not silently rewrite an OTP that no one can claim).
+ *   5. Both branches reject duplicate emails.
+ */
+describe('AuthService.createUser / createAdminUser (refactor)', () => {
+  let service: AuthService;
+  const callOrder: string[] = [];
+
+  beforeEach(async () => {
+    callOrder.length = 0;
+    (mockUserRepository.save as jest.Mock).mockImplementation(
+      (entity: User) => {
+        callOrder.push('save');
+        return Promise.resolve(entity);
+      },
+    );
+    (mockUserRepository.create as jest.Mock).mockImplementation(
+      (entity: Partial<User>) => {
+        return { id: 'new-user-id', ...entity } as User;
+      },
+    );
+    (
+      mockSignupEmailService.sendVerificationEmail as jest.Mock
+    ).mockImplementation(() => {
+      callOrder.push('email');
+      return Promise.resolve(true);
+    });
+    service = await buildAuthServiceModule(
+      mockSignupEmailService as unknown as EmailService,
+    );
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('createUser: persists an unverified USER with OTP and sends verification email', async () => {
+    (mockUserRepository.findOne as jest.Mock).mockResolvedValue(null);
+
+    const result = await service.createUser({
+      email: 'joe@example.com',
+      firstname: 'Joe',
+      lastname: 'Bloggs',
+      password: 'StrongPass1!',
+    } as any);
+
+    expect(mockUserRepository.save).toHaveBeenCalledTimes(1);
+    const savedUser = (mockUserRepository.save as jest.Mock).mock.calls[0][0];
+    expect(savedUser.role).toBe('user');
+    expect(savedUser.isVerified).toBe(false);
+    expect(savedUser.verificationCode).toBe('1234');
+    const expiresMs = savedUser.verificationCodeExpiresAt?.getTime() ?? 0;
+    expect(Math.abs(expiresMs - Date.now() - 10 * 60 * 1000)).toBeLessThan(
+      5000,
+    );
+
+    expect(mockSignupEmailService.sendVerificationEmail).toHaveBeenCalledTimes(
+      1,
+    );
+    const [emailArg, otpArg, fullNameArg] = (
+      mockSignupEmailService.sendVerificationEmail as jest.Mock
+    ).mock.calls[0];
+    expect(emailArg).toBe('joe@example.com');
+    expect(otpArg).toBe('1234');
+    expect(fullNameArg).toBe('Joe Bloggs');
+
+    expect(callOrder).toEqual(['save', 'email']);
+    expect(result).toEqual(
+      expect.objectContaining({
+        accessToken: expect.anything(),
+        user: expect.objectContaining({
+          email: 'joe@example.com',
+        }),
+      }),
+    );
+  });
+
+  it('createAdminUser: persists an ADMIN without OTP and does NOT send verification email', async () => {
+    (mockUserRepository.findOne as jest.Mock).mockResolvedValue(null);
+
+    const result = await service.createAdminUser({
+      email: 'staff@example.com',
+      firstname: 'Staff',
+      lastname: 'Member',
+      password: 'StrongPass1!',
+    } as any);
+
+    expect(mockUserRepository.save).toHaveBeenCalledTimes(1);
+    const savedUser = (mockUserRepository.save as jest.Mock).mock.calls[0][0];
+    // The admin path deliberately skips OTP generation and isVerified flipping.
+    // See ADR 0008 — admin accounts are minted by an already-authenticated
+    // ADMIN and verified out-of-band (currently = never).
+    expect(savedUser.role).toBe('admin');
+    expect(savedUser.verificationCode).toBeUndefined();
+    expect(savedUser.verificationCodeExpiresAt).toBeUndefined();
+    expect('isVerified' in savedUser ? savedUser.isVerified : undefined).toBe(
+      undefined,
+    );
+
+    // The admin path must NOT dispatch a verification email.
+    expect(mockSignupEmailService.sendVerificationEmail).not.toHaveBeenCalled();
+
+    // No save-before-notify ordering applies because no email is sent.
+    expect(callOrder).toEqual(['save']);
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        accessToken: expect.anything(),
+      }),
+    );
+  });
+
+  it('createUser: throws ConflictException when email already exists and skips email', async () => {
+    (mockUserRepository.findOne as jest.Mock).mockResolvedValue({
+      ...baseSignupUser,
+      email: 'joe@example.com',
+    });
+
+    await expect(
+      service.createUser({
+        email: 'joe@example.com',
+        firstname: 'Joe',
+        lastname: 'Bloggs',
+        password: 'StrongPass1!',
+      } as any),
+    ).rejects.toThrow(/already/i);
+
+    expect(mockUserRepository.save).not.toHaveBeenCalled();
+    expect(mockSignupEmailService.sendVerificationEmail).not.toHaveBeenCalled();
+  });
+
+  it('createAdminUser: throws ConflictException when email already exists and skips email', async () => {
+    (mockUserRepository.findOne as jest.Mock).mockResolvedValue({
+      ...baseSignupUser,
+      email: 'staff@example.com',
+      role: 'admin',
+    });
+
+    await expect(
+      service.createAdminUser({
+        email: 'staff@example.com',
+        firstname: 'Staff',
+        lastname: 'Member',
+        password: 'StrongPass1!',
+      } as any),
+    ).rejects.toThrow(/already/i);
+
+    expect(mockUserRepository.save).not.toHaveBeenCalled();
+    expect(mockSignupEmailService.sendVerificationEmail).not.toHaveBeenCalled();
   });
 });
 

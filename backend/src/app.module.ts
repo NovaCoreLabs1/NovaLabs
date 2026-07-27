@@ -21,6 +21,7 @@ import { InvoicesModule } from './invoices/invoices.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { WorkspaceTrackingModule } from './workspace-tracking/workspace-tracking.module';
 import { AuditLogModule } from './audit-log/audit-log.module';
+import { FeatureFlagsModule } from './feature-flags/feature-flags.module';
 
 @Module({
   imports: [
@@ -101,6 +102,7 @@ import { AuditLogModule } from './audit-log/audit-log.module';
     NotificationsModule,
     WorkspaceTrackingModule,
     AuditLogModule,
+    FeatureFlagsModule,
   ],
   controllers: [AppController],
   providers: [
