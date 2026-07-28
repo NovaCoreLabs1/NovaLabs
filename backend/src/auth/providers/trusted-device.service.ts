@@ -109,7 +109,7 @@ export class TrustedDeviceService {
     }
 
     if (record.user.id !== user.id) {
-      throw new ForbiddenException('Cannot revoke another user\'s device.');
+      throw new ForbiddenException("Cannot revoke another user's device.");
     }
 
     await this.trustedDeviceRepo.remove(record);

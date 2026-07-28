@@ -25,7 +25,9 @@ jest.mock('@aws-sdk/client-secrets-manager', () => ({
 // Mock builders
 // ---------------------------------------------------------------------------
 
-function mockConfigService(overrides: Record<string, unknown> = {}): ConfigService {
+function mockConfigService(
+  overrides: Record<string, unknown> = {},
+): ConfigService {
   return {
     get: jest.fn((key: string, defaultValue?: unknown) => {
       const config: Record<string, unknown> = {
@@ -44,7 +46,8 @@ function mockConfigService(overrides: Record<string, unknown> = {}): ConfigServi
         VAULT_CACHE_TTL_MS: 300_000,
         AWS_REGION: 'us-east-1',
         AWS_DEFAULT_REGION: '',
-        AWS_SECRETS_MANAGER_ARN: 'arn:aws:secretsmanager:us-east-1:123:secret:my-secret',
+        AWS_SECRETS_MANAGER_ARN:
+          'arn:aws:secretsmanager:us-east-1:123:secret:my-secret',
         AWS_SECRETS_MANAGER_SECRET_ID: '',
         AWS_SECRETS_CACHE_TTL_MS: 300_000,
         ...overrides,
@@ -208,9 +211,10 @@ describe('DopplerSecretsProvider', () => {
 
     it('re-fetches after cache expiry', async () => {
       const startTime = Date.now();
-      jest.spyOn(Date, 'now')
-        .mockReturnValueOnce(startTime)               // first fetch: set cacheExpiresAt
-        .mockReturnValueOnce(startTime + 500_000);     // second fetch: past TTL
+      jest
+        .spyOn(Date, 'now')
+        .mockReturnValueOnce(startTime) // first fetch: set cacheExpiresAt
+        .mockReturnValueOnce(startTime + 500_000); // second fetch: past TTL
 
       provider = new DopplerSecretsProvider(
         mockConfigService({ DOPPLER_CACHE_TTL_MS: 300_000 }),
@@ -276,7 +280,9 @@ describe('VaultSecretsProvider', () => {
       const originalEnv = process.env.FALLBACK_VAULT;
       process.env.FALLBACK_VAULT = 'vault-fallback';
       provider = new VaultSecretsProvider(mockConfigService());
-      await expect(provider.get('FALLBACK_VAULT')).resolves.toBe('vault-fallback');
+      await expect(provider.get('FALLBACK_VAULT')).resolves.toBe(
+        'vault-fallback',
+      );
       process.env.FALLBACK_VAULT = originalEnv;
     });
 
@@ -303,7 +309,10 @@ describe('VaultSecretsProvider', () => {
         data: { data: { data: { A: 'a', B: 'b' } } },
       });
       provider = new VaultSecretsProvider(mockConfigService());
-      await expect(provider.getMany(['A', 'B'])).resolves.toEqual({ A: 'a', B: 'b' });
+      await expect(provider.getMany(['A', 'B'])).resolves.toEqual({
+        A: 'a',
+        B: 'b',
+      });
     });
   });
 
@@ -373,7 +382,9 @@ describe('AwsSecretsProvider', () => {
       const originalEnv = process.env.AWS_FALLBACK_KEY;
       process.env.AWS_FALLBACK_KEY = 'aws-fallback';
       provider = new AwsSecretsProvider(mockConfigService());
-      await expect(provider.get('AWS_FALLBACK_KEY')).resolves.toBe('aws-fallback');
+      await expect(provider.get('AWS_FALLBACK_KEY')).resolves.toBe(
+        'aws-fallback',
+      );
       process.env.AWS_FALLBACK_KEY = originalEnv;
     });
 
@@ -566,9 +577,7 @@ describe('SecretsProvider (abstract class contract)', () => {
       if (!val) throw new Error(`Test: missing "${key}"`);
       return val;
     }
-    async getMany(
-      keys: string[],
-    ): Promise<Record<string, string | undefined>> {
+    async getMany(keys: string[]): Promise<Record<string, string | undefined>> {
       const result: Record<string, string | undefined> = {};
       for (const k of keys) result[k] = await this.get(k);
       return result;
