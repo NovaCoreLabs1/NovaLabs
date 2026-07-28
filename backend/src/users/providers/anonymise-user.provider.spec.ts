@@ -95,7 +95,9 @@ describe('AnonymiseUserProvider', () => {
   beforeEach(async () => {
     jest.clearAllMocks();
 
-    transactionalManager.create.mockImplementation((_entity, payload) => payload);
+    transactionalManager.create.mockImplementation(
+      (_entity, payload) => payload,
+    );
     transactionalManager.save.mockImplementation(async (entity, payload) => ({
       id: mockUser.id,
       ...payload,
@@ -161,23 +163,23 @@ describe('AnonymiseUserProvider', () => {
     expect(auditArg.metadata.originalEmailHash).toMatch(/^[a-f0-9]{64}$/);
 
     // 2. refresh tokens hard-deleted in transaction
-    expect(transactionalManager.delete).toHaveBeenCalledWith(
-      RefreshToken,
-      { userId: mockUser.id },
-    );
+    expect(transactionalManager.delete).toHaveBeenCalledWith(RefreshToken, {
+      userId: mockUser.id,
+    });
 
     // 3. workspace logs hard-deleted in transaction
-    expect(transactionalManager.delete).toHaveBeenCalledWith(
-      WorkspaceLog,
-      { userId: mockUser.id },
-    );
+    expect(transactionalManager.delete).toHaveBeenCalledWith(WorkspaceLog, {
+      userId: mockUser.id,
+    });
 
     // 4. booking/payment userId set to NULL via update builder
     expect(transactionalManager.createQueryBuilder).toHaveBeenCalled();
 
     // 5. user row replaced with anonymised payload
     const saveCalls = transactionalManager.save.mock.calls;
-    const userSave = saveCalls.find(([, payload]) => payload?.id === mockUser.id);
+    const userSave = saveCalls.find(
+      ([, payload]) => payload?.id === mockUser.id,
+    );
     expect(userSave).toBeDefined();
     const anonymisedRow = userSave[1];
 
@@ -204,11 +206,16 @@ describe('AnonymiseUserProvider', () => {
     mockDataSource.transaction.mockImplementationOnce(async () => {
       throw new Error('db exploded');
     });
-    await expect(provider.anonymise(mockUser.id)).rejects.toThrow(/db exploded/);
+    await expect(provider.anonymise(mockUser.id)).rejects.toThrow(
+      /db exploded/,
+    );
   });
 
   it('hardenDeletedUsers reports refresh-token / workspace-log cleanup counts', async () => {
-    usersRepository.find.mockResolvedValueOnce([mockUser, { id: 'uid-2' } as User]);
+    usersRepository.find.mockResolvedValueOnce([
+      mockUser,
+      { id: 'uid-2' } as User,
+    ]);
     refreshTokenRepository.createQueryBuilder.mockReturnValueOnce({
       delete: jest.fn().mockReturnThis(),
       where: jest.fn().mockReturnThis(),

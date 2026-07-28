@@ -30,6 +30,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.972.0",
+    "@aws-sdk/client-secrets-manager": "^3.972.0",
     "@cloudinary-util/types": "^1.6.0",
     "@nestjs/axios": "^4.0.1",
     "@nestjs/bull": "^11.0.4",
