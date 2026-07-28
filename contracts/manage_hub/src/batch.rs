@@ -1,11 +1,18 @@
 // Allow deprecated events API until migration to #[contractevent] macro
 #![allow(deprecated)]
 
+/// Semantic version of the event topic schema published by this contract.
+/// Bump to `v2` when introducing breaking changes to any event payload.
+/// Off-chain consumers match on this string as the **first** element of every
+/// event topic. Resolves issue #76 (`Add event topic versioning for forward
+/// compatibility`).
+pub const EVENT_VERSION: &str = "v1";
+
 use crate::errors::Error;
 use crate::membership_token::MembershipTokenContract;
 use crate::types::{BatchMintParams, BatchTransferParams, BatchUpdateParams};
 use crate::validation::BatchValidator;
-use soroban_sdk::{symbol_short, Env, Vec};
+use soroban_sdk::{symbol_short, Env, String, Vec}; // String required by event-topic versioning (issue #76)
 
 pub struct BatchModule;
 
@@ -23,7 +30,7 @@ impl BatchModule {
 
         // Emit batch event for tracking and monitoring
         env.events().publish(
-            (symbol_short!("bat_mint"),),
+            (String::from_str(&env, EVENT_VERSION), symbol_short!("bat_mint"),),
             (params_vec.len(), env.ledger().timestamp()),
         );
 
@@ -43,7 +50,7 @@ impl BatchModule {
 
         // Emit batch event for tracking and monitoring
         env.events().publish(
-            (symbol_short!("bat_xfr"),),
+            (String::from_str(&env, EVENT_VERSION), symbol_short!("bat_xfr"),),
             (params_vec.len(), env.ledger().timestamp()),
         );
 
@@ -63,7 +70,7 @@ impl BatchModule {
 
         // Emit batch event for tracking and monitoring
         env.events().publish(
-            (symbol_short!("bat_upd"),),
+            (String::from_str(&env, EVENT_VERSION), symbol_short!("bat_upd"),),
             (params_vec.len(), env.ledger().timestamp()),
         );
 

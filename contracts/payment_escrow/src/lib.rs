@@ -2,6 +2,13 @@
 #![no_std]
 #![allow(deprecated)]
 
+/// Semantic version of the event topic schema published by this contract.
+/// Bump to `v2` when introducing breaking changes to any event payload.
+/// Off-chain consumers match on this string as the **first** element of every
+/// event topic. Resolves issue #76 (`Add event topic versioning for forward
+/// compatibility`).
+pub const EVENT_VERSION: &str = "v1";
+
 mod errors;
 mod guards;
 mod types;
@@ -19,7 +26,7 @@ pub use errors::Error;
 pub use types::{Escrow, EscrowStatus};
 
 use soroban_sdk::{
-    contract, contractimpl, contracttype, symbol_short, token, Address, Env, String, Vec,
+    contract, contractimpl, contracttype, symbol_short, token, Address, Env, String, Vec, // String required by event-topic versioning (issue #76)
 };
 
 // ── Storage keys ──────────────────────────────────────────────────────────────
@@ -119,7 +126,7 @@ impl PaymentEscrowContract {
             .set(&DataKey::DefaultDisputeWindow, &dispute_window_secs);
 
         env.events().publish(
-            (symbol_short!("init"),),
+            (String::from_str(&env, EVENT_VERSION), symbol_short!("init"),),
             (admin, payment_token, dispute_window_secs),
         );
         Ok(())
@@ -136,7 +143,7 @@ impl PaymentEscrowContract {
             .set(&DataKey::DefaultDisputeWindow, &window_secs);
 
         env.events()
-            .publish((symbol_short!("dw_set"),), (window_secs,));
+            .publish((String::from_str(&env, EVENT_VERSION), symbol_short!("dw_set"),), (window_secs,));
         Ok(())
     }
 
@@ -229,7 +236,7 @@ impl PaymentEscrowContract {
             .set(&DataKey::BeneficiaryEscrows(beneficiary.clone()), &ben_list);
 
         env.events().publish(
-            (symbol_short!("created"), escrow_id),
+            (String::from_str(&env, EVENT_VERSION), symbol_short!("created"), escrow_id),
             (depositor, beneficiary, amount, release_after),
         );
         Ok(())
@@ -266,7 +273,7 @@ impl PaymentEscrowContract {
         Self::save_escrow(&env, &escrow);
 
         env.events().publish(
-            (symbol_short!("released"), escrow_id),
+            (String::from_str(&env, EVENT_VERSION), symbol_short!("released"), escrow_id),
             (escrow.beneficiary, escrow.amount),
         );
         Ok(())
@@ -301,7 +308,7 @@ impl PaymentEscrowContract {
         Self::save_escrow(&env, &escrow);
 
         env.events().publish(
-            (symbol_short!("refunded"), escrow_id),
+            (String::from_str(&env, EVENT_VERSION), symbol_short!("refunded"), escrow_id),
             (escrow.depositor, escrow.amount),
         );
         Ok(())
@@ -340,7 +347,7 @@ impl PaymentEscrowContract {
         Self::save_escrow(&env, &escrow);
 
         env.events().publish(
-            (symbol_short!("disputed"), escrow_id),
+            (String::from_str(&env, EVENT_VERSION), symbol_short!("disputed"), escrow_id),
             (escrow.depositor, now),
         );
         Ok(())
@@ -392,7 +399,7 @@ impl PaymentEscrowContract {
         Self::save_escrow(&env, &escrow);
 
         env.events().publish(
-            (symbol_short!("resolved"), escrow_id),
+            (String::from_str(&env, EVENT_VERSION), symbol_short!("resolved"), escrow_id),
             (recipient, escrow.amount, release_to_beneficiary),
         );
         Ok(())
@@ -442,7 +449,7 @@ impl PaymentEscrowContract {
         Self::save_escrow(&env, &escrow);
 
         env.events().publish(
-            (symbol_short!("claimed"), escrow_id),
+            (String::from_str(&env, EVENT_VERSION), symbol_short!("claimed"), escrow_id),
             (escrow.beneficiary, escrow.amount),
         );
         Ok(())

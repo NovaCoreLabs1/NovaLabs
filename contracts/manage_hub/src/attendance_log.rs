@@ -1,6 +1,13 @@
 // Allow deprecated events API until migration to #[contractevent] macro
 #![allow(deprecated)]
 
+/// Semantic version of the event topic schema published by this contract.
+/// Bump to `v2` when introducing breaking changes to any event payload.
+/// Off-chain consumers match on this string as the **first** element of every
+/// event topic. Resolves issue #76 (`Add event topic versioning for forward
+/// compatibility`).
+pub const EVENT_VERSION: &str = "v1";
+
 use crate::errors::Error;
 use crate::types::{AttendanceAction, AttendanceSummary, SessionPair};
 use common_types::{
@@ -82,7 +89,7 @@ impl AttendanceLogModule {
 
         // Emit event for off-chain indexing
         env.events()
-            .publish((symbol_short!("attend"), id, user_id), action);
+            .publish((String::from_str(&env, EVENT_VERSION), symbol_short!("attend"), id, user_id), action);
 
         Ok(())
     }

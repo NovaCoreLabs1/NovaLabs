@@ -3,6 +3,13 @@
 // but kept here for consistency with the rest of the NovaLabs contracts.
 #![allow(deprecated)]
 
+/// Semantic version of the event topic schema published by this contract.
+/// Bump to `v2` when introducing breaking changes to any event payload.
+/// Off-chain consumers match on this string as the **first** element of every
+/// event topic. Resolves issue #76 (`Add event topic versioning for forward
+/// compatibility`).
+pub const EVENT_VERSION: &str = "v1";
+
 mod errors;
 mod types;
 
@@ -10,7 +17,7 @@ mod types;
 mod test;
 
 use errors::Error;
-use soroban_sdk::{contract, contractimpl, contracttype, symbol_short, Address, Env};
+use soroban_sdk::{contract, contractimpl, contracttype, symbol_short, Address, Env, String}; // String required by event-topic versioning (issue #76)
 
 /// Storage keys for the contract.
 #[contracttype]
@@ -81,7 +88,7 @@ impl ResourceCreditsContract {
             .set(&DataKey::TotalSupply, &(supply + amount));
 
         env.events()
-            .publish((symbol_short!("mint"), recipient), amount);
+            .publish((String::from_str(&env, EVENT_VERSION), symbol_short!("mint"), recipient), amount);
         Ok(())
     }
 
@@ -122,7 +129,7 @@ impl ResourceCreditsContract {
             .set(&DataKey::Balance(to.clone()), &(to_bal + amount));
 
         env.events()
-            .publish((symbol_short!("transfer"), from, to), amount);
+            .publish((String::from_str(&env, EVENT_VERSION), symbol_short!("transfer"), from, to), amount);
         Ok(())
     }
 
@@ -158,7 +165,7 @@ impl ResourceCreditsContract {
             .set(&DataKey::TotalSupply, &(supply - amount));
 
         env.events()
-            .publish((symbol_short!("spend"), member), amount);
+            .publish((String::from_str(&env, EVENT_VERSION), symbol_short!("spend"), member), amount);
         Ok(())
     }
 
