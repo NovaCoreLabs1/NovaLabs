@@ -30,6 +30,11 @@ impl AccessControl {
         AccessControlModule::set_role(&env, admin, user, role).unwrap()
     }
 
+    /// Sets a user as a Minter. Admin-only convenience wrapper around set_role.
+    pub fn set_minter(env: Env, admin: Address, user: Address) {
+        AccessControlModule::set_role(&env, admin, user, UserRole::Minter).unwrap()
+    }
+
     pub fn get_role(env: Env, user: Address) -> UserRole {
         AccessControlModule::get_role(&env, user)
     }
@@ -120,10 +125,13 @@ impl AccessControl {
 
     pub fn check_access_legacy(env: Env, caller: Address, required_role: String) -> bool {
         let admin_str = String::from_str(&env, "Admin");
+        let minter_str = String::from_str(&env, "Minter");
         let member_str = String::from_str(&env, "Member");
 
         let role = if required_role == admin_str {
             UserRole::Admin
+        } else if required_role == minter_str {
+            UserRole::Minter
         } else if required_role == member_str {
             UserRole::Member
         } else {

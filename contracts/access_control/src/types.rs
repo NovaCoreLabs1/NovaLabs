@@ -1,13 +1,17 @@
 use soroban_sdk::{contracttype, Address, String, Vec};
 
 /// User roles in the access control system
-/// Implements a hierarchical role system where Admin > Member > Guest
+/// Implements a hierarchical role system where Admin > Minter > Member > Guest
+///
+/// The Minter role is a separated privilege that allows token issuance without
+/// granting full admin powers (cannot pause, change admin, or modify config).
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
 pub enum UserRole {
     Guest = 0,
     Member = 1,
-    Admin = 2,
+    Minter = 2,
+    Admin = 3,
 }
 
 impl UserRole {
@@ -22,6 +26,7 @@ impl UserRole {
         match self {
             UserRole::Guest => "Guest",
             UserRole::Member => "Member",
+            UserRole::Minter => "Minter",
             UserRole::Admin => "Admin",
         }
     }
@@ -32,6 +37,8 @@ impl UserRole {
             Some(UserRole::Guest)
         } else if role_str.eq_ignore_ascii_case("member") {
             Some(UserRole::Member)
+        } else if role_str.eq_ignore_ascii_case("minter") {
+            Some(UserRole::Minter)
         } else if role_str.eq_ignore_ascii_case("admin") {
             Some(UserRole::Admin)
         } else {
@@ -292,26 +299,40 @@ mod tests {
 
     #[test]
     fn test_user_role_hierarchy() {
+        // Admin can access everything
         assert!(UserRole::Admin.has_access(&UserRole::Guest));
         assert!(UserRole::Admin.has_access(&UserRole::Member));
+        assert!(UserRole::Admin.has_access(&UserRole::Minter));
         assert!(UserRole::Admin.has_access(&UserRole::Admin));
 
+        // Minter can access Guest, Member, Minter — but NOT Admin
+        assert!(UserRole::Minter.has_access(&UserRole::Guest));
+        assert!(UserRole::Minter.has_access(&UserRole::Member));
+        assert!(UserRole::Minter.has_access(&UserRole::Minter));
+        assert!(!UserRole::Minter.has_access(&UserRole::Admin));
+
+        // Member can access Guest and Member only
         assert!(UserRole::Member.has_access(&UserRole::Guest));
         assert!(UserRole::Member.has_access(&UserRole::Member));
+        assert!(!UserRole::Member.has_access(&UserRole::Minter));
         assert!(!UserRole::Member.has_access(&UserRole::Admin));
 
+        // Guest can only access Guest
         assert!(UserRole::Guest.has_access(&UserRole::Guest));
         assert!(!UserRole::Guest.has_access(&UserRole::Member));
+        assert!(!UserRole::Guest.has_access(&UserRole::Minter));
         assert!(!UserRole::Guest.has_access(&UserRole::Admin));
     }
 
     #[test]
     fn test_user_role_string_conversion() {
         assert_eq!(UserRole::Admin.as_str(), "Admin");
+        assert_eq!(UserRole::Minter.as_str(), "Minter");
         assert_eq!(UserRole::Member.as_str(), "Member");
         assert_eq!(UserRole::Guest.as_str(), "Guest");
 
         assert_eq!(UserRole::parse_from_str("admin"), Some(UserRole::Admin));
+        assert_eq!(UserRole::parse_from_str("MINTER"), Some(UserRole::Minter));
         assert_eq!(UserRole::parse_from_str("MEMBER"), Some(UserRole::Member));
         assert_eq!(UserRole::parse_from_str("guest"), Some(UserRole::Guest));
         assert_eq!(UserRole::parse_from_str("invalid"), None);
