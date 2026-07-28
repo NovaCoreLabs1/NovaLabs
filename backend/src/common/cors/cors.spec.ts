@@ -22,7 +22,6 @@ import cors = require('cors');
 import {
   parseCorsOrigins,
   resolveCorsConfig,
-  resolveCorsConfig as _resolveCorsConfigDuplicateNotice,
   resolveWsCorsConfig,
   resolveWsCorsConfigSafe,
 } from './cors-config';
