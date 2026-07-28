@@ -10,8 +10,8 @@
 //! - `caller`     — The `Address` that invoked the operation.
 //! - `timestamp`  — Ledger timestamp at the moment of the call.
 //! - `payload_hash` — SHA-256 hash of the operation's input payload bytes,
-//!                    providing a compact, verifiable fingerprint of what was
-//!                    changed (follows Stellar SDK's `env.crypto().sha256`).
+//!   providing a compact, verifiable fingerprint of what was changed
+//!   (follows Stellar SDK's `env.crypto().sha256`).
 //!
 //! ## Storage layout
 //!
@@ -36,6 +36,7 @@
 //! );
 //! ```
 
+use soroban_sdk::xdr::ToXdr;
 use soroban_sdk::{contracttype, symbol_short, Address, Bytes, BytesN, Env, String, Vec};
 
 // ---------------------------------------------------------------------------
@@ -106,7 +107,7 @@ impl AuditLog {
     /// * `action`  — The [`AdminAction`] being recorded.
     /// * `caller`  — Address that authenticated and triggered the operation.
     /// * `payload` — Raw bytes representing the operation's input (used only
-    ///               for hashing; not stored verbatim to keep entry size small).
+    ///   for hashing; not stored verbatim to keep entry size small).
     ///
     /// # Side-effects
     ///
@@ -114,7 +115,7 @@ impl AuditLog {
     /// - Emits an `audit_op` contract event so indexers can track entries
     ///   without replaying full storage reads.
     pub fn write(env: &Env, action: AdminAction, caller: &Address, payload: Bytes) {
-        let payload_hash: BytesN<32> = env.crypto().sha256(&payload);
+        let payload_hash: BytesN<32> = env.crypto().sha256(&payload).into();
 
         let entry = AuditLogEntry {
             action: action.clone(),
@@ -131,9 +132,7 @@ impl AuditLog {
             .unwrap_or_else(|| Vec::new(env));
 
         log.push_back(entry);
-        env.storage()
-            .instance()
-            .set(&AuditDataKey::AuditLog, &log);
+        env.storage().instance().set(&AuditDataKey::AuditLog, &log);
 
         // Emit a lightweight event so off-chain indexers stay in sync.
         env.events().publish(
