@@ -22,6 +22,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { WorkspaceTrackingModule } from './workspace-tracking/workspace-tracking.module';
 import { AuditLogModule } from './audit-log/audit-log.module';
 import { ApiExceptionFilter } from './common/filters/api-exception.filter';
+import { SecretsModule } from './config/secrets';
 
 @Module({
   imports: [
