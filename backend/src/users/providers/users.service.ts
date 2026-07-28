@@ -268,10 +268,7 @@ export class UsersService {
    * transactional PII wipe. The service layer is a thin pass-through so
    * the controller does not take a direct dependency on the provider.
    */
-  async anonymiseMyAccount(
-    userId: string,
-    reason?: string,
-  ): Promise<void> {
+  async anonymiseMyAccount(userId: string, reason?: string): Promise<void> {
     return this.anonymiseUserProvider.anonymise(userId, reason);
   }
 
