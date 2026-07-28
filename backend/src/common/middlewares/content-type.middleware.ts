@@ -14,17 +14,16 @@ import { Injectable, NestMiddleware } from '@nestjs/common';
  */
 @Injectable()
 export class ContentTypeMiddleware implements NestMiddleware {
-  private static readonly MUTATING_METHODS = new Set([
-    'POST',
-    'PUT',
-    'PATCH',
-  ]);
+  private static readonly MUTATING_METHODS = new Set(['POST', 'PUT', 'PATCH']);
 
   /** Methods / paths that are intentionally non-JSON (file uploads, etc.) */
   private isExempt(req: Request): boolean {
     const ct = req.headers['content-type'] ?? '';
     // Allow multipart/form-data (file uploads) and urlencoded forms
-    if (ct.startsWith('multipart/form-data') || ct.startsWith('application/x-www-form-urlencoded')) {
+    if (
+      ct.startsWith('multipart/form-data') ||
+      ct.startsWith('application/x-www-form-urlencoded')
+    ) {
       return true;
     }
     // No body sent — nothing to validate
@@ -49,8 +48,7 @@ export class ContentTypeMiddleware implements NestMiddleware {
       res.status(415).json({
         statusCode: 415,
         error: 'Unsupported Media Type',
-        message:
-          'Content-Type must be application/json for this endpoint.',
+        message: 'Content-Type must be application/json for this endpoint.',
       });
       return;
     }
