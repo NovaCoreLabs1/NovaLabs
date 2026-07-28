@@ -1,0 +1,99 @@
+# codecov.yml — Issue #87
+#
+# Code coverage configuration for Codecov.io.
+# Enforces minimum coverage thresholds per component:
+#   - Backend  (NestJS):  70 %
+#   - Frontend (Next.js): 60 %
+#   - Contracts (Rust):   80 %
+#
+# A PR that drops any component below its threshold will be blocked
+# by the required Codecov status check.
+#
+# Docs: https://docs.codecov.com/docs/codecov-yaml
+
+coverage:
+  # Precision of reported percentages (decimal places)
+  precision: 2
+  round: down
+  range: "60...100"
+
+  status:
+    # ── Project-level gate ──────────────────────────────────────────────────
+    project:
+      default:
+        # Require overall coverage to be at least 60 %
+        target: 60%
+        # Allow a 1 % drop from the base commit before failing
+        threshold: 1%
+        if_no_uploads: error
+        if_not_found: success
+
+      backend:
+        # NestJS — minimum 70 %
+        target: 70%
+        threshold: 1%
+        flags:
+          - backend
+        if_no_uploads: error
+
+      frontend:
+        # Next.js — minimum 60 %
+        target: 60%
+        threshold: 1%
+        flags:
+          - frontend
+        if_no_uploads: error
+
+      contracts:
+        # Rust smart contracts — minimum 80 %
+        target: 80%
+        threshold: 1%
+        flags:
+          - contracts
+        if_no_uploads: error
+
+    # ── Patch-level gate (diff coverage) ───────────────────────────────────
+    patch:
+      default:
+        # New/changed lines in a PR must be covered at least 80 %
+        target: 80%
+        threshold: 5%
+        if_no_uploads: error
+
+# ── Flag configuration ────────────────────────────────────────────────────
+# Each flag maps a CI upload token to a set of source paths so Codecov can
+# split the combined report into per-component views.
+flags:
+  backend:
+    paths:
+      - backend/
+    carryforward: true
+
+  frontend:
+    paths:
+      - frontend/
+    carryforward: true
+
+  contracts:
+    paths:
+      - contracts/
+    carryforward: true
+
+# ── Comment configuration ──────────────────────────────────────────────────
+comment:
+  layout: "reach,diff,flags,files"
+  behavior: default
+  # Show coverage info on every PR — per-file delta is visible in the comment
+  require_changes: false
+  require_base: false
+  require_head: true
+
+# ── Ignore paths ──────────────────────────────────────────────────────────
+ignore:
+  - "**/__tests__/**"
+  - "**/*.spec.ts"
+  - "**/*.test.ts"
+  - "**/node_modules/**"
+  - "frontend/.next/**"
+  - "contracts/target/**"
+  - "backend/dist/**"
