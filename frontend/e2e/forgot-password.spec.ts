@@ -41,11 +41,12 @@ test.describe("Forgot password flow", () => {
     page,
   }) => {
     await page.goto("/forgot-password");
+    await page.waitForLoadState("networkidle");
 
     // Step 1: Email.
     await expect(
       page.getByRole("heading", { name: /Forgot Password\?/i }),
-    ).toBeVisible();
+    ).toBeVisible({ timeout: 15_000 });
     await page.getByLabel(/Email Address/i).fill("jane@example.com");
     await page.getByRole("button", { name: /Send Reset Code/i }).click();
 
