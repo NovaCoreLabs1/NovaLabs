@@ -28,48 +28,7 @@ import { Setup2faDto } from './dto/setup-2fa.dto';
 import { VerifyTotpDto } from './dto/verify-totp.dto';
 import { UseBackupCodeDto } from './dto/use-backup-code.dto';
 import { Disable2faDto } from './dto/disable-2fa.dto';
-
-const isProduction = process.env.NODE_ENV === 'production';
-
-function setAuthCookies(
-  res: Response,
-  accessToken: string,
-  refreshToken?: string,
-) {
-  res.cookie('authAccessToken', accessToken, {
-    httpOnly: true,
-    secure: isProduction,
-    sameSite: 'lax',
-    path: '/',
-    maxAge: 60 * 60 * 24, // 1 day
-  });
-  if (refreshToken) {
-    res.cookie('authRefreshToken', refreshToken, {
-      httpOnly: true,
-      secure: isProduction,
-      sameSite: 'lax',
-      path: '/api/auth/refresh-token',
-      maxAge: 60 * 60 * 24 * 7, // 7 days
-    });
-  }
-}
-
-function clearAuthCookies(res: Response) {
-  res.cookie('authAccessToken', '', {
-    httpOnly: true,
-    secure: isProduction,
-    sameSite: 'lax',
-    path: '/',
-    maxAge: 0,
-  });
-  res.cookie('authRefreshToken', '', {
-    httpOnly: true,
-    secure: isProduction,
-    sameSite: 'lax',
-    path: '/api/auth/refresh-token',
-    maxAge: 0,
-  });
-}
+import { setAuthCookies, clearAuthCookies } from './helpers/auth-cookies';
 
 @Controller('auth')
 export class AuthController {

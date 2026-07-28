@@ -19,6 +19,7 @@ import { VerifyTotpProvider } from './providers/verify-totp.provider';
 import { ManageTotpProvider } from './providers/manage-totp.provider';
 import { PasskeyModule } from './passkey/passkey.module';
 import { PasswordBreachService } from './providers/password-breach.service';
+import { SsoModule } from './sso/sso.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { PasswordBreachService } from './providers/password-breach.service';
     }),
     PassportModule,
     PasskeyModule,
+    SsoModule,
   ],
   controllers: [AuthController],
   providers: [

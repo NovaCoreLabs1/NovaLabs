@@ -1,5 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ValidationPipe, ClassSerializerInterceptor } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
@@ -8,13 +9,41 @@ import { CsrfMiddleware } from './common/middlewares/csrf.middleware';
 import { CsrfGuard } from './common/guards/csrf.guard';
 import { AuditLogInterceptor } from './audit-log/interceptors/audit-log.interceptor';
 import * as cookieParser from 'cookie-parser';
+import * as session from 'express-session';
+import * as passport from 'passport';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, { rawBody: true });
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    rawBody: true,
+  });
 
   app.use(cookieParser());
   app.use(new HttpLogger().use);
   app.use(new CsrfMiddleware().use);
+
+  // SAML SSO session middleware. Required by passport-saml to persist the
+  // RelayState + InResponseTo across the IdP redirect. Uses an isolated
+  // cookie (`saml.sid`) so it does NOT collide with the existing `csrf`
+  // cookie. The session secret is the same JWT_SECRET for simplicity —
+  // rotate separately if needed.
+  app.use(
+    session({
+      name: 'saml.sid',
+      secret: process.env.JWT_SECRET ?? 'novalabs-dev-saml-secret',
+      resave: false,
+      saveUninitialized: false,
+      cookie: {
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 5 * 60 * 1000, // 5 min — long enough for a SAML round-trip
+      },
+    }),
+  );
+  app.use(passport.initialize());
+  app.use(passport.session());
+  passport.serializeUser((user: any, done) => done(null, user?.id ?? user));
+  passport.deserializeUser(async (id: string, done) => done(null, { id }));
 
   // GLOBAL VALIDATION
   app.useGlobalPipes(

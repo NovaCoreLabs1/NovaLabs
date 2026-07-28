@@ -24,12 +24,23 @@ import { MembersController } from './members.controller';
 import { Booking } from '../bookings/entities/booking.entity';
 import { Payment } from '../payments/entities/payment.entity';
 import { WorkspaceLog } from '../workspace-tracking/entities/workspace-log.entity';
+import { RefreshToken } from '../auth/entities/refreshToken.entity';
+import { AnonymiseUserProvider } from './providers/anonymise-user.provider';
+import { AuditLogModule } from '../audit-log/audit-log.module';
+import { AnonymisationHardeningCron } from '../audit-log/providers/anonymisation-hardening.cron';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, Booking, Payment, WorkspaceLog]),
+    TypeOrmModule.forFeature([
+      User,
+      Booking,
+      Payment,
+      WorkspaceLog,
+      RefreshToken,
+    ]),
     forwardRef(() => AuthModule),
     CloudinaryModule,
+    AuditLogModule,
   ],
   controllers: [UsersController, MembersController],
   providers: [
@@ -49,6 +60,8 @@ import { WorkspaceLog } from '../workspace-tracking/entities/workspace-log.entit
     GetMembersProvider,
     UpdateMemberStatusProvider,
     GetMemberStatsProvider,
+    AnonymiseUserProvider,
+    AnonymisationHardeningCron,
   ],
   exports: [UsersService],
 })
