@@ -1,5 +1,8 @@
 #![no_std]
-// The env.events().publish() API is deprecated in favour of #[contractevent],
+// The env.events()
+    .publish(
+    );
+API is deprecated in favour of #[contractevent],
 // but kept here for consistency with the rest of the NovaLabs contracts.
 #![allow(deprecated)]
 

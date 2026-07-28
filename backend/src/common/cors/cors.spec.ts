@@ -9,19 +9,23 @@
  * `enableCors({ origin, credentials: true })` would configure.
  */
 
+// express 5 ships only a CommonJS default export without `__esModule`, so
+// `import express from 'express'` resolves to `undefined` under our TS
+// runtime; we use the CJS-interop form and silence the no-require-imports
+// rule for the three test-only imports below.
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 import express = require('express');
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 import request = require('supertest');
-// `cors` is an Express middleware factory: under our TS config
-// (`esModuleInterop: true`) `import cors from 'cors'` resolves to
-// `cors.default`, which on `cors@^2.8.5` is undefined. The CommonJS
-// interop works correctly with `import cors = require('cors')`.
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 import cors = require('cors');
 import {
   parseCorsOrigins,
   resolveCorsConfig,
+  resolveCorsConfig as _resolveCorsConfigDuplicateNotice,
   resolveWsCorsConfig,
+  resolveWsCorsConfigSafe,
 } from './cors-config';
-
 function buildAppWithCors(origin: string[] | boolean) {
   const app = express();
   // Cast `cfg.origin` to `any[]`: the `cors` middleware's overloads accept
@@ -49,17 +53,14 @@ describe('HTTP CORS — actual middleware behaviour (issue #110)', () => {
       // response for disallowed origins — it just omits the ACAO header
       // so the browser refuses the response. Verify the header matches the
       // request origin (and therefore the browser blocks it).
-      expect(
-        res.headers['access-control-allow-origin'],
-      ).not.toBe('https://evil.example.com');
+      expect(res.headers['access-control-allow-origin']).not.toBe(
+        'https://evil.example.com',
+      );
     },
   );
 
   it('allows requests from an allowed origin and echoes the ACAO header', async () => {
-    const cfg = resolveCorsConfig(
-      'production',
-      'https://allowed.example.com',
-    );
+    const cfg = resolveCorsConfig('production', 'https://allowed.example.com');
     const app = buildAppWithCors(cfg.origin);
     const res = await request(app)
       .get('/probe')
@@ -72,9 +73,9 @@ describe('HTTP CORS — actual middleware behaviour (issue #110)', () => {
 
   it('rejects wildcard origins at boot, before they can break credentials', () => {
     expect(() => parseCorsOrigins('*')).toThrow(/Wildcard origin/);
-    expect(() =>
-      parseCorsOrigins('*,https://allowed.example.com'),
-    ).toThrow(/Wildcard origin/);
+    expect(() => parseCorsOrigins('*,https://allowed.example.com')).toThrow(
+      /Wildcard origin/,
+    );
   });
 });
 
@@ -88,15 +89,13 @@ describe('resolveWsCorsConfig — production lockdown', () => {
 
 describe('resolveWsCorsConfigSafe — module-load safety', () => {
   it('returns the production lockdown when CORS_ORIGINS is empty', () => {
-    expect(() =>
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      require('./cors-config').resolveWsCorsConfigSafe('production', undefined),
-    ).toThrow(/CORS_ORIGINS/);
+    expect(() => resolveWsCorsConfigSafe('production', undefined)).toThrow(
+      /CORS_ORIGINS/,
+    );
   });
 
   it('returns permit-all in development when CORS_ORIGINS is empty', () => {
-    const cfg = // eslint-disable-next-line @typescript-eslint/no-require-imports
-      require('./cors-config').resolveWsCorsConfigSafe('development', undefined);
+    const cfg = resolveWsCorsConfigSafe('development', undefined);
     expect(cfg).toEqual({ origin: '*' });
   });
 });

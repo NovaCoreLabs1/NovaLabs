@@ -5,7 +5,8 @@
 /// Off-chain consumers match on this string as the **first** element of every
 /// event topic. Resolves issue #76 (`Add event topic versioning for forward
 /// compatibility`).
-pub const EVENT_VERSION: &str = "v1";
+#[allow(dead_code)] // Reserved for issue #76 event-topic versioning; this module currently uses String literals instead of symbol_short!
+    pub const EVENT_VERSION: &str = "v1";
 
 use crate::errors::Error;
 use crate::membership_token::DataKey as MembershipDataKey;
@@ -119,12 +120,14 @@ impl StakingModule {
             .set(&StakingDataKey::TierList, &list);
 
         env.events().publish(
-            (
+        (
                 String::from_str(&env, "StakingTierCreated"),
                 tier.id.clone(),
             ),
-            env.ledger().timestamp(),
-        );
+        env.ledger().timestamp(),
+        ,
+    );
+
 
         Ok(())
     }
@@ -201,9 +204,11 @@ impl StakingModule {
             Self::save_stake(&env, &staker, &updated);
 
             env.events().publish(
-                (String::from_str(&env, "Staked"), staker.clone(), tier_id),
-                (new_amount, unlock_at),
-            );
+        (String::from_str(&env, "Staked"), staker.clone(), tier_id),
+        (new_amount, unlock_at),
+        ,
+    );
+
 
             return Ok(());
         }
@@ -230,9 +235,11 @@ impl StakingModule {
         Self::save_stake(&env, &staker, &stake);
 
         env.events().publish(
-            (String::from_str(&env, "Staked"), staker.clone(), tier_id),
-            (amount, unlock_at),
-        );
+        (String::from_str(&env, "Staked"), staker.clone(), tier_id),
+        (amount, unlock_at),
+        ,
+    );
+
 
         Ok(())
     }
@@ -277,9 +284,11 @@ impl StakingModule {
             .remove(&StakingDataKey::Stake(staker.clone()));
 
         env.events().publish(
-            (String::from_str(&env, "Unstaked"), staker.clone()),
-            (stake.amount, rewards),
-        );
+        (String::from_str(&env, "Unstaked"), staker.clone()),
+        (stake.amount, rewards),
+        ,
+    );
+
 
         Ok(())
     }
@@ -328,9 +337,11 @@ impl StakingModule {
             .remove(&StakingDataKey::Stake(staker.clone()));
 
         env.events().publish(
-            (String::from_str(&env, "EmergencyUnstaked"), staker.clone()),
-            (amount_returned, penalty),
-        );
+        (String::from_str(&env, "EmergencyUnstaked"), staker.clone()),
+        (amount_returned, penalty),
+        ,
+    );
+
 
         Ok(())
     }

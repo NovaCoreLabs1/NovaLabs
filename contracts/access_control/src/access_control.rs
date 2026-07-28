@@ -159,9 +159,11 @@ impl AccessControlModule {
 
         // Emit multisig initialization event
         env.events().publish(
-            (String::from_str(&env, EVENT_VERSION), symbol_short!("ms_init"), required_signatures),
-            (admins.clone(), config.clone()),
-        );
+        (String::from_str(&env, EVENT_VERSION), symbol_short!("ms_init"), required_signatures),
+        (admins.clone(), config.clone()),
+        ,
+    );
+
 
         Ok(())
     }
@@ -185,9 +187,11 @@ impl AccessControlModule {
             .set(&DataKey::UserRole(user.clone()), &role);
 
         env.events().publish(
-            (String::from_str(&env, EVENT_VERSION), symbol_short!("role_set"), user.clone(), role.clone()),
-            (caller.clone(), old_role),
-        );
+        (String::from_str(&env, EVENT_VERSION), symbol_short!("role_set"), user.clone(), role.clone()),
+        (caller.clone(), old_role),
+        ,
+    );
+
 
         Ok(())
     }
@@ -211,13 +215,15 @@ impl AccessControlModule {
 
         if Self::is_blacklisted(env, &user) {
             env.events().publish(
-                (
+        (
                     String::from_str(&env, EVENT_VERSION), symbol_short!("acc_deny"),
                     user.clone(),
                     required_role.clone(),
                 ),
-                "blacklisted",
-            );
+        "blacklisted",
+        ,
+    );
+
             return Ok(false);
         }
 
@@ -327,9 +333,11 @@ impl AccessControlModule {
         env.storage().persistent().set(&DataKey::Config, &config);
 
         env.events().publish(
-            (String::from_str(&env, EVENT_VERSION), symbol_short!("cfg_upd"), config.clone()),
-            (caller.clone(), old_config),
-        );
+        (String::from_str(&env, EVENT_VERSION), symbol_short!("cfg_upd"), config.clone()),
+        (caller.clone(), old_config),
+        ,
+    );
+
 
         Ok(())
     }
@@ -471,9 +479,11 @@ impl AccessControlModule {
             .set(&DataKey::PendingAdminTransfer, &pending_transfer);
 
         env.events().publish(
-            (String::from_str(&env, EVENT_VERSION), symbol_short!("adm_prop"), new_admin.clone()),
-            current_admin.clone(),
-        );
+        (String::from_str(&env, EVENT_VERSION), symbol_short!("adm_prop"), new_admin.clone()),
+        current_admin.clone(),
+        ,
+    );
+
 
         Ok(())
     }
@@ -510,9 +520,11 @@ impl AccessControlModule {
             .remove(&DataKey::PendingAdminTransfer);
 
         env.events().publish(
-            (String::from_str(&env, EVENT_VERSION), symbol_short!("adm_xfer"), new_admin.clone()),
-            old_admin.clone(),
-        );
+        (String::from_str(&env, EVENT_VERSION), symbol_short!("adm_xfer"), new_admin.clone()),
+        old_admin.clone(),
+        ,
+    );
+
 
         Ok(())
     }
@@ -535,12 +547,14 @@ impl AccessControlModule {
             .remove(&DataKey::PendingAdminTransfer);
 
         env.events().publish(
-            (
+        (
                 String::from_str(&env, EVENT_VERSION), symbol_short!("adm_canc"),
                 pending_transfer.proposed_admin.clone(),
             ),
-            current_admin.clone(),
-        );
+        current_admin.clone(),
+        ,
+    );
+
 
         Ok(())
     }
@@ -570,9 +584,11 @@ impl AccessControlModule {
             .set(&DataKey::UserRole(user.clone()), &UserRole::Guest);
 
         env.events().publish(
-            (String::from_str(&env, EVENT_VERSION), symbol_short!("role_rm"), user.clone()),
-            (caller.clone(), old_role),
-        );
+        (String::from_str(&env, EVENT_VERSION), symbol_short!("role_rm"), user.clone()),
+        (caller.clone(), old_role),
+        ,
+    );
+
 
         Ok(())
     }
@@ -630,13 +646,15 @@ impl AccessControlModule {
         );
 
         env.events().publish(
-            (
+        (
                 String::from_str(&env, EVENT_VERSION), symbol_short!("acc_try"),
                 user.clone(),
                 required_role.clone(),
             ),
-            (success, current_attempts + 1),
-        );
+        (success, current_attempts + 1),
+        ,
+    );
+
     }
 
     pub fn is_multisig_enabled(env: &Env) -> bool {
@@ -747,13 +765,15 @@ impl AccessControlModule {
             .set(&DataKey::ProposalStats, &stats);
 
         env.events().publish(
-            (
+        (
                 String::from_str(&env, EVENT_VERSION), symbol_short!("proposal"),
                 proposal_id,
                 proposal_type.clone(),
             ),
-            proposer.clone(),
-        );
+        proposer.clone(),
+        ,
+    );
+
 
         // Check if proposal can be executed immediately (only for non-time-locked proposals)
         if time_lock_until.is_none() && new_proposal.approvals.len() >= required_signatures {
@@ -863,17 +883,21 @@ impl AccessControlModule {
                     .set(&DataKey::UserRole(user.clone()), &role);
 
                 env.events().publish(
-                    (String::from_str(&env, EVENT_VERSION), symbol_short!("role_set"), user.clone(), role.clone()),
-                    (proposal.proposer.clone(), old_role),
-                );
+        (String::from_str(&env, EVENT_VERSION), symbol_short!("role_set"), user.clone(), role.clone()),
+        (proposal.proposer.clone(), old_role),
+        ,
+    );
+
             }
             ProposalAction::UpdateConfig(config) => {
                 env.storage().persistent().set(&DataKey::Config, &config);
 
                 env.events().publish(
-                    (String::from_str(&env, EVENT_VERSION), symbol_short!("cfg_upd"), config.clone()),
-                    proposal.proposer.clone(),
-                );
+        (String::from_str(&env, EVENT_VERSION), symbol_short!("cfg_upd"), config.clone()),
+        proposal.proposer.clone(),
+        ,
+    );
+
             }
             ProposalAction::Pause => {
                 env.storage().persistent().set(&DataKey::Paused, &true);
@@ -885,9 +909,11 @@ impl AccessControlModule {
                 env.storage().persistent().set(&DataKey::Paused, &false);
 
                 env.events().publish(
-                    (String::from_str(&env, EVENT_VERSION), symbol_short!("unpaused"), false),
-                    proposal.proposer.clone(),
-                );
+        (String::from_str(&env, EVENT_VERSION), symbol_short!("unpaused"), false),
+        proposal.proposer.clone(),
+        ,
+    );
+
             }
             ProposalAction::UpdateMultisigConfig(new_config) => {
                 if !new_config.validate() {
@@ -898,9 +924,11 @@ impl AccessControlModule {
                     .set(&DataKey::MultiSigConfig, &new_config);
 
                 env.events().publish(
-                    (String::from_str(&env, EVENT_VERSION), symbol_short!("ms_upd"), new_config.clone()),
-                    proposal.proposer.clone(),
-                );
+        (String::from_str(&env, EVENT_VERSION), symbol_short!("ms_upd"), new_config.clone()),
+        proposal.proposer.clone(),
+        ,
+    );
+
             }
             ProposalAction::EmergencyPause(reason) => {
                 env.storage().persistent().set(&DataKey::Paused, &true);
@@ -909,9 +937,11 @@ impl AccessControlModule {
                     .set(&DataKey::EmergencyMode, &true);
 
                 env.events().publish(
-                    (String::from_str(&env, EVENT_VERSION), symbol_short!("emrg_pse"), reason),
-                    proposal.proposer.clone(),
-                );
+        (String::from_str(&env, EVENT_VERSION), symbol_short!("emrg_pse"), reason),
+        proposal.proposer.clone(),
+        ,
+    );
+
             }
             ProposalAction::BatchBlacklist(users) => {
                 for user in users.iter() {
@@ -921,9 +951,11 @@ impl AccessControlModule {
                 }
 
                 env.events().publish(
-                    (String::from_str(&env, EVENT_VERSION), symbol_short!("batch_bl"), users.len()),
-                    proposal.proposer.clone(),
-                );
+        (String::from_str(&env, EVENT_VERSION), symbol_short!("batch_bl"), users.len()),
+        proposal.proposer.clone(),
+        ,
+    );
+
             }
             ProposalAction::AddAdmin(new_admin) => {
                 if let Some(mut multisig_config) = Self::get_multisig_config(env) {
@@ -939,9 +971,11 @@ impl AccessControlModule {
                         .set(&DataKey::UserRole(new_admin.clone()), &UserRole::Admin);
 
                     env.events().publish(
-                        (String::from_str(&env, EVENT_VERSION), symbol_short!("add_adm"), new_admin),
-                        proposal.proposer.clone(),
-                    );
+        (String::from_str(&env, EVENT_VERSION), symbol_short!("add_adm"), new_admin),
+        proposal.proposer.clone(),
+        ,
+    );
+
                 }
             }
             ProposalAction::RemoveAdmin(admin_to_remove) => {
@@ -966,9 +1000,11 @@ impl AccessControlModule {
                     );
 
                     env.events().publish(
-                        (String::from_str(&env, EVENT_VERSION), symbol_short!("rm_adm"), admin_to_remove),
-                        proposal.proposer.clone(),
-                    );
+        (String::from_str(&env, EVENT_VERSION), symbol_short!("rm_adm"), admin_to_remove),
+        proposal.proposer.clone(),
+        ,
+    );
+
                 }
             }
             _ => return Err(AccessControlError::InvalidProposalType),
@@ -994,9 +1030,11 @@ impl AccessControlModule {
             .set(&DataKey::ProposalStats, &stats);
 
         env.events().publish(
-            (String::from_str(&env, EVENT_VERSION), symbol_short!("executed"), proposal_id),
-            proposal.proposer.clone(),
-        );
+        (String::from_str(&env, EVENT_VERSION), symbol_short!("executed"), proposal_id),
+        proposal.proposer.clone(),
+        ,
+    );
+
 
         Ok(())
     }
@@ -1300,9 +1338,11 @@ impl AccessControlModule {
             .set(&DataKey::UserTierLevel(user.clone()), &tier_level);
 
         env.events().publish(
-            (String::from_str(&env, EVENT_VERSION), symbol_short!("tier_set"), user.clone(), tier_level.clone()),
-            (caller.clone(), old_tier),
-        );
+        (String::from_str(&env, EVENT_VERSION), symbol_short!("tier_set"), user.clone(), tier_level.clone()),
+        (caller.clone(), old_tier),
+        ,
+    );
+
 
         Ok(())
     }
@@ -1329,13 +1369,15 @@ impl AccessControlModule {
             .set(&DataKey::RequiredTierForRole(role.clone()), &required_tier);
 
         env.events().publish(
-            (
+        (
                 String::from_str(&env, EVENT_VERSION), symbol_short!("tier_req"),
                 role.clone(),
                 required_tier.clone(),
             ),
-            caller.clone(),
-        );
+        caller.clone(),
+        ,
+    );
+
 
         Ok(())
     }
@@ -1365,13 +1407,15 @@ impl AccessControlModule {
         let has_access = user_tier.has_tier_access(&required_tier);
 
         env.events().publish(
-            (
+        (
                 String::from_str(&env, EVENT_VERSION), symbol_short!("tier_chk"),
                 user.clone(),
                 required_tier.clone(),
             ),
-            has_access,
-        );
+        has_access,
+        ,
+    );
+
 
         Ok(has_access)
     }

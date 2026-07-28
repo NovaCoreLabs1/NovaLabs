@@ -1,6 +1,9 @@
 // contracts/workspace_booking/src/lib.rs
 #![no_std]
-// The env.events().publish() API is deprecated in favour of #[contractevent],
+// The env.events()
+    .publish(
+    );
+API is deprecated in favour of #[contractevent],
 // but kept here for consistency with the rest of the NovaLabs contracts.
 #![allow(deprecated)]
 
@@ -187,9 +190,11 @@ impl WorkspaceBookingContract {
         env.storage().instance().set(&DataKey::WorkspaceList, &list);
 
         env.events().publish(
-            (String::from_str(&env, EVENT_VERSION), symbol_short!("ws_reg"), id),
-            (name, workspace_type, capacity, hourly_rate),
-        );
+        (String::from_str(&env, EVENT_VERSION), symbol_short!("ws_reg"), id),
+        (name, workspace_type, capacity, hourly_rate),
+        ,
+    );
+
         Ok(())
     }
 
@@ -362,9 +367,11 @@ impl WorkspaceBookingContract {
             .set(&DataKey::MemberBookings(member.clone()), &member_bookings);
 
         env.events().publish(
-            (String::from_str(&env, EVENT_VERSION), symbol_short!("booked"), booking_id),
-            (member, workspace_id, start_time, end_time, amount),
-        );
+        (String::from_str(&env, EVENT_VERSION), symbol_short!("booked"), booking_id),
+        (member, workspace_id, start_time, end_time, amount),
+        ,
+    );
+
         Ok(())
     }
 
@@ -409,9 +416,11 @@ impl WorkspaceBookingContract {
             .set(&DataKey::Booking(booking_id.clone()), &booking);
 
         env.events().publish(
-            (String::from_str(&env, EVENT_VERSION), symbol_short!("cancel"), booking_id),
-            (caller, booking.amount_paid),
-        );
+        (String::from_str(&env, EVENT_VERSION), symbol_short!("cancel"), booking_id),
+        (caller, booking.amount_paid),
+        ,
+    );
+
         Ok(())
     }
 
@@ -438,9 +447,11 @@ impl WorkspaceBookingContract {
             .set(&DataKey::Booking(booking_id.clone()), &booking);
 
         env.events().publish(
-            (String::from_str(&env, EVENT_VERSION), symbol_short!("complete"), booking_id),
-            (booking.workspace_id, booking.member),
-        );
+        (String::from_str(&env, EVENT_VERSION), symbol_short!("complete"), booking_id),
+        (booking.workspace_id, booking.member),
+        ,
+    );
+
         Ok(())
     }
 

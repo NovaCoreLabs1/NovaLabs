@@ -5,7 +5,8 @@
 /// Off-chain consumers match on this string as the **first** element of every
 /// event topic. Resolves issue #76 (`Add event topic versioning for forward
 /// compatibility`).
-pub const EVENT_VERSION: &str = "v1";
+#[allow(dead_code)] // Reserved for issue #76 event-topic versioning; this module currently uses String literals instead of symbol_short!
+    pub const EVENT_VERSION: &str = "v1";
 
 use crate::errors::Error;
 use crate::membership_token::{DataKey as MembershipDataKey, MembershipToken};
@@ -70,13 +71,15 @@ impl FractionalizationModule {
             .set(&FractionDataKey::FractionShares(token_id.clone()), &shares);
 
         env.events().publish(
-            (
+        (
                 String::from_str(&env, "Fractionalized"),
                 token_id,
                 token.user.clone(),
             ),
-            (total_shares, min_fraction_size, env.ledger().timestamp()),
-        );
+        (total_shares, min_fraction_size, env.ledger().timestamp()),
+        ,
+    );
+
 
         Ok(())
     }
@@ -131,13 +134,15 @@ impl FractionalizationModule {
             .set(&FractionDataKey::FractionShares(token_id.clone()), &shares);
 
         env.events().publish(
-            (
+        (
                 String::from_str(&env, "FractionTransferred"),
                 token_id,
                 from,
             ),
-            (to, share_amount, env.ledger().timestamp()),
-        );
+        (to, share_amount, env.ledger().timestamp()),
+        ,
+    );
+
 
         Ok(())
     }
@@ -177,13 +182,15 @@ impl FractionalizationModule {
             .remove(&FractionDataKey::PendingRewards(token_id.clone()));
 
         env.events().publish(
-            (
+        (
                 String::from_str(&env, "Recombined"),
                 token_id,
                 holder.clone(),
             ),
-            env.ledger().timestamp(),
-        );
+        env.ledger().timestamp(),
+        ,
+    );
+
 
         Ok(())
     }
@@ -294,13 +301,15 @@ impl FractionalizationModule {
         };
 
         env.events().publish(
-            (
+        (
                 String::from_str(&env, "DividendDistributed"),
                 token_id,
                 admin,
             ),
-            (total_amount, recipients, distribution.distributed_at),
-        );
+        (total_amount, recipients, distribution.distributed_at),
+        ,
+    );
+
 
         Ok(distribution)
     }

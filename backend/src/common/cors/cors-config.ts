@@ -84,7 +84,9 @@ export function resolveWsCorsConfigSafe(
     // Non-production: log and return a deny-all default so tests/scripts
     // can import the module without crashing.
     // eslint-disable-next-line no-console
-    console.warn(`[CORS] WebSocket gateway CORS misconfigured; defaulting to deny-all in this environment. ${message}`);
+    console.warn(
+      `[CORS] WebSocket gateway CORS misconfigured; defaulting to deny-all in this environment. ${message}`,
+    );
     return { origin: [] };
   }
 }

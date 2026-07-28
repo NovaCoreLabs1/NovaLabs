@@ -81,9 +81,9 @@ describe('resolveWsCorsConfig', () => {
   });
 
   it('mirrors the strict HTTP allow-list in production', () => {
-    expect(
-      resolveWsCorsConfig('production', 'https://novalabs.app'),
-    ).toEqual({ origin: ['https://novalabs.app'] });
+    expect(resolveWsCorsConfig('production', 'https://novalabs.app')).toEqual({
+      origin: ['https://novalabs.app'],
+    });
   });
 
   it('returns "*" in development when CORS_ORIGINS is unset', () => {
@@ -93,8 +93,8 @@ describe('resolveWsCorsConfig', () => {
   });
 
   it('uses the explicit allow-list in development when provided', () => {
-    expect(
-      resolveWsCorsConfig('development', 'http://localhost:3000'),
-    ).toEqual({ origin: ['http://localhost:3000'] });
+    expect(resolveWsCorsConfig('development', 'http://localhost:3000')).toEqual(
+      { origin: ['http://localhost:3000'] },
+    );
   });
 });
