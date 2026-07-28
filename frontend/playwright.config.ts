@@ -32,5 +32,8 @@ export default defineConfig({
     timeout: 120_000,
     stdout: "ignore",
     stderr: "pipe",
+    env: {
+      NEXT_PUBLIC_API_URL: "http://localhost:3001",
+    },
   },
 });

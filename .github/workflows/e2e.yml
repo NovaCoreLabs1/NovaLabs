@@ -51,8 +51,6 @@ jobs:
 
       - name: Run E2E suite
         run: npm run test:e2e
-        env:
-          NEXT_PUBLIC_API_URL: http://localhost:3001
 
       - name: Upload Playwright HTML report on failure
         if: failure()
