@@ -101,6 +101,7 @@ import { ApiExceptionFilter } from './common/filters/api-exception.filter';
     InvoicesModule,
     NotificationsModule,
     WorkspaceTrackingModule,
+    SecretsModule.forRoot(),
     AuditLogModule,
   ],
   controllers: [AppController],

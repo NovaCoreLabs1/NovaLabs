@@ -1,4 +1,4 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import { ConflictException, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from '../entities/user.entity';
 import { Repository } from 'typeorm';
@@ -15,6 +15,8 @@ import { EmailService } from '../../email/email.service';
 import * as crypto from 'crypto';
 @Injectable()
 export class CreateUserProvider {
+  private readonly logger = new Logger(CreateUserProvider.name);
+
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
@@ -99,14 +101,14 @@ export class CreateUserProvider {
         );
 
         if (!emailSent) {
-          console.warn(
+          this.logger.warn(
             `Failed to send verification email to ${user.email}. User registration was successful.`,
           );
         }
       } catch (emailError) {
-        console.error(
-          `Error sending verification email to ${user.email}:`,
-          emailError.message,
+        this.logger.error(
+          `Error sending verification email to ${user.email}`,
+          emailError instanceof Error ? emailError.stack : String(emailError),
         );
       }
 

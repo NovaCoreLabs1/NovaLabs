@@ -6,13 +6,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useLogin } from "@/hooks/use-login";
-import {
-  Eye,
-  EyeOff,
-  Mail,
-  Lock,
-  Building2,
-} from "lucide-react";
+import { Eye, EyeOff, Mail, Lock } from "lucide-react";
 
 const loginSchema = z.object({
   email: z.email("Enter a valid email address"),

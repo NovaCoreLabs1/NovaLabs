@@ -165,8 +165,17 @@ jobs:
       - name: Build (TypeScript check)
         run: npm run build
 
-      - name: Unit tests
-        run: npm run test -- --passWithNoTests
+      - name: Unit tests with coverage
+        run: npm run test -- --passWithNoTests --coverage --coverageReporters=lcov --coverageDirectory=coverage
+
+      - name: Upload backend coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: backend/coverage/lcov.info
+          flags: backend
+          name: backend-coverage
+          fail_ci_if_error: false
 
   # ─────────────────────────────────────────────
   # FRONTEND — Next.js
@@ -200,3 +209,18 @@ jobs:
         run: npm run build
         env:
           NEXT_PUBLIC_API_URL: http://localhost:3001
+
+      - name: Unit tests with coverage
+        run: npm run test -- --passWithNoTests --coverage --coverageReporters=lcov --coverageDirectory=coverage
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:3001
+        continue-on-error: true
+
+      - name: Upload frontend coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: frontend/coverage/lcov.info
+          flags: frontend
+          name: frontend-coverage
+          fail_ci_if_error: false
