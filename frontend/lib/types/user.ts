@@ -33,6 +33,11 @@ export interface RegisterUser {
 export interface LoginUser {
   email: string;
   password: string;
+  /**
+   * When true, the client requests a longer-lived session. Forwarded to
+   * the backend; ignored if the server does not negotiate remember-me.
+   */
+  rememberMe?: boolean;
 }
 
 /** Client-side authentication state for the current session. */

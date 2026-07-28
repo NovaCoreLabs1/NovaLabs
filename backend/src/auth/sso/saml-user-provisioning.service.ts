@@ -41,18 +41,14 @@ export interface ProvisionedSamlUser {
  */
 @Injectable()
 export class SamlUserProvisioningService {
-  private readonly logger = new Logger(
-    SamlUserProvisioningService.name,
-  );
+  private readonly logger = new Logger(SamlUserProvisioningService.name);
 
   constructor(
     @InjectRepository(User)
     private readonly usersRepository: Repository<User>,
   ) {}
 
-  async provision(
-    profile: SamlAssertionProfile,
-  ): Promise<ProvisionedSamlUser> {
+  async provision(profile: SamlAssertionProfile): Promise<ProvisionedSamlUser> {
     const email = (profile.email ?? profile.nameID ?? '').trim().toLowerCase();
     if (!email) {
       throw new Error(

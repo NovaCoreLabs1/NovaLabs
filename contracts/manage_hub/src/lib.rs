@@ -63,6 +63,7 @@ use soroban_sdk::{contract, contractimpl, vec, Address, BytesN, Env, Map, String
 
 mod allowance;
 mod attendance_log;
+mod audit;
 mod batch;
 mod errors;
 mod fractionalization;
@@ -81,6 +82,7 @@ mod upgrade_errors;
 mod validation;
 
 use attendance_log::{AttendanceLog, AttendanceLogModule};
+use audit::{AdminAction, AuditLog};
 use batch::BatchModule;
 use common_types::{
     AttendanceFrequency, DateRange, DayPattern, MetadataUpdate, MetadataValue, PeakHourData,
@@ -108,6 +110,15 @@ pub struct Contract;
 impl Contract {
     pub fn hello(env: Env, to: String) -> Vec<String> {
         vec![&env, String::from_str(&env, "Hello"), to]
+    }
+
+    /// Returns the full on-chain admin audit log.
+    ///
+    /// Returns an empty `Vec` when no privileged operations have been recorded
+    /// yet.  Each entry contains the `action`, `caller`, `timestamp`, and a
+    /// SHA-256 `payload_hash` of the operation's input.
+    pub fn get_audit_log(env: Env) -> Vec<audit::AuditLogEntry> {
+        AuditLog::read(&env)
     }
 
     /// Mints multiple tokens in a single transaction.
@@ -261,6 +272,10 @@ impl Contract {
     }
 
     pub fn set_admin(env: Env, admin: Address) -> Result<(), Error> {
+        // Write audit log entry before delegating so the record is always
+        // committed atomically with the actual state change.
+        let payload = AuditLog::payload_set_admin(&env, &admin, &admin);
+        AuditLog::write(&env, AdminAction::SetAdmin, &admin, payload);
         MembershipTokenContract::set_admin(env, admin)?;
         Ok(())
     }
@@ -326,6 +341,8 @@ impl Contract {
         admin: Address,
         reason: Option<String>,
     ) -> Result<(), Error> {
+        let payload = AuditLog::payload_pause_admin(&env, &admin, &id);
+        AuditLog::write(&env, AdminAction::PauseSubscriptionAdmin, &admin, payload);
         SubscriptionContract::pause_subscription_admin(env, id, admin, reason)
     }
 
@@ -334,6 +351,8 @@ impl Contract {
     }
 
     pub fn set_pause_config(env: Env, admin: Address, config: PauseConfig) -> Result<(), Error> {
+        let payload = AuditLog::payload_set_pause_config(&env, &admin);
+        AuditLog::write(&env, AdminAction::SetPauseConfig, &admin, payload);
         SubscriptionContract::set_pause_config(env, admin, config)
     }
 
@@ -350,6 +369,8 @@ impl Contract {
     }
 
     pub fn set_usdc_contract(env: Env, admin: Address, usdc_address: Address) -> Result<(), Error> {
+        let payload = AuditLog::payload_set_usdc(&env, &admin, &usdc_address);
+        AuditLog::write(&env, AdminAction::SetUsdcContract, &admin, payload);
         SubscriptionContract::set_usdc_contract(env, admin, usdc_address)
     }
 

@@ -1,0 +1,11 @@
+{
+  "event": "charge.success",
+  "data": {
+    "reference": "TEST_REF_12345",
+    "amount": 5000,
+    "currency": "NGN",
+    "status": "success",
+    "transaction_date": "2026-07-20T00:00:00Z",
+    "id": 987654321
+  }
+}

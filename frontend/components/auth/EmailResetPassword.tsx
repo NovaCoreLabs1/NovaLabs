@@ -50,6 +50,9 @@ const EmailResetPassword = ({ onTogglePage }: EmailResetPasswordProps) => {
         email: values.email,
       });
       form.reset();
+      // PII note: do NOT log the raw form values here. The submitted
+      // email belongs to the user and has no business leaving the
+      // browser via devtools. Remove the prior console.log(values).
       onTogglePage('resend');
     } catch (err) {
       toast.error(

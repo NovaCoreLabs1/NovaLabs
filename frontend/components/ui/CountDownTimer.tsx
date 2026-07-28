@@ -1,5 +1,5 @@
 "use client";
-import { Building2, X, Menu, Clock } from "lucide-react";
+import { Clock } from "lucide-react";
 import { useMemo, useState, useEffect } from "react";
 import { TimePill } from "./TimePill";
 

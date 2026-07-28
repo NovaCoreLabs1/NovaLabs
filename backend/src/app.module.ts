@@ -5,7 +5,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './auth/guard/jwt.auth.guard';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { BullModule } from '@nestjs/bull';
@@ -21,6 +21,7 @@ import { InvoicesModule } from './invoices/invoices.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { WorkspaceTrackingModule } from './workspace-tracking/workspace-tracking.module';
 import { AuditLogModule } from './audit-log/audit-log.module';
+import { ApiExceptionFilter } from './common/filters/api-exception.filter';
 
 @Module({
   imports: [
@@ -100,11 +101,18 @@ import { AuditLogModule } from './audit-log/audit-log.module';
     InvoicesModule,
     NotificationsModule,
     WorkspaceTrackingModule,
+    SecretsModule.forRoot(),
     AuditLogModule,
   ],
   controllers: [AppController],
   providers: [
     AppService,
+    // Global exception filter — must come before guards so every error,
+    // including auth errors, is shaped as ApiErrorDto.
+    {
+      provide: APP_FILTER,
+      useClass: ApiExceptionFilter,
+    },
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
