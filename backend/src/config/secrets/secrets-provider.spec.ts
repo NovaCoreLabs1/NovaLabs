@@ -1,5 +1,6 @@
 /// <reference types="jest" />
 import { Test, TestingModule } from '@nestjs/testing';
+import { ConfigModule } from '@nestjs/config';
 import { EnvSecretsProvider } from './env-secrets.provider';
 import { DopplerSecretsProvider } from './doppler-secrets.provider';
 import { VaultSecretsProvider } from './vault-secrets.provider';
@@ -262,7 +263,7 @@ describe('AwsSecretsProvider', () => {
 describe('SecretsModule', () => {
   it('resolves EnvSecretsProvider by default (env provider)', async () => {
     const moduleRef: TestingModule = await Test.createTestingModule({
-      imports: [SecretsModule],
+      imports: [ConfigModule.forRoot({ ignoreEnvFile: true }), SecretsModule],
     }).compile();
 
     const resolved = moduleRef.get<SecretsProvider>(SECRETS_PROVIDER);
@@ -273,7 +274,7 @@ describe('SecretsModule', () => {
     process.env.DOPPLER_TOKEN = 'dp.pt.mock';
     process.env.SECRETS_PROVIDER = 'doppler';
     const moduleRef: TestingModule = await Test.createTestingModule({
-      imports: [SecretsModule],
+      imports: [ConfigModule.forRoot({ ignoreEnvFile: true }), SecretsModule],
     }).compile();
 
     const resolved = moduleRef.get<SecretsProvider>(SECRETS_PROVIDER);
@@ -286,7 +287,7 @@ describe('SecretsModule', () => {
     process.env.VAULT_TOKEN = 'hvs.tok';
     process.env.SECRETS_PROVIDER = 'vault';
     const moduleRef: TestingModule = await Test.createTestingModule({
-      imports: [SecretsModule],
+      imports: [ConfigModule.forRoot({ ignoreEnvFile: true }), SecretsModule],
     }).compile();
 
     const resolved = moduleRef.get<SecretsProvider>(SECRETS_PROVIDER);
@@ -299,7 +300,7 @@ describe('SecretsModule', () => {
     process.env.AWS_SECRETS_NAME = 'test';
     process.env.SECRETS_PROVIDER = 'aws';
     const moduleRef: TestingModule = await Test.createTestingModule({
-      imports: [SecretsModule],
+      imports: [ConfigModule.forRoot({ ignoreEnvFile: true }), SecretsModule],
     }).compile();
 
     const resolved = moduleRef.get<SecretsProvider>(SECRETS_PROVIDER);
@@ -311,7 +312,7 @@ describe('SecretsModule', () => {
   it('falls back to env for unknown SECRETS_PROVIDER values', async () => {
     process.env.SECRETS_PROVIDER = 'unknown-vendor';
     const moduleRef: TestingModule = await Test.createTestingModule({
-      imports: [SecretsModule],
+      imports: [ConfigModule.forRoot({ ignoreEnvFile: true }), SecretsModule],
     }).compile();
 
     const resolved = moduleRef.get<SecretsProvider>(SECRETS_PROVIDER);
