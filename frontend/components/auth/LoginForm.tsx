@@ -11,7 +11,6 @@ import {
   EyeOff,
   Mail,
   Lock,
-  Building2,
 } from "lucide-react";
 
 const loginSchema = z.object({
@@ -32,8 +31,10 @@ interface LoginFormProps {
 }
 
 export default function LoginForm({
-  onEmailLogin,
-  isLoading,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  onEmailLogin: _onEmailLogin,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  isLoading: _isLoading,
 }: LoginFormProps) {
   const { login, loading } = useLogin();
   const [showPassword, setShowPassword] = useState(false);

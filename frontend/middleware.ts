@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from "next/server";
  * Route-level redirects have been moved to component-level guards
  * (useAuthRedirect hook) which read the Zustand auth store.
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function middleware(_request: NextRequest) {
   return NextResponse.next();
 }

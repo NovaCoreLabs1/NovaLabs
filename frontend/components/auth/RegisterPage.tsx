@@ -80,7 +80,7 @@ export function RegisterPage({ onRegister, isLoading }: RegisterPageProps) {
     },
   });
 
-  const handlePersonalInfoSubmit = (_data: PersonalInfoForm) => {
+  const handlePersonalInfoSubmit = () => {
     setCurrentStep("account-setup");
   };
 

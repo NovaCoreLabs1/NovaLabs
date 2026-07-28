@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { useParams, useRouter } from "next/navigation"
+import { useParams } from "next/navigation"
 import { 
   ArrowLeft, 
   Download, 
@@ -54,7 +54,6 @@ interface InvoiceDetailData {
 
 export default function InvoiceDetailPage() {
   const params = useParams()
-  const router = useRouter()
   const id = params?.id as string
 
   const [invoice, setInvoice] = React.useState<InvoiceDetailData | null>(null)

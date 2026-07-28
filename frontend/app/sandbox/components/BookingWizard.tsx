@@ -10,7 +10,7 @@ import {
   MapPin,
 } from "lucide-react";
 import { AvailabilityCalendar } from "./AvailabilityCalendar";
-import SeatMap, { type Seat, type SeatStatus } from "./SeatMap";
+import SeatMap, { type Seat } from "./SeatMap";
 
 // ---- Types ----
 
