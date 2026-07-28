@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UserMessages } from './user-messages';
 import { JwtPayload } from '../interface/user.interface';
@@ -15,6 +15,8 @@ type JwtExpiry = `${number}${'s' | 'm' | 'h' | 'd'}` | number;
 
 @Injectable()
 export class JwtHelper {
+  private readonly logger = new Logger(JwtHelper.name);
+
   constructor(private readonly jwtService: JwtService) {}
 
   public validateRefreshToken(refreshToken: string): string | null {
@@ -25,11 +27,10 @@ export class JwtHelper {
 
       return payload?.sub ?? null;
     } catch (error: unknown) {
-      if (error instanceof Error) {
-        console.error('JWT verification failed:', error.message);
-      } else {
-        console.error('JWT verification failed:', error);
-      }
+      this.logger.error(
+        'JWT verification failed',
+        error instanceof Error ? error.stack : String(error),
+      );
       throw new UnauthorizedException(UserMessages.INVALID_REFRESH_TOKEN);
     }
   }

@@ -22,8 +22,6 @@ export const useLoginUser = () => {
   return useMutation({
     mutationKey: mutationKeys.auth.loginUser,
     mutationFn: async (data: LoginUser) => {
-      // console.log("Simulating Backend Call...",data)
-      
       return await login(data);
     },
     onSuccess: () => {

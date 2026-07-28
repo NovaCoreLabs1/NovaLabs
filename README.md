@@ -9,6 +9,7 @@ NovaLabs is a full-stack platform built to power the next generation of coworkin
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-novalabs.vercel.app-black?style=for-the-badge&logo=vercel)](https://novalabs.vercel.app/)
 [![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
 [![Contributors](https://img.shields.io/badge/Contributors-96%2B-brightgreen?style=for-the-badge)](https://github.com/NovaCoreLabs1/NovaLabs/graphs/contributors)
+[![codecov](https://codecov.io/gh/NovaCoreLabs1/NovaLabs/branch/main/graph/badge.svg?token=CODECOV_TOKEN)](https://codecov.io/gh/NovaCoreLabs1/NovaLabs)
 
 </div>
 

@@ -41,7 +41,9 @@ const EmailResetPassword = ({ onTogglePage }: EmailResetPasswordProps) => {
     new Promise((resolve) => setTimeout(resolve, 3000)).then(() => {
       setDummyLoadingState(false);
       form.reset();
-      console.log(values);
+      // PII note: do NOT log the raw form values here. The submitted
+      // email belongs to the user and has no business leaving the
+      // browser via devtools. Remove the prior console.log(values).
       onTogglePage('resend');
     });
   }
