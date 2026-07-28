@@ -102,6 +102,7 @@ import { SecretsModule } from './config/secrets.module';
     InvoicesModule,
     NotificationsModule,
     WorkspaceTrackingModule,
+    SecretsModule.forRoot(),
     AuditLogModule,
   ],
   controllers: [AppController],

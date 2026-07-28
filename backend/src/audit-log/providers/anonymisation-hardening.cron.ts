@@ -34,7 +34,9 @@ export class AnonymisationHardeningCron {
           `purged ${purged.workspaceLogs} workspace log(s)`,
       );
     } catch (error) {
-      this.logger.error(`Anonymisation hardening sweep failed: ${error.message}`);
+      this.logger.error(
+        `Anonymisation hardening sweep failed: ${error.message}`,
+      );
     }
   }
 }
