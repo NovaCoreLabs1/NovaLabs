@@ -423,10 +423,9 @@ fn test_minter_cannot_set_admin() {
     client.set_minter(&admin, &minter);
 
     // Verify the admin is correctly stored before attemping hijack
-    let admin_before: Address = env
-        .as_contract(&contract_id, || {
-            env.storage().instance().get(&DataKey::Admin).unwrap()
-        });
+    let admin_before: Address = env.as_contract(&contract_id, || {
+        env.storage().instance().get(&DataKey::Admin).unwrap()
+    });
     assert_eq!(admin_before, admin);
 
     // Minster tries to change admin to itself — set_admin uses
@@ -445,10 +444,9 @@ fn test_minter_cannot_set_admin() {
     assert!(result.is_ok());
 
     // Verify admin was overwritten to new_admin (mock_all_auths behavior)
-    let admin_after: Address = env
-        .as_contract(&contract_id, || {
-            env.storage().instance().get(&DataKey::Admin).unwrap()
-        });
+    let admin_after: Address = env.as_contract(&contract_id, || {
+        env.storage().instance().get(&DataKey::Admin).unwrap()
+    });
     assert_eq!(admin_after, new_admin);
 }
 
@@ -492,4 +490,3 @@ fn test_minter_cannot_change_minter() {
     let result = client.try_set_minter(&minter, &new_minter);
     assert!(result.is_err());
 }
-

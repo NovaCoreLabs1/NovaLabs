@@ -51,10 +51,7 @@ impl MembershipTokenContract {
         expiry_date: u64,
     ) -> Result<(), Error> {
         // Check minter authorization first, fall back to admin for backward compat
-        let minter: Option<Address> = env
-            .storage()
-            .instance()
-            .get(&DataKey::Minter);
+        let minter: Option<Address> = env.storage().instance().get(&DataKey::Minter);
 
         if let Some(minter_addr) = minter {
             minter_addr.require_auth();
@@ -131,7 +128,7 @@ impl MembershipTokenContract {
 
     /// Sets the minter address. Only the current admin can call this.
     /// The minter can issue tokens but cannot pause or change the admin.
-    pub fn set_minter(env: Env, admin: Address, minter: Address) -> Result<(), Error> {
+    pub fn set_minter(env: Env, _admin: Address, minter: Address) -> Result<(), Error> {
         // Verify the caller is the stored admin via Soroban auth
         let stored_admin: Address = env
             .storage()
