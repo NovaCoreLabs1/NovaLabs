@@ -41,7 +41,6 @@ export class JwtHelper {
       email: user.email,
       fullName: user.fullName,
       role: user.role,
-      hubId: user.hubId,
     };
 
     return this.jwtService.sign(payload, {

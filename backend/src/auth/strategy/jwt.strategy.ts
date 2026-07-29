@@ -33,7 +33,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         fullName: `${user.firstname} ${user.lastname}`,
         email: user.email,
         role: payload.role,
-        hubId: payload.hubId ?? user.hubId,
+        hubId: payload.hubId,
       };
     } catch (error) {
       throw new UnauthorizedException(UserMessages.INVALID_ACCESS_TOKEN);
