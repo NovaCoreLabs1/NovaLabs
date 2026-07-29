@@ -1,11 +1,16 @@
 import { test, expect } from '@playwright/test';
-import { readFileSync } from 'fs';
-import { dirname, join } from 'path';
-import { fileURLToPath } from 'url';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const fixturePath = join(__dirname, '../fixtures/paystack-webhook-success.json');
-const fixture = JSON.parse(readFileSync(fixturePath, 'utf8'));
+// Inline fixture to avoid ESM import.meta / fs dependency
+const fixture = {
+  data: {
+    reference: 'TEST_REF_12345',
+    amount: 5000,
+    currency: 'NGN',
+    status: 'success',
+    transaction_date: '2026-07-20T00:00:00Z',
+    id: 987654321,
+  },
+};
 
 test.describe('Payment & refund flow (mocked Paystack)', () => {
   test.beforeEach(async () => {

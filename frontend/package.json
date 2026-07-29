@@ -37,6 +37,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@playwright/test": "^1.62.0",
     "@storybook/addon-essentials": "^8.6.18",
     "@storybook/addon-interactions": "^8.6.18",
     "@storybook/addon-onboarding": "^8.6.18",
