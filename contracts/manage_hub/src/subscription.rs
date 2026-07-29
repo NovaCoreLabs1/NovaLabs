@@ -1,6 +1,13 @@
 // Allow deprecated events API until migration to #[contractevent] macro
 #![allow(deprecated)]
 
+/// Semantic version of the event topic schema published by this contract.
+/// Bump to `v2` when introducing breaking changes to any event payload.
+/// Off-chain consumers match on this string as the **first** element of every
+/// event topic. Resolves issue #76 (`Add event topic versioning for forward
+/// compatibility`).
+pub const EVENT_VERSION: &str = "v1";
+
 use soroban_sdk::{contracttype, symbol_short, Address, BytesN, Env, Map, String, Vec};
 
 use crate::attendance_log::AttendanceLogModule;
@@ -170,7 +177,12 @@ impl SubscriptionContract {
 
         // Emit subscription created event
         env.events().publish(
-            (symbol_short!("sub_creat"), id.clone(), user.clone()),
+            (
+                String::from_str(&env, EVENT_VERSION),
+                symbol_short!("sub_creat"),
+                id.clone(),
+                user.clone(),
+            ),
             (payment_token.clone(), amount, current_time, expires_at),
         );
 
@@ -271,6 +283,7 @@ impl SubscriptionContract {
 
         env.events().publish(
             (
+                String::from_str(&env, EVENT_VERSION),
                 symbol_short!("subscr"),
                 id.clone(),
                 subscription.user.clone(),
@@ -371,6 +384,7 @@ impl SubscriptionContract {
 
         env.events().publish(
             (
+                String::from_str(&env, EVENT_VERSION),
                 symbol_short!("subscr"),
                 id.clone(),
                 subscription.user.clone(),
@@ -425,7 +439,11 @@ impl SubscriptionContract {
 
         // Emit USDC contract set event
         env.events().publish(
-            (symbol_short!("usdc_set"), usdc_address.clone()),
+            (
+                String::from_str(&env, EVENT_VERSION),
+                symbol_short!("usdc_set"),
+                usdc_address.clone(),
+            ),
             (admin.clone(), env.ledger().timestamp()),
         );
 
@@ -462,6 +480,7 @@ impl SubscriptionContract {
         // Emit subscription cancelled event
         env.events().publish(
             (
+                String::from_str(&env, EVENT_VERSION),
                 symbol_short!("sub_cancl"),
                 id.clone(),
                 subscription.user.clone(),
@@ -534,6 +553,7 @@ impl SubscriptionContract {
         // Emit subscription renewed event
         env.events().publish(
             (
+                String::from_str(&env, EVENT_VERSION),
                 symbol_short!("sub_renew"),
                 id.clone(),
                 subscription.user.clone(),
@@ -691,7 +711,12 @@ impl SubscriptionContract {
 
         // Emit tier created event
         env.events().publish(
-            (symbol_short!("tier_crt"), params.id.clone(), admin.clone()),
+            (
+                String::from_str(&env, EVENT_VERSION),
+                symbol_short!("tier_crt"),
+                params.id.clone(),
+                admin.clone(),
+            ),
             (params.name, params.level, params.price, current_time),
         );
 
@@ -745,7 +770,12 @@ impl SubscriptionContract {
 
         // Emit tier updated event
         env.events().publish(
-            (symbol_short!("tier_upd"), params.id.clone(), admin.clone()),
+            (
+                String::from_str(&env, EVENT_VERSION),
+                symbol_short!("tier_upd"),
+                params.id.clone(),
+                admin.clone(),
+            ),
             (tier.updated_at,),
         );
 
@@ -812,7 +842,12 @@ impl SubscriptionContract {
 
         // Emit tier deactivated event
         env.events().publish(
-            (symbol_short!("tier_dea"), id.clone(), admin.clone()),
+            (
+                String::from_str(&env, EVENT_VERSION),
+                symbol_short!("tier_dea"),
+                id.clone(),
+                admin.clone(),
+            ),
             (tier.updated_at,),
         );
 
@@ -900,7 +935,12 @@ impl SubscriptionContract {
 
         // Emit subscription created event
         env.events().publish(
-            (symbol_short!("sub_creat"), id.clone(), user.clone()),
+            (
+                String::from_str(&env, EVENT_VERSION),
+                symbol_short!("sub_creat"),
+                id.clone(),
+                user.clone(),
+            ),
             (tier_id.clone(), final_price, current_time, expires_at),
         );
 
@@ -1009,7 +1049,12 @@ impl SubscriptionContract {
 
         // Emit tier change requested event
         env.events().publish(
-            (symbol_short!("tier_chg"), change_id.clone(), user.clone()),
+            (
+                String::from_str(&env, EVENT_VERSION),
+                symbol_short!("tier_chg"),
+                change_id.clone(),
+                user.clone(),
+            ),
             (
                 subscription.tier_id.clone(),
                 new_tier_id,
@@ -1089,6 +1134,7 @@ impl SubscriptionContract {
         // Emit tier change completed event
         env.events().publish(
             (
+                String::from_str(&env, EVENT_VERSION),
                 symbol_short!("tier_cmp"),
                 change_request_id,
                 change_request.user.clone(),
@@ -1133,7 +1179,12 @@ impl SubscriptionContract {
 
         // Emit cancellation event
         env.events().publish(
-            (symbol_short!("tier_cnc"), change_request_id, user),
+            (
+                String::from_str(&env, EVENT_VERSION),
+                symbol_short!("tier_cnc"),
+                change_request_id,
+                user,
+            ),
             (env.ledger().timestamp(),),
         );
 
@@ -1196,7 +1247,12 @@ impl SubscriptionContract {
 
         // Emit promotion created event
         env.events().publish(
-            (symbol_short!("promo_cr"), params.promo_id, admin),
+            (
+                String::from_str(&env, EVENT_VERSION),
+                symbol_short!("promo_cr"),
+                params.promo_id,
+                admin,
+            ),
             (
                 params.tier_id,
                 params.discount_percent,

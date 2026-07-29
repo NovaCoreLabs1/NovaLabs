@@ -7,10 +7,21 @@ import {
 import { Logger } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
+import { resolveWsCorsConfigSafe } from '../../common/cors/cors-config';
+
+// Resolve WS CORS from the same env as the HTTP API so a mis-deployed preview
+// running on a non-allowed origin cannot subscribe either. In production
+// this is parsed from CORS_ORIGINS (CSV); in development the safe wrapper
+// degrades to deny-all on misconfiguration rather than throwing at module
+// load, so unit tests that import this gateway do not need to pre-set env.
+const wsCors = resolveWsCorsConfigSafe(
+  process.env.NODE_ENV,
+  process.env.CORS_ORIGINS,
+);
 
 @WebSocketGateway({
   namespace: 'notifications',
-  cors: { origin: '*' },
+  cors: { origin: wsCors.origin },
 })
 export class NotificationsGateway
   implements OnGatewayConnection, OnGatewayDisconnect
