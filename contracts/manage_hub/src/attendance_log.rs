@@ -88,8 +88,15 @@ impl AttendanceLogModule {
             .set(&DataKey::AttendanceLogsByUser(user_id.clone()), &user_logs);
 
         // Emit event for off-chain indexing
-        env.events()
-            .publish((String::from_str(&env, EVENT_VERSION), symbol_short!("attend"), id, user_id), action);
+        env.events().publish(
+            (
+                String::from_str(&env, EVENT_VERSION),
+                symbol_short!("attend"),
+                id,
+                user_id,
+            ),
+            action,
+        );
 
         Ok(())
     }

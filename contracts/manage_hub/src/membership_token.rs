@@ -127,16 +127,19 @@ impl MembershipTokenContract {
 
         // Emit token issued event
         env.events().publish(
-        (String::from_str(env, EVENT_VERSION), symbol_short!("token_iss"), id.clone(), user.clone()),
-        (
+            (
+                String::from_str(env, EVENT_VERSION),
+                symbol_short!("token_iss"),
+                id.clone(),
+                user.clone(),
+            ),
+            (
                 admin.clone(),
                 current_time,
                 expiry_date,
                 MembershipStatus::Active,
             ),
-        ,
-    );
-
+        );
 
         Ok(())
     }
@@ -205,11 +208,14 @@ impl MembershipTokenContract {
 
         // Emit token transferred event
         env.events().publish(
-        (String::from_str(env, EVENT_VERSION), symbol_short!("token_xfr"), id.clone(), new_user.clone()),
-        (old_user, env.ledger().timestamp()),
-        ,
-    );
-
+            (
+                String::from_str(env, EVENT_VERSION),
+                symbol_short!("token_xfr"),
+                id.clone(),
+                new_user.clone(),
+            ),
+            (old_user, env.ledger().timestamp()),
+        );
 
         Ok(())
     }
@@ -234,11 +240,14 @@ impl MembershipTokenContract {
 
         // Emit token transferred event with sale price info
         env.events().publish(
-        (String::from_str(env, EVENT_VERSION), symbol_short!("tok_sale"), id, new_user),
-        (sale_price, env.ledger().timestamp()),
-        ,
-    );
-
+            (
+                String::from_str(&env, EVENT_VERSION),
+                symbol_short!("tok_sale"),
+                id,
+                new_user,
+            ),
+            (sale_price, env.ledger().timestamp()),
+        );
 
         Ok(())
     }
@@ -331,17 +340,24 @@ impl MembershipTokenContract {
             .set(&DataKey::Token(token_id.clone()), &token);
 
         env.events().publish(
-        (String::from_str(env, EVENT_VERSION), symbol_short!("token_xfr"), token_id.clone(), to.clone()),
-        (old_user.clone(), env.ledger().timestamp()),
-        ,
-    );
+            (
+                String::from_str(&env, EVENT_VERSION),
+                symbol_short!("token_xfr"),
+                token_id.clone(),
+                to.clone(),
+            ),
+            (old_user.clone(), env.ledger().timestamp()),
+        );
 
         env.events().publish(
-        (String::from_str(env, EVENT_VERSION), symbol_short!("token_dlg"), token_id, spender),
-        (old_user, to, allowance_amount, env.ledger().timestamp()),
-        ,
-    );
-
+            (
+                String::from_str(&env, EVENT_VERSION),
+                symbol_short!("token_dlg"),
+                token_id,
+                spender,
+            ),
+            (old_user, to, allowance_amount, env.ledger().timestamp()),
+        );
 
         Ok(())
     }
@@ -405,11 +421,13 @@ impl MembershipTokenContract {
 
         // Emit admin set event
         env.events().publish(
-        (String::from_str(env, EVENT_VERSION), symbol_short!("admin_set"), admin.clone()),
-        env.ledger().timestamp(),
-        ,
-    );
-
+            (
+                String::from_str(&env, EVENT_VERSION),
+                symbol_short!("admin_set"),
+                admin.clone(),
+            ),
+            env.ledger().timestamp(),
+        );
 
         Ok(())
     }
@@ -621,11 +639,14 @@ impl MembershipTokenContract {
 
         // Emit metadata set event
         env.events().publish(
-        (String::from_str(env, EVENT_VERSION), symbol_short!("meta_set"), token_id.clone(), version),
-        (caller, current_time),
-        ,
-    );
-
+            (
+                String::from_str(env, EVENT_VERSION),
+                symbol_short!("meta_set"),
+                token_id.clone(),
+                version,
+            ),
+            (caller, current_time),
+        );
 
         Ok(())
     }
@@ -762,15 +783,14 @@ impl MembershipTokenContract {
 
         // Emit metadata update event
         env.events().publish(
-        (
-                String::from_str(env, EVENT_VERSION), symbol_short!("meta_upd"),
+            (
+                String::from_str(&env, EVENT_VERSION),
+                symbol_short!("meta_upd"),
                 token_id.clone(),
                 metadata.version,
             ),
-        (metadata.updated_by, metadata.last_updated),
-        ,
-    );
-
+            (metadata.updated_by, metadata.last_updated),
+        );
 
         Ok(())
     }
@@ -840,15 +860,14 @@ impl MembershipTokenContract {
 
         // Emit event
         env.events().publish(
-        (
-                String::from_str(env, EVENT_VERSION), symbol_short!("meta_rmv"),
+            (
+                String::from_str(&env, EVENT_VERSION),
+                symbol_short!("meta_rmv"),
                 token_id.clone(),
                 metadata.version,
             ),
-        (metadata.updated_by, metadata.last_updated),
-        ,
-    );
-
+            (metadata.updated_by, metadata.last_updated),
+        );
 
         Ok(())
     }
@@ -938,15 +957,17 @@ impl MembershipTokenContract {
 
         // Emit renewal config updated event
         env.events().publish(
-        (String::from_str(env, EVENT_VERSION), symbol_short!("rnw_cfg"), admin),
-        (
+            (
+                String::from_str(&env, EVENT_VERSION),
+                symbol_short!("rnw_cfg"),
+                admin,
+            ),
+            (
                 grace_period_duration,
                 auto_renewal_notice_days,
                 renewals_enabled,
             ),
-        ,
-    );
-
+        );
 
         Ok(())
     }
@@ -1089,11 +1110,14 @@ impl MembershipTokenContract {
 
         // Emit token renewal event
         env.events().publish(
-        (String::from_str(env, EVENT_VERSION), symbol_short!("token_rnw"), id.clone(), token.user.clone()),
-        (payment_token, amount, old_expiry, new_expiry),
-        ,
-    );
-
+            (
+                String::from_str(&env, EVENT_VERSION),
+                symbol_short!("token_rnw"),
+                id.clone(),
+                token.user.clone(),
+            ),
+            (payment_token, amount, old_expiry, new_expiry),
+        );
 
         Ok(())
     }
@@ -1172,11 +1196,14 @@ impl MembershipTokenContract {
 
             // Emit grace period entered event
             env.events().publish(
-        (String::from_str(env, EVENT_VERSION), symbol_short!("grace_in"), id, token.user.clone()),
-        (current_time, token.grace_period_expires_at.unwrap()),
-        ,
-    );
-
+                (
+                    String::from_str(&env, EVENT_VERSION),
+                    symbol_short!("grace_in"),
+                    id,
+                    token.user.clone(),
+                ),
+                (current_time, token.grace_period_expires_at.unwrap()),
+            );
         }
 
         // Check if grace period has expired
@@ -1227,11 +1254,14 @@ impl MembershipTokenContract {
 
         // Emit auto-renewal settings updated event
         env.events().publish(
-        (String::from_str(env, EVENT_VERSION), symbol_short!("auto_rnw"), token_id, token.user),
-        (enabled, payment_token),
-        ,
-    );
-
+            (
+                String::from_str(&env, EVENT_VERSION),
+                symbol_short!("auto_rnw"),
+                token_id,
+                token.user,
+            ),
+            (enabled, payment_token),
+        );
 
         Ok(())
     }
@@ -1374,11 +1404,14 @@ impl MembershipTokenContract {
 
         // Emit auto-renewal success event
         env.events().publish(
-        (String::from_str(env, EVENT_VERSION), symbol_short!("auto_ok"), id, token.user),
-        (settings.payment_token, amount, old_expiry, new_expiry),
-        ,
-    );
-
+            (
+                String::from_str(&env, EVENT_VERSION),
+                symbol_short!("auto_ok"),
+                id,
+                token.user,
+            ),
+            (settings.payment_token, amount, old_expiry, new_expiry),
+        );
 
         Ok(())
     }
@@ -1434,16 +1467,18 @@ impl MembershipTokenContract {
 
         // Emit PauseStateChanged event.
         env.events().publish(
-        (String::from_str(env, EVENT_VERSION), symbol_short!("emg_pause"), admin.clone()),
-        (
+            (
+                String::from_str(&env, EVENT_VERSION),
+                symbol_short!("emg_pause"),
+                admin.clone(),
+            ),
+            (
                 current_time,
                 reason,
                 state.auto_unpause_at,
                 state.time_lock_until,
             ),
-        ,
-    );
-
+        );
 
         Ok(())
     }
@@ -1485,11 +1520,13 @@ impl MembershipTokenContract {
 
         // Emit PauseStateChanged event.
         env.events().publish(
-        (String::from_str(env, EVENT_VERSION), symbol_short!("emg_unp"), admin.clone()),
-        (env.ledger().timestamp(),),
-        ,
-    );
-
+            (
+                String::from_str(&env, EVENT_VERSION),
+                symbol_short!("emg_unp"),
+                admin.clone(),
+            ),
+            (env.ledger().timestamp(),),
+        );
 
         Ok(())
     }
@@ -1557,11 +1594,14 @@ impl MembershipTokenContract {
 
         // Emit per-token pause event.
         env.events().publish(
-        (String::from_str(env, EVENT_VERSION), symbol_short!("tok_pause"), token_id.clone(), admin.clone()),
-        (current_time, reason),
-        ,
-    );
-
+            (
+                String::from_str(&env, EVENT_VERSION),
+                symbol_short!("tok_pause"),
+                token_id.clone(),
+                admin.clone(),
+            ),
+            (current_time, reason),
+        );
 
         Ok(())
     }
@@ -1607,11 +1647,14 @@ impl MembershipTokenContract {
 
         // Emit per-token unpause event.
         env.events().publish(
-        (String::from_str(env, EVENT_VERSION), symbol_short!("tok_unp"), token_id.clone(), admin.clone()),
-        (env.ledger().timestamp(),),
-        ,
-    );
-
+            (
+                String::from_str(&env, EVENT_VERSION),
+                symbol_short!("tok_unp"),
+                token_id.clone(),
+                admin.clone(),
+            ),
+            (env.ledger().timestamp(),),
+        );
 
         Ok(())
     }
@@ -1644,15 +1687,18 @@ impl MembershipTokenContract {
 
         // Emit grace period entered due to auto-renewal failure
         env.events().publish(
-        (String::from_str(env, EVENT_VERSION), symbol_short!("grace_ar"), id, token.user),
-        (
+            (
+                String::from_str(&env, EVENT_VERSION),
+                symbol_short!("grace_ar"),
+                id,
+                token.user,
+            ),
+            (
                 current_time,
                 token.grace_period_expires_at.unwrap(),
                 String::from_str(&env, "auto_renewal_failed"),
             ),
-        ,
-    );
-
+        );
 
         Ok(())
     }

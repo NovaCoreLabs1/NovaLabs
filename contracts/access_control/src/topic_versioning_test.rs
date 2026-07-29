@@ -7,7 +7,7 @@
 
 use soroban_sdk::{
     testutils::{Address as _, Events},
-    Address, Env, String, Vec,
+    Address, Env, String, TryIntoVal,
 };
 
 /// Mirrors the contract's published `EVENT_VERSION`. If the contract
@@ -21,16 +21,14 @@ fn test_event_topics_include_v1_string() {
     let admin = Address::generate(&env);
 
     env.as_contract(&contract_id, || {
-        crate::access_control::AccessControlModule::initialize(
-            &env,
-            admin.clone(),
-            None,
-        )
-        .unwrap();
+        crate::access_control::AccessControlModule::initialize(&env, admin.clone(), None).unwrap();
     });
 
     let events = env.events().all();
-    assert!(!events.is_empty(), "initialize must emit at least one event");
+    assert!(
+        !events.is_empty(),
+        "initialize must emit at least one event"
+    );
 
     // Walk the topics for each emitted event and ensure the first element
     // — independent of any `symbol_short!` named topics that follow — is the
@@ -38,14 +36,15 @@ fn test_event_topics_include_v1_string() {
     // `String` via `try_into_val`.
     let version = String::from_str(&env, EXPECTED_VERSION);
     let mut found_version_at_index_zero = false;
-    for (topics, _data) in events.iter() {
+    for (_contract, topics, _data) in events.iter() {
         if let Some(first) = topics.get(0) {
-            // `Val` comparison via `try_into_val::<String>()`.
-            if let Ok(s) = first.try_into_val::<String>(&env) {
-                if s == version {
-                    found_version_at_index_zero = true;
-                    break;
-                }
+            let s: String = match first.try_into_val(&env) {
+                Ok(val) => val,
+                Err(_) => continue,
+            };
+            if s == version {
+                found_version_at_index_zero = true;
+                break;
             }
         }
     }

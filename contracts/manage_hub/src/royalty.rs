@@ -51,11 +51,13 @@ impl RoyaltyModule {
 
         // Emit set event
         env.events().publish(
-        (String::from_str(env, EVENT_VERSION), symbol_short!("roy_set"), token_id.clone()),
-        (recipients.len(), env.ledger().timestamp()),
-        ,
-    );
-
+            (
+                String::from_str(&env, EVENT_VERSION),
+                symbol_short!("roy_set"),
+                token_id.clone(),
+            ),
+            (recipients.len(), env.ledger().timestamp()),
+        );
 
         env.storage()
             .persistent()
@@ -99,15 +101,14 @@ impl RoyaltyModule {
                     // To keep things simple and avoiding external cross-contract token integrations for the royalty distribution,
                     // we emit an event that off-chain indexers or wrapper contracts can use to fulfill the payment synchronously or asynchronously.
                     env.events().publish(
-        (
-                            String::from_str(env, EVENT_VERSION), symbol_short!("roy_paid"),
+                        (
+                            String::from_str(env, EVENT_VERSION),
+                            symbol_short!("roy_paid"),
                             token_id.clone(),
                             recipient.address.clone(),
                         ),
-        (payment_token.clone(), amount, env.ledger().timestamp()),
-        ,
-    );
-
+                        (payment_token.clone(), amount, env.ledger().timestamp()),
+                    );
                 }
             }
 

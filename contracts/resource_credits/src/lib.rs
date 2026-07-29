@@ -1,8 +1,5 @@
 #![no_std]
-// The env.events()
-    .publish(
-    );
-API is deprecated in favour of #[contractevent],
+// The env.events().publish() API is deprecated in favour of #[contractevent],
 // but kept here for consistency with the rest of the NovaLabs contracts.
 #![allow(deprecated)]
 
@@ -90,8 +87,14 @@ impl ResourceCreditsContract {
             .instance()
             .set(&DataKey::TotalSupply, &(supply + amount));
 
-        env.events()
-            .publish((String::from_str(&env, EVENT_VERSION), symbol_short!("mint"), recipient), amount);
+        env.events().publish(
+            (
+                String::from_str(&env, EVENT_VERSION),
+                symbol_short!("mint"),
+                recipient,
+            ),
+            amount,
+        );
         Ok(())
     }
 
@@ -131,8 +134,15 @@ impl ResourceCreditsContract {
             .persistent()
             .set(&DataKey::Balance(to.clone()), &(to_bal + amount));
 
-        env.events()
-            .publish((String::from_str(&env, EVENT_VERSION), symbol_short!("transfer"), from, to), amount);
+        env.events().publish(
+            (
+                String::from_str(&env, EVENT_VERSION),
+                symbol_short!("transfer"),
+                from,
+                to,
+            ),
+            amount,
+        );
         Ok(())
     }
 
@@ -167,8 +177,14 @@ impl ResourceCreditsContract {
             .instance()
             .set(&DataKey::TotalSupply, &(supply - amount));
 
-        env.events()
-            .publish((String::from_str(&env, EVENT_VERSION), symbol_short!("spend"), member), amount);
+        env.events().publish(
+            (
+                String::from_str(&env, EVENT_VERSION),
+                symbol_short!("spend"),
+                member,
+            ),
+            amount,
+        );
         Ok(())
     }
 

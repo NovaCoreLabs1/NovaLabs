@@ -30,11 +30,12 @@ impl BatchModule {
 
         // Emit batch event for tracking and monitoring
         env.events().publish(
-        (String::from_str(&env, EVENT_VERSION), symbol_short!("bat_mint"),),
-        (params_vec.len(), env.ledger().timestamp()),
-        ,
-    );
-
+            (
+                String::from_str(&env, EVENT_VERSION),
+                symbol_short!("bat_mint"),
+            ),
+            (params_vec.len(), env.ledger().timestamp()),
+        );
 
         Ok(())
     }
@@ -52,11 +53,12 @@ impl BatchModule {
 
         // Emit batch event for tracking and monitoring
         env.events().publish(
-        (String::from_str(&env, EVENT_VERSION), symbol_short!("bat_xfr"),),
-        (params_vec.len(), env.ledger().timestamp()),
-        ,
-    );
-
+            (
+                String::from_str(&env, EVENT_VERSION),
+                symbol_short!("bat_xfr"),
+            ),
+            (params_vec.len(), env.ledger().timestamp()),
+        );
 
         Ok(())
     }
@@ -74,11 +76,12 @@ impl BatchModule {
 
         // Emit batch event for tracking and monitoring
         env.events().publish(
-        (String::from_str(&env, EVENT_VERSION), symbol_short!("bat_upd"),),
-        (params_vec.len(), env.ledger().timestamp()),
-        ,
-    );
-
+            (
+                String::from_str(&env, EVENT_VERSION),
+                symbol_short!("bat_upd"),
+            ),
+            (params_vec.len(), env.ledger().timestamp()),
+        );
 
         Ok(())
     }

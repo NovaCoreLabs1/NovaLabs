@@ -1,9 +1,6 @@
 // contracts/workspace_booking/src/lib.rs
 #![no_std]
-// The env.events()
-    .publish(
-    );
-API is deprecated in favour of #[contractevent],
+// The env.events().publish() API is deprecated in favour of #[contractevent],
 // but kept here for consistency with the rest of the NovaLabs contracts.
 #![allow(deprecated)]
 
@@ -128,8 +125,10 @@ impl WorkspaceBookingContract {
             .instance()
             .set(&DataKey::PaymentToken, &payment_token);
 
-        env.events()
-            .publish((String::from_str(&env, EVENT_VERSION), symbol_short!("init"),), (admin, payment_token));
+        env.events().publish(
+            (String::from_str(&env, EVENT_VERSION), symbol_short!("init")),
+            (admin, payment_token),
+        );
         Ok(())
     }
 
@@ -190,10 +189,13 @@ impl WorkspaceBookingContract {
         env.storage().instance().set(&DataKey::WorkspaceList, &list);
 
         env.events().publish(
-        (String::from_str(&env, EVENT_VERSION), symbol_short!("ws_reg"), id),
-        (name, workspace_type, capacity, hourly_rate),
-        ,
-    );
+            (
+                String::from_str(&env, EVENT_VERSION),
+                symbol_short!("ws_reg"),
+                id,
+            ),
+            (name, workspace_type, capacity, hourly_rate),
+        );
 
         Ok(())
     }
@@ -223,8 +225,14 @@ impl WorkspaceBookingContract {
             .persistent()
             .set(&DataKey::Workspace(workspace_id.clone()), &workspace);
 
-        env.events()
-            .publish((String::from_str(&env, EVENT_VERSION), symbol_short!("ws_avail"), workspace_id), (is_available,));
+        env.events().publish(
+            (
+                String::from_str(&env, EVENT_VERSION),
+                symbol_short!("ws_avail"),
+                workspace_id,
+            ),
+            (is_available,),
+        );
         Ok(())
     }
 
@@ -252,8 +260,14 @@ impl WorkspaceBookingContract {
             .persistent()
             .set(&DataKey::Workspace(workspace_id.clone()), &workspace);
 
-        env.events()
-            .publish((String::from_str(&env, EVENT_VERSION), symbol_short!("ws_rate"), workspace_id), (hourly_rate,));
+        env.events().publish(
+            (
+                String::from_str(&env, EVENT_VERSION),
+                symbol_short!("ws_rate"),
+                workspace_id,
+            ),
+            (hourly_rate,),
+        );
         Ok(())
     }
 
@@ -367,10 +381,13 @@ impl WorkspaceBookingContract {
             .set(&DataKey::MemberBookings(member.clone()), &member_bookings);
 
         env.events().publish(
-        (String::from_str(&env, EVENT_VERSION), symbol_short!("booked"), booking_id),
-        (member, workspace_id, start_time, end_time, amount),
-        ,
-    );
+            (
+                String::from_str(&env, EVENT_VERSION),
+                symbol_short!("booked"),
+                booking_id,
+            ),
+            (member, workspace_id, start_time, end_time, amount),
+        );
 
         Ok(())
     }
@@ -416,10 +433,13 @@ impl WorkspaceBookingContract {
             .set(&DataKey::Booking(booking_id.clone()), &booking);
 
         env.events().publish(
-        (String::from_str(&env, EVENT_VERSION), symbol_short!("cancel"), booking_id),
-        (caller, booking.amount_paid),
-        ,
-    );
+            (
+                String::from_str(&env, EVENT_VERSION),
+                symbol_short!("cancel"),
+                booking_id,
+            ),
+            (caller, booking.amount_paid),
+        );
 
         Ok(())
     }
@@ -447,10 +467,13 @@ impl WorkspaceBookingContract {
             .set(&DataKey::Booking(booking_id.clone()), &booking);
 
         env.events().publish(
-        (String::from_str(&env, EVENT_VERSION), symbol_short!("complete"), booking_id),
-        (booking.workspace_id, booking.member),
-        ,
-    );
+            (
+                String::from_str(&env, EVENT_VERSION),
+                symbol_short!("complete"),
+                booking_id,
+            ),
+            (booking.workspace_id, booking.member),
+        );
 
         Ok(())
     }

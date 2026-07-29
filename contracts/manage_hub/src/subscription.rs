@@ -177,11 +177,14 @@ impl SubscriptionContract {
 
         // Emit subscription created event
         env.events().publish(
-        (String::from_str(&env, EVENT_VERSION), symbol_short!("sub_creat"), id.clone(), user.clone()),
-        (payment_token.clone(), amount, current_time, expires_at),
-        ,
-    );
-
+            (
+                String::from_str(&env, EVENT_VERSION),
+                symbol_short!("sub_creat"),
+                id.clone(),
+                user.clone(),
+            ),
+            (payment_token.clone(), amount, current_time, expires_at),
+        );
 
         // Log attendance event for subscription creation
         Self::log_subscription_event(
@@ -279,15 +282,14 @@ impl SubscriptionContract {
         env.storage().persistent().extend_ttl(&key, 100, 1000);
 
         env.events().publish(
-        (
-                String::from_str(&env, EVENT_VERSION), symbol_short!("subscr"),
+            (
+                String::from_str(&env, EVENT_VERSION),
+                symbol_short!("subscr"),
                 id.clone(),
                 subscription.user.clone(),
             ),
-        entry,
-        ,
-    );
-
+            entry,
+        );
 
         Self::log_subscription_event(
             &env,
@@ -381,15 +383,14 @@ impl SubscriptionContract {
         env.storage().persistent().extend_ttl(&key, 100, 1000);
 
         env.events().publish(
-        (
-                String::from_str(&env, EVENT_VERSION), symbol_short!("subscr"),
+            (
+                String::from_str(&env, EVENT_VERSION),
+                symbol_short!("subscr"),
                 id.clone(),
                 subscription.user.clone(),
             ),
-        entry,
-        ,
-    );
-
+            entry,
+        );
 
         Self::log_subscription_event(
             &env,
@@ -438,11 +439,13 @@ impl SubscriptionContract {
 
         // Emit USDC contract set event
         env.events().publish(
-        (String::from_str(&env, EVENT_VERSION), symbol_short!("usdc_set"), usdc_address.clone()),
-        (admin.clone(), env.ledger().timestamp()),
-        ,
-    );
-
+            (
+                String::from_str(&env, EVENT_VERSION),
+                symbol_short!("usdc_set"),
+                usdc_address.clone(),
+            ),
+            (admin.clone(), env.ledger().timestamp()),
+        );
 
         Ok(())
     }
@@ -476,19 +479,18 @@ impl SubscriptionContract {
 
         // Emit subscription cancelled event
         env.events().publish(
-        (
-                String::from_str(&env, EVENT_VERSION), symbol_short!("sub_cancl"),
+            (
+                String::from_str(&env, EVENT_VERSION),
+                symbol_short!("sub_cancl"),
                 id.clone(),
                 subscription.user.clone(),
             ),
-        (
+            (
                 env.ledger().timestamp(),
                 old_status,
                 MembershipStatus::Inactive,
             ),
-        ,
-    );
-
+        );
 
         Ok(())
     }
@@ -550,20 +552,19 @@ impl SubscriptionContract {
 
         // Emit subscription renewed event
         env.events().publish(
-        (
-                String::from_str(&env, EVENT_VERSION), symbol_short!("sub_renew"),
+            (
+                String::from_str(&env, EVENT_VERSION),
+                symbol_short!("sub_renew"),
                 id.clone(),
                 subscription.user.clone(),
             ),
-        (
+            (
                 payment_token.clone(),
                 amount,
                 old_expiry,
                 subscription.expires_at,
             ),
-        ,
-    );
-
+        );
 
         // Log attendance event for subscription renewal
         Self::log_subscription_event(
@@ -710,11 +711,14 @@ impl SubscriptionContract {
 
         // Emit tier created event
         env.events().publish(
-        (String::from_str(&env, EVENT_VERSION), symbol_short!("tier_crt"), params.id.clone(), admin.clone()),
-        (params.name, params.level, params.price, current_time),
-        ,
-    );
-
+            (
+                String::from_str(&env, EVENT_VERSION),
+                symbol_short!("tier_crt"),
+                params.id.clone(),
+                admin.clone(),
+            ),
+            (params.name, params.level, params.price, current_time),
+        );
 
         Ok(())
     }
@@ -766,11 +770,14 @@ impl SubscriptionContract {
 
         // Emit tier updated event
         env.events().publish(
-        (String::from_str(&env, EVENT_VERSION), symbol_short!("tier_upd"), params.id.clone(), admin.clone()),
-        (tier.updated_at,),
-        ,
-    );
-
+            (
+                String::from_str(&env, EVENT_VERSION),
+                symbol_short!("tier_upd"),
+                params.id.clone(),
+                admin.clone(),
+            ),
+            (tier.updated_at,),
+        );
 
         Ok(())
     }
@@ -835,11 +842,14 @@ impl SubscriptionContract {
 
         // Emit tier deactivated event
         env.events().publish(
-        (String::from_str(&env, EVENT_VERSION), symbol_short!("tier_dea"), id.clone(), admin.clone()),
-        (tier.updated_at,),
-        ,
-    );
-
+            (
+                String::from_str(&env, EVENT_VERSION),
+                symbol_short!("tier_dea"),
+                id.clone(),
+                admin.clone(),
+            ),
+            (tier.updated_at,),
+        );
 
         Ok(())
     }
@@ -925,11 +935,14 @@ impl SubscriptionContract {
 
         // Emit subscription created event
         env.events().publish(
-        (String::from_str(&env, EVENT_VERSION), symbol_short!("sub_creat"), id.clone(), user.clone()),
-        (tier_id.clone(), final_price, current_time, expires_at),
-        ,
-    );
-
+            (
+                String::from_str(&env, EVENT_VERSION),
+                symbol_short!("sub_creat"),
+                id.clone(),
+                user.clone(),
+            ),
+            (tier_id.clone(), final_price, current_time, expires_at),
+        );
 
         // Log attendance event
         Self::log_subscription_event(
@@ -1036,16 +1049,19 @@ impl SubscriptionContract {
 
         // Emit tier change requested event
         env.events().publish(
-        (String::from_str(&env, EVENT_VERSION), symbol_short!("tier_chg"), change_id.clone(), user.clone()),
-        (
+            (
+                String::from_str(&env, EVENT_VERSION),
+                symbol_short!("tier_chg"),
+                change_id.clone(),
+                user.clone(),
+            ),
+            (
                 subscription.tier_id.clone(),
                 new_tier_id,
                 change_type,
                 prorated_amount,
             ),
-        ,
-    );
-
+        );
 
         Ok(change_id)
     }
@@ -1117,19 +1133,18 @@ impl SubscriptionContract {
 
         // Emit tier change completed event
         env.events().publish(
-        (
-                String::from_str(&env, EVENT_VERSION), symbol_short!("tier_cmp"),
+            (
+                String::from_str(&env, EVENT_VERSION),
+                symbol_short!("tier_cmp"),
                 change_request_id,
                 change_request.user.clone(),
             ),
-        (
+            (
                 old_tier_id,
                 change_request.to_tier,
                 change_request.prorated_amount,
             ),
-        ,
-    );
-
+        );
 
         Ok(())
     }
@@ -1164,11 +1179,14 @@ impl SubscriptionContract {
 
         // Emit cancellation event
         env.events().publish(
-        (String::from_str(&env, EVENT_VERSION), symbol_short!("tier_cnc"), change_request_id, user),
-        (env.ledger().timestamp(),),
-        ,
-    );
-
+            (
+                String::from_str(&env, EVENT_VERSION),
+                symbol_short!("tier_cnc"),
+                change_request_id,
+                user,
+            ),
+            (env.ledger().timestamp(),),
+        );
 
         Ok(())
     }
@@ -1229,16 +1247,19 @@ impl SubscriptionContract {
 
         // Emit promotion created event
         env.events().publish(
-        (String::from_str(&env, EVENT_VERSION), symbol_short!("promo_cr"), params.promo_id, admin),
-        (
+            (
+                String::from_str(&env, EVENT_VERSION),
+                symbol_short!("promo_cr"),
+                params.promo_id,
+                admin,
+            ),
+            (
                 params.tier_id,
                 params.discount_percent,
                 params.start_date,
                 params.end_date,
             ),
-        ,
-    );
-
+        );
 
         Ok(())
     }

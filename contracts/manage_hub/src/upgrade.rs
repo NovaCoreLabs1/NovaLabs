@@ -16,7 +16,7 @@
 /// event topic. Resolves issue #76 (`Add event topic versioning for forward
 /// compatibility`).
 #[allow(dead_code)] // Reserved for issue #76 event-topic versioning; this module currently uses String literals instead of symbol_short!
-    pub const EVENT_VERSION: &str = "v1";
+pub const EVENT_VERSION: &str = "v1";
 
 use crate::errors::Error;
 use crate::membership_token::{DataKey, MembershipToken};
@@ -167,15 +167,13 @@ impl UpgradeModule {
 
         // Emit TokenUpgraded event
         env.events().publish(
-        (
+            (
                 String::from_str(&env, "TokenUpgraded"),
                 token_id.clone(),
                 caller,
             ),
-        (from_version, to_version),
-        ,
-    );
-
+            (from_version, to_version),
+        );
 
         Ok(to_version)
     }
@@ -326,15 +324,13 @@ impl UpgradeModule {
 
         // Emit event
         env.events().publish(
-        (
+            (
                 String::from_str(&env, "TokenUpgraded"),
                 token_id.clone(),
                 admin,
             ),
-        (from_version, to_version),
-        ,
-    );
-
+            (from_version, to_version),
+        );
 
         Ok(to_version)
     }
@@ -429,15 +425,13 @@ impl UpgradeModule {
         );
 
         env.events().publish(
-        (
+            (
                 String::from_str(env, "TokenUpgraded"),
                 token_id.clone(),
                 admin.clone(),
             ),
-        (from_version, to_version),
-        ,
-    );
-
+            (from_version, to_version),
+        );
 
         Ok(to_version)
     }

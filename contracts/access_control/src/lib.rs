@@ -18,7 +18,6 @@ mod access_control_tests;
 #[cfg(test)]
 mod topic_versioning_test;
 
-
 pub use access_control::AccessControlModule;
 pub use errors::{AccessControlError, AccessControlResult};
 pub use types::{

@@ -6,7 +6,7 @@
 /// event topic. Resolves issue #76 (`Add event topic versioning for forward
 /// compatibility`).
 #[allow(dead_code)] // Reserved for issue #76 event-topic versioning; this module currently uses String literals instead of symbol_short!
-    pub const EVENT_VERSION: &str = "v1";
+pub const EVENT_VERSION: &str = "v1";
 
 use crate::errors::Error;
 use crate::types::TokenAllowance;
@@ -55,16 +55,14 @@ impl AllowanceModule {
         );
 
         env.events().publish(
-        (
+            (
                 String::from_str(env, "Approval"),
                 token_id.clone(),
                 owner.clone(),
                 spender.clone(),
             ),
-        (amount, expires_at, allowance.updated_at),
-        ,
-    );
-
+            (amount, expires_at, allowance.updated_at),
+        );
 
         Ok(())
     }
@@ -79,16 +77,14 @@ impl AllowanceModule {
             ));
 
         env.events().publish(
-        (
+            (
                 String::from_str(env, "AllowanceRevoked"),
                 token_id.clone(),
                 owner.clone(),
                 spender.clone(),
             ),
-        env.ledger().timestamp(),
-        ,
-    );
-
+            env.ledger().timestamp(),
+        );
     }
 
     pub fn get_allowance(
@@ -151,16 +147,14 @@ impl AllowanceModule {
         }
 
         env.events().publish(
-        (
+            (
                 String::from_str(env, "AllowanceUsed"),
                 token_id.clone(),
                 owner.clone(),
                 spender.clone(),
             ),
-        (amount, allowance.amount, allowance.updated_at),
-        ,
-    );
-
+            (amount, allowance.amount, allowance.updated_at),
+        );
 
         Ok(())
     }
