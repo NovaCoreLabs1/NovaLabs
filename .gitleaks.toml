@@ -13,13 +13,16 @@ useDefault = true
 
 # Paths that should never be scanned for secrets.
 [allowlist]
-paths = [
+  description = "Allowlist paths that should never be scanned for secrets"
+  paths = [
     # Dependency lockfiles are generated and contain no first-party secrets.
-    '''**/Cargo.lock''',
-    '''**/package-lock.json''',
+    '''Cargo\.lock''',
+    '''package-lock\.json''',
     # Test fixtures are intentionally fake values.
-    '''**/test.rs''',
-    '''**/reentrancy.rs''',
+    '''test\.rs''',
+    '''reentrancy\.rs''',
     # Env templates only hold placeholder values.
-    '''**/.env.example''',
-]
+    '''\.env\.example''',
+    # HTTP endpoint test files contain example JWTs for manual API testing.
+    '''\.http''',
+  ]
