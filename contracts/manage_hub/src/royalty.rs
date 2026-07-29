@@ -1,10 +1,17 @@
 // Allow deprecated events API until migration to #[contractevent] macro
 #![allow(deprecated)]
 
+/// Semantic version of the event topic schema published by this contract.
+/// Bump to `v2` when introducing breaking changes to any event payload.
+/// Off-chain consumers match on this string as the **first** element of every
+/// event topic. Resolves issue #76 (`Add event topic versioning for forward
+/// compatibility`).
+pub const EVENT_VERSION: &str = "v1";
+
 use crate::errors::Error;
 use crate::membership_token::DataKey;
 use crate::types::{RoyaltyConfig, RoyaltyInfo, RoyaltyRecipient};
-use soroban_sdk::{symbol_short, Address, BytesN, Env, Vec};
+use soroban_sdk::{symbol_short, Address, BytesN, Env, String, Vec}; // String required by event-topic versioning (issue #76)
 
 pub struct RoyaltyModule;
 
@@ -44,7 +51,11 @@ impl RoyaltyModule {
 
         // Emit set event
         env.events().publish(
-            (symbol_short!("roy_set"), token_id.clone()),
+            (
+                String::from_str(&env, EVENT_VERSION),
+                symbol_short!("roy_set"),
+                token_id.clone(),
+            ),
             (recipients.len(), env.ledger().timestamp()),
         );
 
@@ -91,6 +102,7 @@ impl RoyaltyModule {
                     // we emit an event that off-chain indexers or wrapper contracts can use to fulfill the payment synchronously or asynchronously.
                     env.events().publish(
                         (
+                            String::from_str(env, EVENT_VERSION),
                             symbol_short!("roy_paid"),
                             token_id.clone(),
                             recipient.address.clone(),

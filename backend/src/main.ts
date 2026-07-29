@@ -10,6 +10,7 @@ import { ContentTypeMiddleware } from './common/middlewares/content-type.middlew
 import { CsrfGuard } from './common/guards/csrf.guard';
 import { AuditLogInterceptor } from './audit-log/interceptors/audit-log.interceptor';
 import { TenantInterceptor } from './hub/tenant.interceptor';
+import { resolveCorsConfig } from './common/cors/cors-config';
 import * as cookieParser from 'cookie-parser';
 import * as session from 'express-session';
 import * as passport from 'passport';
@@ -69,20 +70,15 @@ async function bootstrap() {
   app.useGlobalGuards(new CsrfGuard(app.get(Reflector)));
 
   // ENABLE CORS
+  // Resolve once so a mis-deployed production environment without
+  // CORS_ORIGINS fails fast at boot rather than shipping a permissive API.
+  const cors = resolveCorsConfig(process.env.NODE_ENV, process.env.CORS_ORIGINS);
   app.enableCors({
-    origin:
-      process.env.NODE_ENV === 'production'
-        ? [
-            'https://novalabs.vercel.app',
-            'https://www.novalabs.vercel.app',
-            'http://localhost:3000',
-            'http://localhost:3001',
-            'http://localhost:3002',
-            'http://localhost:3003',
-          ]
-        : true,
+    origin: cors.origin,
     credentials: true,
   });
+  const originCount = Array.isArray(cors.origin) ? cors.origin.length : 'any';
+  console.log(`[CORS] mode=${process.env.NODE_ENV ?? 'development'} allowed=${originCount}`);
 
   // SWAGGER SETUP
   const config = new DocumentBuilder()

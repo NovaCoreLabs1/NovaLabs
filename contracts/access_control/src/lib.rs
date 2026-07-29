@@ -1,5 +1,11 @@
 #![no_std]
 
+/// Semantic version of the event topic schema published by this contract.
+/// Bump to v2 when introducing breaking changes to any event payload.
+/// Off-chain consumers match on this string as the first element of every
+/// event topic. Resolves issue #76 (`Add event topic versioning for forward compatibility`).
+pub const EVENT_VERSION: &str = "v1";
+
 use soroban_sdk::{contract, contractimpl, Address, Env, String, Vec};
 
 pub mod access_control;
@@ -9,6 +15,8 @@ pub mod types;
 
 #[cfg(test)]
 mod access_control_tests;
+#[cfg(test)]
+mod topic_versioning_test;
 
 pub use access_control::AccessControlModule;
 pub use errors::{AccessControlError, AccessControlResult};

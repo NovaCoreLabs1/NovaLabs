@@ -1,5 +1,13 @@
 #![allow(deprecated)]
 
+/// Semantic version of the event topic schema published by this contract.
+/// Bump to `v2` when introducing breaking changes to any event payload.
+/// Off-chain consumers match on this string as the **first** element of every
+/// event topic. Resolves issue #76 (`Add event topic versioning for forward
+/// compatibility`).
+#[allow(dead_code)] // Reserved for issue #76 event-topic versioning; this module currently uses String literals instead of symbol_short!
+pub const EVENT_VERSION: &str = "v1";
+
 use crate::errors::Error;
 use crate::types::TokenAllowance;
 use soroban_sdk::{contracttype, Address, BytesN, Env, String};
