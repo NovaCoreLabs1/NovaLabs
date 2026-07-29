@@ -2,8 +2,12 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
+  ManyToOne,
   CreateDateColumn,
+  Index,
+  JoinColumn,
 } from 'typeorm';
+import { Hub } from '../../hub/entities/hub.entity';
 
 export enum AuditAction {
   CREATE = 'create',
@@ -18,6 +22,7 @@ export enum AuditAction {
 }
 
 @Entity('audit_log')
+@Index(['hubId'])
 export class AuditLog {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -63,4 +68,12 @@ export class AuditLog {
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt: Date;
+
+  @Index()
+  @Column({ name: 'hub_id', type: 'uuid', nullable: true })
+  hubId: string;
+
+  @ManyToOne(() => Hub, { nullable: true, onDelete: 'RESTRICT' })
+  @JoinColumn({ name: 'hub_id' })
+  hub: Hub;
 }

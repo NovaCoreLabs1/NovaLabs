@@ -3,14 +3,18 @@ import {
   PrimaryGeneratedColumn,
   Column,
   OneToMany,
+  ManyToOne,
   CreateDateColumn,
   UpdateDateColumn,
   DeleteDateColumn,
+  Index,
+  JoinColumn,
 } from 'typeorm';
 import { Exclude } from 'class-transformer';
 import { RefreshToken } from '../../auth/entities/refreshToken.entity';
 import { UserRole } from '../enums/userRoles.enum';
 import { MembershipStatus } from '../enums/membership-status.enum';
+import { Hub } from '../../hub/entities/hub.entity';
 
 /**
  * TypeORM entity representing a registered platform user.
@@ -153,6 +157,15 @@ export class User {
 
   @DeleteDateColumn()
   deletedAt: Date;
+
+  @Index()
+  @Column({ type: 'uuid', nullable: true })
+  hubId: string;
+
+  @ManyToOne(() => Hub, { nullable: true, onDelete: 'RESTRICT' })
+  @JoinColumn({ name: 'hubId' })
+  hub: Hub;
+
   get fullName(): string {
     return `${this.firstname} ${this.lastname}`.trim();
   }

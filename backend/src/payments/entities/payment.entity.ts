@@ -10,6 +10,7 @@ import {
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { Booking } from '../../bookings/entities/booking.entity';
+import { Hub } from '../../hub/entities/hub.entity';
 import { PaymentProvider } from '../enums/payment-provider.enum';
 import { PaymentStatus } from '../enums/payment-status.enum';
 
@@ -67,4 +68,12 @@ export class Payment {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @Index()
+  @Column({ type: 'uuid', nullable: true })
+  hubId: string;
+
+  @ManyToOne(() => Hub, { nullable: true, onDelete: 'RESTRICT' })
+  @JoinColumn({ name: 'hubId' })
+  hub: Hub;
 }

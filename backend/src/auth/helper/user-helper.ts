@@ -21,6 +21,7 @@ export class UserHelper {
       lastname: user.lastname,
       email: user.email,
       role: user.role,
+      hubId: user.hubId,
       isActive: user.isActive,
       isSuspended: user.isSuspended,
       isDeleted: user.isDeleted,

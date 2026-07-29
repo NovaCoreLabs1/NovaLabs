@@ -9,6 +9,7 @@ import { CsrfMiddleware } from './common/middlewares/csrf.middleware';
 import { ContentTypeMiddleware } from './common/middlewares/content-type.middleware';
 import { CsrfGuard } from './common/guards/csrf.guard';
 import { AuditLogInterceptor } from './audit-log/interceptors/audit-log.interceptor';
+import { TenantInterceptor } from './hub/tenant.interceptor';
 import * as cookieParser from 'cookie-parser';
 import * as session from 'express-session';
 import * as passport from 'passport';
@@ -23,6 +24,10 @@ async function bootstrap() {
   app.use(new CsrfMiddleware().use);
   // Enforce application/json content-type on POST/PUT/PATCH requests (Issue #111)
   app.use(new ContentTypeMiddleware().use.bind(new ContentTypeMiddleware()));
+
+  // Tenant (multi-hub) interceptor — runs AFTER auth guards so req.user is
+  // already populated by JwtStrategy. Also handles x-hub-id header fallback.
+  app.useGlobalInterceptors(app.get(TenantInterceptor));
 
   // SAML SSO session middleware. Required by passport-saml to persist the
   // RelayState + InResponseTo across the IdP redirect. Uses an isolated

@@ -2,11 +2,14 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
+  ManyToOne,
   CreateDateColumn,
   UpdateDateColumn,
-  OneToMany,
+  Index,
+  JoinColumn,
 } from 'typeorm';
 import { WorkspaceType } from '../enums/workspace-type.enum';
+import { Hub } from '../../hub/entities/hub.entity';
 
 /**
  * TypeORM entity representing a bookable workspace resource.
@@ -52,4 +55,12 @@ export class Workspace {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @Index()
+  @Column({ type: 'uuid', nullable: true })
+  hubId: string;
+
+  @ManyToOne(() => Hub, { nullable: true, onDelete: 'RESTRICT' })
+  @JoinColumn({ name: 'hubId' })
+  hub: Hub;
 }
