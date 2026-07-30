@@ -121,6 +121,10 @@ impl MembershipTokenContract {
     }
 
     pub fn set_admin(env: Env, admin: Address) -> Result<(), Error> {
+        // If an admin is already stored, require their authorization to transfer
+        if let Some(stored_admin) = env.storage().instance().get::<_, Address>(&DataKey::Admin) {
+            stored_admin.require_auth();
+        }
         admin.require_auth();
         env.storage().instance().set(&DataKey::Admin, &admin);
         Ok(())

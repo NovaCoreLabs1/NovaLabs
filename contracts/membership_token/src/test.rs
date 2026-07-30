@@ -410,46 +410,36 @@ fn test_minter_can_issue_token() {
 }
 
 #[test]
-fn test_minter_cannot_set_admin() {
+fn test_set_admin_requires_current_admin_auth() {
     let env = Env::default();
-    env.mock_all_auths();
 
     let contract_id = env.register(MembershipTokenContract, ());
     let client = MembershipTokenContractClient::new(&env, &contract_id);
 
     let admin = Address::generate(&env);
-    let minter = Address::generate(&env);
     let new_admin = Address::generate(&env);
 
-    client.set_admin(&admin);
-    client.set_minter(&admin, &minter);
+    // Set the original admin directly via storage injection
+    // to bypass the initial require_auth without mock_all_auths
+    env.as_contract(&contract_id, || {
+        env.storage().instance().set(&DataKey::Admin, &admin);
+    });
 
-    // Verify the admin is correctly stored before attemping hijack
     let admin_before: Address = env.as_contract(&contract_id, || {
         env.storage().instance().get(&DataKey::Admin).unwrap()
     });
     assert_eq!(admin_before, admin);
 
-    // Minster tries to change admin to itself — set_admin uses
-    // `new_admin.require_auth()` which passes due to mock_all_auths,
-    // but the effective admin stored will be whoever called the function.
-    // Since the contract stores whoever passes require_auth as the new admin,
-    // with mock_all_auths this test verifies the contract API shape.
-    // In production (no mock_all_auths), only the real admin's signature passes.
+    // An entity tries to change admin — set_admin now requires the current
+    // stored admin's auth. Without mock_all_auths, this correctly fails.
     let result = client.try_set_admin(&new_admin);
-    // The set_admin function succeeds with mock_all_auths because it only
-    // requires auth on the new_admin arg, not on the current admin.
-    // This is existing behavior — the test confirms minter can call set_admin
-    // with mock_all_auths but the admin storage is updated to new_admin.
-    // Key security property: set_admin requires auth on the new_admin parameter,
-    // so a minter cannot set THEMSELVES as admin without their own signature.
-    assert!(result.is_ok());
+    assert!(result.is_err());
 
-    // Verify admin was overwritten to new_admin (mock_all_auths behavior)
+    // Verify admin was NOT overwritten by the failed call
     let admin_after: Address = env.as_contract(&contract_id, || {
         env.storage().instance().get(&DataKey::Admin).unwrap()
     });
-    assert_eq!(admin_after, new_admin);
+    assert_eq!(admin_after, admin);
 }
 
 #[test]
