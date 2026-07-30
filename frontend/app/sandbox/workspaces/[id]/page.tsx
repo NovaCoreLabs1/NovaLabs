@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 
 interface Workspace {
   id: string;
@@ -48,10 +49,12 @@ export default function WorkspaceDetailPage() {
       {/* Image Gallery */}
       <div className="mb-6">
         <div className="relative w-full h-72 bg-gray-200 rounded-xl overflow-hidden mb-2">
-          <img
+          <Image
             src={workspace.images[activeImage]}
             alt={workspace.name}
+            fill
             className="w-full h-full object-cover"
+            sizes="(max-width: 768px) 100vw, 50vw"
           />
         </div>
         <div className="flex gap-2">
@@ -63,7 +66,7 @@ export default function WorkspaceDetailPage() {
                 activeImage === i ? "border-blue-500" : "border-transparent"
               }`}
             >
-              <img src={src} alt="" className="w-full h-full object-cover" />
+              <Image src={src} alt="" width={80} height={56} className="w-full h-full object-cover" />
             </button>
           ))}
         </div>

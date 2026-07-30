@@ -366,7 +366,8 @@ fn test_set_minter_succeeds_when_called_by_admin() {
 #[test]
 fn test_set_minter_fails_without_admin() {
     let env = Env::default();
-    env.mock_all_auths();
+    // Do not mock all auths — set_minter requires auth on the stored admin,
+    // so a non-admin caller (minter) must fail.
 
     let contract_id = env.register(MembershipTokenContract, ());
     let client = MembershipTokenContractClient::new(&env, &contract_id);
@@ -374,9 +375,10 @@ fn test_set_minter_fails_without_admin() {
     let admin = Address::generate(&env);
     let minter = Address::generate(&env);
 
+    // Set admin — the generated address can sign for itself as invoker
     client.set_admin(&admin);
 
-    // Minster tries to set itself as minter — should fail (needs admin)
+    // Minter tries to set itself as minter — should fail (needs stored admin auth)
     let result = client.try_set_minter(&minter, &minter);
     assert!(result.is_err());
 }
@@ -473,7 +475,8 @@ fn test_admin_can_still_issue_when_no_minter_set() {
 #[test]
 fn test_minter_cannot_change_minter() {
     let env = Env::default();
-    env.mock_all_auths();
+    // Do not mock all auths — set_minter requires auth on the stored admin.
+    // A minter caller must not be able to change the minter.
 
     let contract_id = env.register(MembershipTokenContract, ());
     let client = MembershipTokenContractClient::new(&env, &contract_id);
@@ -482,11 +485,12 @@ fn test_minter_cannot_change_minter() {
     let minter = Address::generate(&env);
     let new_minter = Address::generate(&env);
 
+    // Admin sets itself and then sets the minter (invoker = admin for both)
     client.set_admin(&admin);
     client.set_minter(&admin, &minter);
 
-    // Minster tries to change minter to a new address — should fail
-    // Requires admin auth which minter doesn't have
+    // Minter tries to change minter to a new address — should fail
+    // set_minter requires auth on the stored admin, not the invoker
     let result = client.try_set_minter(&minter, &new_minter);
     assert!(result.is_err());
 }

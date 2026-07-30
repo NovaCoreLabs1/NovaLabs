@@ -101,8 +101,12 @@ export default function InvoiceDetailPage() {
           tax: 140.00,
           grandTotal: 2940.00
         })
-      } catch (err: any) {
-        setError(err.message || "An error occurred while fetching invoice specifications.")
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error
+            ? err.message
+            : "An error occurred while fetching invoice specifications.";
+        setError(message)
       } finally {
         setLoading(false)
       }

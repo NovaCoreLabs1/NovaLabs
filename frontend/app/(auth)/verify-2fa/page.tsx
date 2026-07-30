@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { apiClient } from "@/lib/apiClient";
 import { useAuthStore } from "@/lib/store/authStore";
 import { storage } from "@/lib/storage";
+import { User } from "@/lib/types/user";
 import { Shield, ArrowLeft, Loader2 } from "lucide-react";
 import Link from "next/link";
 
@@ -34,7 +35,7 @@ function Verify2FAForm() {
           : { backupCode: code.trim(), tempToken };
 
       const response = await apiClient.post<{
-        user: any;
+        user: User;
         accessToken: string;
         backupCodesRemaining?: number;
       }>(endpoint, body);
@@ -54,8 +55,10 @@ function Verify2FAForm() {
       }
 
       router.push("/dashboard");
-    } catch (error: any) {
-      toast.error(error.message || "Invalid code. Please try again.");
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Invalid code. Please try again.";
+      toast.error(message);
     } finally {
       setIsSubmitting(false);
     }

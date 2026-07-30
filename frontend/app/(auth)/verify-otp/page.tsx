@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { apiClient } from "@/lib/apiClient";
 import { useAuthStore } from "@/lib/store/authStore";
 import { storage } from "@/lib/storage";
+import { User } from "@/lib/types/user";
 import { Mail, ArrowLeft, Loader2, Send, Clock } from "lucide-react";
 import Link from "next/link";
 
@@ -74,7 +75,7 @@ export default function VerifyOtpPage() {
     try {
       const response = await apiClient.post<{
         message: string;
-        user: any;
+        user: User;
         tokens: { accessToken: string; refreshToken: string };
       }>("/auth/verify-otp", { email, otp: code });
 
@@ -86,8 +87,10 @@ export default function VerifyOtpPage() {
 
       toast.success("Email verified successfully!");
       router.push(response.user?.hasCompletedOnboarding === false ? "/onboarding" : "/dashboard");
-    } catch (error: any) {
-      toast.error(error.message || "Invalid or expired OTP");
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Invalid or expired OTP";
+      toast.error(message);
     } finally {
       setIsVerifying(false);
     }
@@ -102,8 +105,10 @@ export default function VerifyOtpPage() {
       setCountdown(60);
       setOtp(["", "", "", ""]);
       inputRefs.current[0]?.focus();
-    } catch (error: any) {
-      toast.error(error.message || "Failed to resend code");
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Failed to resend code";
+      toast.error(message);
     } finally {
       setIsResending(false);
     }

@@ -7,6 +7,14 @@ import { LoginUser } from "@/lib/types/user";
 import { toast } from "sonner";
 import { useRouter, useSearchParams } from "next/navigation";
 
+interface LoginError {
+  twoFactorRequired?: boolean;
+  tempToken?: string;
+  email?: string;
+  unverified?: boolean;
+  message?: string;
+}
+
 /**
  * Custom hook for user login
  * - Uses Zustand authStore for login logic
@@ -35,16 +43,17 @@ export const useLoginUser = () => {
         router.push("/dashboard");
       }
     },
-    onError: (error: any) => {
-      if (error?.twoFactorRequired) {
+    onError: (error) => {
+      const err = error as LoginError;
+      if (err.twoFactorRequired) {
         router.push(
-          `/verify-2fa?tempToken=${encodeURIComponent(error.tempToken)}&email=${encodeURIComponent(error.email)}`
+          `/verify-2fa?tempToken=${encodeURIComponent(err.tempToken ?? "")}&email=${encodeURIComponent(err.email ?? "")}`
         );
         return;
       }
-      if (error?.unverified) {
+      if (err.unverified) {
         toast.info("Please verify your email to continue.");
-        router.push(`/verify-otp?email=${encodeURIComponent(error.email)}`);
+        router.push(`/verify-otp?email=${encodeURIComponent(err.email ?? "")}`);
         return;
       }
       toast.error("Login failed. Please check your credentials.");

@@ -8,6 +8,7 @@ import { useAuthState, useAuthActions } from "@/lib/store/authStore";
 import { apiClient } from "@/lib/apiClient";
 import { storage } from "@/lib/storage";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
+import Image from "next/image";
 import { Camera } from "lucide-react";
 
 const profileSchema = z.object({
@@ -131,9 +132,11 @@ export default function ProfilePage() {
         <div className="bg-white rounded-xl border border-gray-100 p-6 flex items-center gap-5">
           <div className="relative">
             {profilePic ? (
-              <img
+              <Image
                 src={profilePic}
                 alt="Profile"
+                width={80}
+                height={80}
                 className="w-20 h-20 rounded-full object-cover"
               />
             ) : (

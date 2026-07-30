@@ -3,8 +3,14 @@
 import { useCallback } from 'react';
 import { useAuthActions } from '../store/authStore';
 
+interface ApiError {
+  status?: number;
+  response?: { status?: number };
+  message?: string;
+}
+
 interface ErrorHandlerReturn {
-  handleError: (error: any) => void;
+  handleError: (error: ApiError) => void;
 }
 
 /**
@@ -17,7 +23,7 @@ interface ErrorHandlerReturn {
 export const useErrorHandler = (): ErrorHandlerReturn => {
   const { logout } = useAuthActions();
 
-  const handleError = useCallback((error: any) => {
+  const handleError = useCallback((error: ApiError) => {
     // Log all errors to the console
     console.log('Error occurred:', error);
 

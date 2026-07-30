@@ -12,7 +12,6 @@ import {
   Mail,
   Lock,
 } from "lucide-react";
-import { Eye, EyeOff, Mail, Lock } from "lucide-react";
 
 const loginSchema = z.object({
   email: z.email("Enter a valid email address"),

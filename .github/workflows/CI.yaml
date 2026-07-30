@@ -210,11 +210,13 @@ jobs:
         env:
           NEXT_PUBLIC_API_URL: http://localhost:3001
 
+      - name: Install Playwright browsers
+        run: npx playwright install chromium --with-deps
+
       - name: Unit tests with coverage
         run: npm run test -- --passWithNoTests --coverage --coverageReporters=lcov --coverageDirectory=coverage
         env:
           NEXT_PUBLIC_API_URL: http://localhost:3001
-        continue-on-error: true
 
       - name: Upload frontend coverage to Codecov
         uses: codecov/codecov-action@v4

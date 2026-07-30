@@ -35,6 +35,7 @@ const EmailResetPassword = ({ onTogglePage }: EmailResetPasswordProps) => {
     },
   });
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   function onSubmit(values: z.infer<typeof forgotPasswordSchema>) {
     setDummyLoadingState(true);
 

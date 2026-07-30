@@ -3,6 +3,7 @@
 import { useEffect, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuthState } from '../store/authStore';
+import { User } from '@/lib/types/user';
 
 interface AuthRedirectOptions {
   requireAuth?: boolean;
@@ -14,7 +15,7 @@ interface AuthRedirectOptions {
 interface AuthRedirectReturn {
   isLoading: boolean;
   isAuthenticated: boolean;
-  user: any;
+  user: User | null;
   canAccess: boolean;
 }
 
