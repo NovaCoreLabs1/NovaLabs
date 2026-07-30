@@ -1,0 +1,87 @@
+name: Fuzz weekly
+
+on:
+  schedule:
+    - cron: "0 4 * * 6" # every Saturday 04:00 UTC
+  workflow_dispatch:
+    inputs:
+      iterations:
+        description: "Number of fuzz iterations (default 50000)"
+        required: false
+        default: "50000"
+        type: string
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  fuzz-login:
+    name: Fuzz /auth/login
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run fuzz test
+        id: fuzz
+        run: |
+          ITERATIONS="${{ github.event.inputs.iterations || '50000' }}"
+          echo "Running fuzz with ${ITERATIONS} iterations..."
+          FUZZ_ITERATIONS="${ITERATIONS}" npm run test:fuzz 2>&1 | tee /tmp/fuzz-output.txt
+        timeout-minutes: 45
+
+      - name: Post comment to issue
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const path = '/tmp/fuzz-output.txt';
+
+            let body;
+            if (!fs.existsSync(path)) {
+              body = 'Weekly fuzz test against `/auth/login` did not produce output (step may have been skipped). Check the workflow logs.';
+            } else {
+              const output = fs.readFileSync(path, 'utf8');
+              const lastLine = output.trim().split('\n').pop() || '';
+
+              // Parse: "[FUZZ] Done. 5000 requests in 12.3s | 5xx: 0 (0.0000%)"
+              const match = lastLine.match(/5xx:\s*(\d+)\s*\(([\d.]+)%\)/);
+              if (match) {
+                const fivexx = parseInt(match[1], 10);
+                const rate = parseFloat(match[2]);
+                const passed = rate < 0.05;
+                const icon = passed ? '✅' : '❌';
+                body = `Weekly fuzz test against \`/auth/login\` ${icon} **${passed ? 'PASSED' : 'FAILED'}**\n\n` +
+                  `| Metric | Value | Threshold |\n|--------|-------|-----------|\n` +
+                  `| 5xx count | ${fivexx} | — |\n` +
+                  `| 5xx rate | ${rate.toFixed(4)}% | < 0.05% |\n\n` +
+                  `\`\`\`\n${lastLine}\n\`\`\``;
+              } else {
+                body = `Weekly fuzz test against \`/auth/login\` completed but could not parse results.\n\n\`\`\`\n${lastLine}\n\`\`\``;
+              }
+            }
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: 149,
+              body,
+            });

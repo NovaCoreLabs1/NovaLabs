@@ -26,7 +26,9 @@
     "demo:seed": "node scripts/demo-data.js seed",
     "demo:clear": "node scripts/demo-data.js clear",
     "demo:info": "node scripts/demo-data.js info",
-    "test:mutation": "stryker run"
+    "test:mutation": "stryker run",
+    "test:fuzz": "jest --config ./jest-fuzz.json",
+    "check:readmes": "node ../scripts/check-module-readmes.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.972.0",
