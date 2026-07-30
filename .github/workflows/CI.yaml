@@ -214,7 +214,7 @@ jobs:
         run: npx playwright install chromium --with-deps
 
       - name: Unit tests with coverage
-        run: npm run test -- --passWithNoTests --coverage --coverageReporters=lcov --coverageDirectory=coverage
+        run: npm run test -- --passWithNoTests --coverage --coverage.reporter=lcov --coverage.outputDir=coverage
         env:
           NEXT_PUBLIC_API_URL: http://localhost:3001
 
