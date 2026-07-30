@@ -19,14 +19,19 @@ export default defineConfig({
           // See options at: https://storybook.js.org/docs/writing-tests/test-addon#storybooktest
           storybookTest({ configDir: path.join(dirname, '.storybook') }),
         ],
+        resolve: {
+          alias: {
+            '@': path.resolve(dirname, '.'),
+          },
+        },
         test: {
           name: 'storybook',
           browser: {
-        enabled: true,
-        headless: true,
-        name: 'chromium',
-        provider: 'playwright'
-      },
+            enabled: true,
+            headless: true,
+            name: 'chromium',
+            provider: 'playwright',
+          },
           setupFiles: ['.storybook/vitest.setup.ts'],
         },
       },

@@ -375,8 +375,11 @@ fn test_set_minter_fails_without_admin() {
     let admin = Address::generate(&env);
     let minter = Address::generate(&env);
 
-    // Set admin — the generated address can sign for itself as invoker
-    client.set_admin(&admin);
+    // Set the original admin directly via storage injection
+    // to bypass the require_auth in set_admin without mock_all_auths
+    env.as_contract(&contract_id, || {
+        env.storage().instance().set(&DataKey::Admin, &admin);
+    });
 
     // Minter tries to set itself as minter — should fail (needs stored admin auth)
     let result = client.try_set_minter(&minter, &minter);
@@ -475,8 +478,13 @@ fn test_minter_cannot_change_minter() {
     let minter = Address::generate(&env);
     let new_minter = Address::generate(&env);
 
-    // Admin sets itself and then sets the minter (invoker = admin for both)
-    client.set_admin(&admin);
+    // Set the original admin directly via storage injection
+    // to bypass the require_auth in set_admin without mock_all_auths
+    env.as_contract(&contract_id, || {
+        env.storage().instance().set(&DataKey::Admin, &admin);
+    });
+
+    // Admin sets the minter — auth passes because the SDK signs for admin
     client.set_minter(&admin, &minter);
 
     // Minter tries to change minter to a new address — should fail
