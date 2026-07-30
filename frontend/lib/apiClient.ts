@@ -1,5 +1,6 @@
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:6001/api";
+import { env } from '@/utils/env';
+
+const API_BASE_URL = env.NEXT_PUBLIC_API_URL;
 
 const CSRF_COOKIE_NAME = "csrf";
 const CSRF_HEADER_NAME = "x-csrf-token";

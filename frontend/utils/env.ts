@@ -1,29 +1,42 @@
+import { z } from 'zod';
+
 /**
- * Reads an environment variable by key.
- * In development, throws if a required variable is missing.
- * In production, logs a warning instead to avoid crashing the build.
+ * Frontend environment schema validated at boot time.
  *
- * @param key - The environment variable name (e.g. 'NEXT_PUBLIC_API_URL')
- * @param required - Whether the variable is required (defaults to true)
- * @returns The env variable value, or an empty string if absent and not required
+ * Any variable listed here as required (non-optional) will **crash** the
+ * Next.js process if it is missing at build or runtime, providing an
+ * immediate, clear failure rather than a silent misconfiguration.
  */
-function getEnvVar(key: string, required: boolean = true): string {
-  const value = process.env[key];
+const envSchema = z.object({
+  /** Base URL for the NovaLabs backend API.
+   *  Must be a valid URL. Falls back to localhost in development;
+   *  production deployments MUST set this explicitly. */
+  NEXT_PUBLIC_API_URL: z
+    .string()
+    .url('NEXT_PUBLIC_API_URL must be a valid URL')
+    .default('http://localhost:6001/api'),
 
-  if (!value && required) {
-    if (process.env.NODE_ENV !== "production") {
-      throw new Error(` Missing required environment variable: ${key}`);
-    } else {
-      console.warn(`Environment variable ${key} is not set`);
-    }
-  }
+  /** Human-readable application name shown in browser tabs, emails, etc. */
+  NEXT_PUBLIC_APP_NAME: z.string().default('NovaLabs'),
 
-  return value ?? "";
-}
+  /** Current runtime environment. */
+  NODE_ENV: z
+    .enum(['development', 'test', 'production'])
+    .default('development'),
+});
 
-export const env = {
-  NEXT_PUBLIC_API_URL: getEnvVar("NEXT_PUBLIC_API_URL"),
-  NEXT_PUBLIC_APP_NAME: getEnvVar("NEXT_PUBLIC_APP_NAME"),
-  // Add more here as needed
-  NODE_ENV: process.env.NODE_ENV || "development",
-} as const;
+/**
+ * Parsed and validated environment object.  Use this instead of reading
+ * `process.env` directly anywhere in the frontend application.
+ *
+ * Example:
+ * ```ts
+ * import { env } from '@/utils/env';
+ * console.log(env.NEXT_PUBLIC_API_URL); // typed as `string`
+ * ```
+ */
+export const env = envSchema.parse({
+  NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
+  NEXT_PUBLIC_APP_NAME: process.env.NEXT_PUBLIC_APP_NAME,
+  NODE_ENV: process.env.NODE_ENV,
+}) as Readonly<z.infer<typeof envSchema>>;
