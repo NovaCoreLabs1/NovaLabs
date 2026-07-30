@@ -12,10 +12,16 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     if (!secret) {
       throw new Error(UserMessages.ACCESS_TOKEN_SECRET_NOT_SET);
     }
+
+    const issuer = process.env.JWT_ISSUER || 'novalabs';
+    const audience = process.env.JWT_AUDIENCE || 'novalabs-api';
+
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
       secretOrKey: secret,
+      issuer,
+      audience,
     });
   }
 
@@ -27,6 +33,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         fullName: `${user.firstname} ${user.lastname}`,
         email: user.email,
         role: payload.role,
+        hubId: payload.hubId,
       };
     } catch (error) {
       throw new UnauthorizedException(UserMessages.INVALID_ACCESS_TOKEN);

@@ -45,7 +45,9 @@ export class JwtHelper {
 
     return this.jwtService.sign(payload, {
       secret: process.env.JWT_SECRET as string,
-      expiresIn: (process.env.JWT_EXPIRATION ?? '1h') as JwtExpiry,
+      expiresIn: (process.env.JWT_EXPIRATION ?? '15m') as JwtExpiry,
+      issuer: process.env.JWT_ISSUER || 'novalabs',
+      audience: process.env.JWT_AUDIENCE || 'novalabs-api',
     });
   }
 
@@ -59,6 +61,8 @@ export class JwtHelper {
     return this.jwtService.sign(payload, {
       secret: process.env.JWT_REFRESH_SECRET as string,
       expiresIn: (process.env.JWT_REFRESH_EXPIRATION ?? '7d') as JwtExpiry,
+      issuer: process.env.JWT_ISSUER || 'novalabs',
+      audience: process.env.JWT_AUDIENCE || 'novalabs-api',
     });
   }
 
