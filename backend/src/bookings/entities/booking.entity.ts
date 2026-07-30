@@ -3,8 +3,6 @@ import {
   PrimaryGeneratedColumn,
   Column,
   ManyToOne,
-  OneToMany,
-  OneToOne,
   CreateDateColumn,
   UpdateDateColumn,
   Index,
@@ -12,6 +10,7 @@ import {
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { Workspace } from '../../workspaces/entities/workspace.entity';
+import { Hub } from '../../hub/entities/hub.entity';
 import { PlanType } from '../enums/plan-type.enum';
 import { BookingStatus } from '../enums/booking-status.enum';
 
@@ -19,6 +18,7 @@ import { BookingStatus } from '../enums/booking-status.enum';
 @Index(['userId'])
 @Index(['workspaceId'])
 @Index(['status'])
+@Index(['hubId'])
 export class Booking {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -77,4 +77,12 @@ export class Booking {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @Index()
+  @Column({ type: 'uuid', nullable: true })
+  hubId: string;
+
+  @ManyToOne(() => Hub, { nullable: true, onDelete: 'RESTRICT' })
+  @JoinColumn({ name: 'hubId' })
+  hub: Hub;
 }

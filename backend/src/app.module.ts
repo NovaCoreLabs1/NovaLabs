@@ -22,6 +22,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { WorkspaceTrackingModule } from './workspace-tracking/workspace-tracking.module';
 import { AuditLogModule } from './audit-log/audit-log.module';
 import { SecretsModule } from './config/secrets';
+import { HubModule } from './hub/hub.module';
 
 @Module({
   imports: [
@@ -103,6 +104,7 @@ import { SecretsModule } from './config/secrets';
     WorkspaceTrackingModule,
     SecretsModule.forRoot(),
     AuditLogModule,
+    HubModule,
   ],
   controllers: [AppController],
   providers: [

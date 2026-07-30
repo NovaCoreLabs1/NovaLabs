@@ -8,10 +8,12 @@ import {
   JoinColumn,
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
+import { Hub } from '../../hub/entities/hub.entity';
 import { NotificationType } from '../enums/notification-type.enum';
 
 @Entity('notifications')
 @Index(['userId', 'isRead'])
+@Index(['hubId'])
 export class Notification {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -41,4 +43,12 @@ export class Notification {
 
   @CreateDateColumn()
   createdAt: Date;
+
+  @Index()
+  @Column({ type: 'uuid', nullable: true })
+  hubId: string;
+
+  @ManyToOne(() => Hub, { nullable: true, onDelete: 'RESTRICT' })
+  @JoinColumn({ name: 'hubId' })
+  hub: Hub;
 }

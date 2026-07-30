@@ -10,6 +10,7 @@ import {
 import { User } from '../../users/entities/user.entity';
 import { Workspace } from '../../workspaces/entities/workspace.entity';
 import { Booking } from '../../bookings/entities/booking.entity';
+import { Hub } from '../../hub/entities/hub.entity';
 
 /**
  * TypeORM entity representing a workspace check-in/check-out log.
@@ -19,6 +20,7 @@ import { Booking } from '../../bookings/entities/booking.entity';
 @Entity('workspace_logs')
 @Index(['workspaceId', 'checkedInAt'])
 @Index(['userId', 'checkedInAt'])
+@Index(['hubId'])
 export class WorkspaceLog {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -68,4 +70,12 @@ export class WorkspaceLog {
 
   @Column({ type: 'varchar', length: 64, nullable: true })
   biometricVendor: string;
+
+  @Index()
+  @Column({ type: 'uuid', nullable: true })
+  hubId: string;
+
+  @ManyToOne(() => Hub, { nullable: true, onDelete: 'RESTRICT' })
+  @JoinColumn({ name: 'hubId' })
+  hub: Hub;
 }
