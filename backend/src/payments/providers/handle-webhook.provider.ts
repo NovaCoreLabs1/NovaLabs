@@ -163,34 +163,40 @@ export class HandleWebhookProvider {
         });
     }
 
-    // Send payment success email
-    this.usersRepository
-      .findOne({ where: { id: payment.userId } })
-      .then((user) => {
-        this.bookingsRepository
-          .findOne({ where: { id: payment.bookingId } })
-          .then((bk) => {
-            const emailRecipient =
-              user?.email ?? (bk?.isGuestBooking ? bk?.guestInfo?.email : null);
-            const displayName =
-              user?.fullName ??
-              (bk?.isGuestBooking ? bk?.guestInfo?.name : null);
-            if (!emailRecipient || !displayName) return;
-            this.emailService
-              .sendPaymentSuccessEmail(emailRecipient, displayName, {
-                bookingId: payment.bookingId,
-                workspaceName: bk?.workspaceId ?? '',
-                amountNaira: (payment.amount / 100).toFixed(2),
-                paidAt: payment.paidAt
-                  ? new Date(payment.paidAt).toLocaleString()
-                  : '',
-                invoiceNumber: '',
-              })
-              .catch(() => void 0);
-          })
-          .catch(() => void 0);
-      })
-      .catch(() => void 0);
+    // Send payment success email; every failure path is logged
+    void (async () => {
+      const [user, bk] = await Promise.all([
+        this.usersRepository.findOne({ where: { id: payment.userId } }),
+        this.bookingsRepository.findOne({ where: { id: payment.bookingId } }),
+      ]);
+      const emailRecipient =
+        user?.email ?? (bk?.isGuestBooking ? bk?.guestInfo?.email : null);
+      const displayName =
+        user?.fullName ?? (bk?.isGuestBooking ? bk?.guestInfo?.name : null);
+      if (!emailRecipient || !displayName) return;
+      const emailed = await this.emailService.sendPaymentSuccessEmail(
+        emailRecipient,
+        displayName,
+        {
+          bookingId: payment.bookingId,
+          workspaceName: bk?.workspaceId ?? '',
+          amountNaira: (payment.amount / 100).toFixed(2),
+          paidAt: payment.paidAt
+            ? new Date(payment.paidAt).toLocaleString()
+            : '',
+          invoiceNumber: '',
+        },
+      );
+      if (!emailed) {
+        this.logger.warn(
+          `Failed to queue payment-success email for booking ${payment.bookingId}`,
+        );
+      }
+    })().catch((err) =>
+      this.logger.warn(
+        `Failed to send payment-success email for booking ${payment.bookingId}: ${err.message}`,
+      ),
+    );
 
     // Notify user (skip for guest bookings which have no userId)
     if (payment.userId) {
@@ -297,35 +303,42 @@ export class HandleWebhookProvider {
     payment.status = PaymentStatus.FAILED;
     await this.paymentsRepository.save(payment);
 
-    // Send payment failed email
-    if (payment.userId) {
-      this.usersRepository
-        .findOne({ where: { id: payment.userId } })
-        .then((user) => {
-          if (!user) return;
-          this.emailService
-            .sendPaymentFailedEmail(user.email, user.fullName, {
-              paymentReference: payment.providerReference ?? payment.id,
-              amountNaira: (payment.amount / 100).toFixed(2),
-            })
-            .catch(() => void 0);
-        })
-        .catch(() => void 0);
-    } else {
-      // Guest booking — look up email from booking guestInfo
-      this.bookingsRepository
-        .findOne({ where: { id: payment.bookingId } })
-        .then((bk) => {
-          if (!bk?.guestInfo?.email) return;
-          this.emailService
-            .sendPaymentFailedEmail(bk.guestInfo.email, bk.guestInfo.name, {
-              paymentReference: payment.providerReference ?? payment.id,
-              amountNaira: (payment.amount / 100).toFixed(2),
-            })
-            .catch(() => void 0);
-        })
-        .catch(() => void 0);
-    }
+    // Send payment failed email; every failure path is logged
+    void (async () => {
+      let recipient: { email: string; name: string } | null = null;
+      if (payment.userId) {
+        const user = await this.usersRepository.findOne({
+          where: { id: payment.userId },
+        });
+        if (user) recipient = { email: user.email, name: user.fullName };
+      } else {
+        // Guest booking — look up email from booking guestInfo
+        const bk = await this.bookingsRepository.findOne({
+          where: { id: payment.bookingId },
+        });
+        if (bk?.guestInfo?.email) {
+          recipient = { email: bk.guestInfo.email, name: bk.guestInfo.name };
+        }
+      }
+      if (!recipient) return;
+      const emailed = await this.emailService.sendPaymentFailedEmail(
+        recipient.email,
+        recipient.name,
+        {
+          paymentReference: payment.providerReference ?? payment.id,
+          amountNaira: (payment.amount / 100).toFixed(2),
+        },
+      );
+      if (!emailed) {
+        this.logger.warn(
+          `Failed to queue payment-failed email for booking ${payment.bookingId}`,
+        );
+      }
+    })().catch((err) =>
+      this.logger.warn(
+        `Failed to send payment-failed email for booking ${payment.bookingId}: ${err.message}`,
+      ),
+    );
 
     if (payment.userId) {
       this.notificationsService

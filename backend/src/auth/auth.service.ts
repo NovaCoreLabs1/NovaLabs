@@ -283,11 +283,12 @@ export class AuthService {
           revokedTokenId: storedToken.id,
         },
       });
-      this.emailService
-        .sendRefreshTokenFamilyRevokedEmail(user.email, user.fullName)
-        .catch((err) =>
-          console.error('Failed to send family revoked email:', err.message),
-        );
+      // Best-effort security notification; enqueue failures are logged
+      // inside EmailService and must not mask the 401 below
+      void this.emailService.sendRefreshTokenFamilyRevokedEmail(
+        user.email,
+        user.fullName,
+      );
       throw new UnauthorizedException(UserMessages.INVALID_REFRESH_TOKEN);
     }
 

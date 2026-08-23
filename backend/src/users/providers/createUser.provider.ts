@@ -1,4 +1,4 @@
-import { ConflictException, Injectable, Logger } from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from '../entities/user.entity';
 import { Repository } from 'typeorm';
@@ -15,8 +15,6 @@ import { EmailService } from '../../email/email.service';
 import * as crypto from 'crypto';
 @Injectable()
 export class CreateUserProvider {
-  private readonly logger = new Logger(CreateUserProvider.name);
-
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
@@ -92,25 +90,13 @@ export class CreateUserProvider {
         sameSite: 'none',
       });
 
-      // Send verification email
-      try {
-        const emailSent = await this.emailService.sendVerificationLinkEmail(
-          user.email,
-          verificationToken,
-          `${user.firstname} ${user.lastname}`,
-        );
-
-        if (!emailSent) {
-          this.logger.warn(
-            `Failed to send verification email to ${user.email}. User registration was successful.`,
-          );
-        }
-      } catch (emailError) {
-        this.logger.error(
-          `Error sending verification email to ${user.email}`,
-          emailError instanceof Error ? emailError.stack : String(emailError),
-        );
-      }
+      // Critical send: enqueue failures propagate so registration reports
+      // that the verification email could not be delivered (issue #231)
+      await this.emailService.sendVerificationLinkEmail(
+        user.email,
+        verificationToken,
+        `${user.firstname} ${user.lastname}`,
+      );
 
       return { user, accessToken };
     } catch (error) {

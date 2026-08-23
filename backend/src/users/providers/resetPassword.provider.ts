@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -14,6 +15,8 @@ import { EmailService } from '../../email/email.service';
 
 @Injectable()
 export class ResetPasswordProvider {
+  private readonly logger = new Logger(ResetPasswordProvider.name);
+
   constructor(
     @InjectRepository(User)
     private readonly usersRepository: Repository<User>,
@@ -56,16 +59,16 @@ export class ResetPasswordProvider {
         user.id,
       );
 
-      // Send password-reset-success email
+      // Informational send: a queue failure must not fail the already
+      // completed password reset (issue #231)
       const fullName = `${user.firstname} ${user.lastname}`.trim();
       const emailed = await this.emailService.sendPasswordResetSuccessEmail(
         user.email,
         fullName || user.email,
       );
-
       if (!emailed) {
-        throw new BadRequestException(
-          'Failed to send password success reset email',
+        this.logger.warn(
+          `Failed to queue password-reset-success email to ${user.email}`,
         );
       }
 

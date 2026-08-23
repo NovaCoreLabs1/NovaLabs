@@ -35,24 +35,26 @@ export class ContactService {
     await this.contactRepo.save(contactMessage);
     this.logger.log(`Contact form submitted by ${dto.email}: ${dto.subject}`);
 
-    // Send confirmation email to the user (non-blocking)
-    this.emailService
-      .sendContactConfirmation(dto.email, dto.fullName, dto.subject)
-      .catch((err) =>
-        this.logger.warn(`Failed to send contact confirmation: ${err.message}`),
-      );
+    // Confirmation + admin notification ride the durable queue; enqueue
+    // failures are logged inside EmailService and never block the reply
+    const userEmailed = await this.emailService.sendContactConfirmation(
+      dto.email,
+      dto.fullName,
+      dto.subject,
+    );
+    if (!userEmailed) {
+      this.logger.warn(`Failed to queue contact confirmation for ${dto.email}`);
+    }
 
-    // Notify admin (non-blocking)
-    this.emailService
-      .sendContactNotification(
-        dto.fullName,
-        dto.email,
-        dto.subject,
-        dto.message,
-      )
-      .catch((err) =>
-        this.logger.warn(`Failed to send admin notification: ${err.message}`),
-      );
+    const adminEmailed = await this.emailService.sendContactNotification(
+      dto.fullName,
+      dto.email,
+      dto.subject,
+      dto.message,
+    );
+    if (!adminEmailed) {
+      this.logger.warn('Failed to queue contact admin notification');
+    }
 
     return { message: 'Your message has been sent successfully.' };
   }
