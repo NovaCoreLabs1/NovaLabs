@@ -89,27 +89,31 @@ export class GenerateInvoiceProvider {
       `Invoice ${invoiceNumber} generated for payment ${paymentId}`,
     );
 
-    // Fire-and-forget invoice email with PDF attachment
+    // Queue invoice email with PDF attachment; every failure path is logged
     if (user) {
-      this.pdfInvoiceProvider
-        .generate(saved)
-        .then((pdfBuffer) => {
-          this.emailService
-            .sendInvoiceReadyEmail(
-              user.email,
-              user.fullName,
-              {
-                invoiceNumber: saved.invoiceNumber,
-                amountNaira: (saved.amountKobo / 100).toFixed(2),
-                paidAt: saved.paidAt
-                  ? new Date(saved.paidAt).toLocaleString()
-                  : '',
-              },
-              pdfBuffer,
-            )
-            .catch(() => void 0);
-        })
-        .catch(() => void 0);
+      try {
+        const pdfBuffer = await this.pdfInvoiceProvider.generate(saved);
+        const emailed = await this.emailService.sendInvoiceReadyEmail(
+          user.email,
+          user.fullName,
+          {
+            invoiceNumber: saved.invoiceNumber,
+            amountNaira: (saved.amountKobo / 100).toFixed(2),
+            paidAt: saved.paidAt ? new Date(saved.paidAt).toLocaleString() : '',
+          },
+          pdfBuffer,
+        );
+        if (!emailed) {
+          this.logger.warn(
+            `Failed to queue invoice-ready email for invoice ${saved.invoiceNumber}`,
+          );
+        }
+      } catch (err) {
+        this.logger.warn(
+          `Failed to send invoice-ready email for invoice ${saved.invoiceNumber}: ` +
+            `${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
     }
 
     return saved;

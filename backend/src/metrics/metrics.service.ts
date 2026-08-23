@@ -24,6 +24,15 @@ export class MetricsService implements OnModuleInit {
   /** Gauge: currently active connections */
   readonly activeConnections: Gauge<string>;
 
+  /** Counter: email jobs accepted onto the durable queue, by template */
+  readonly emailEnqueued: Counter<string>;
+
+  /** Counter: enqueue failures (queue unavailable) for critical emails */
+  readonly emailEnqueueFailures: Counter<string>;
+
+  /** Counter: SMTP deliveries that exhausted all retries and hit the DLQ */
+  readonly emailDeadLettered: Counter<string>;
+
   constructor() {
     this.registry = new Registry();
 
@@ -49,6 +58,27 @@ export class MetricsService implements OnModuleInit {
     this.activeConnections = new Gauge({
       name: 'novalabs_active_connections',
       help: 'Number of currently active HTTP connections',
+      registers: [this.registry],
+    });
+
+    this.emailEnqueued = new Counter({
+      name: 'novalabs_email_enqueued_total',
+      help: 'Email jobs accepted onto the durable queue, labelled by template/subject kind',
+      labelNames: ['kind'],
+      registers: [this.registry],
+    });
+
+    this.emailEnqueueFailures = new Counter({
+      name: 'novalabs_email_enqueue_failures_total',
+      help: 'Enqueue attempts that failed because the queue was unavailable',
+      labelNames: ['kind'],
+      registers: [this.registry],
+    });
+
+    this.emailDeadLettered = new Counter({
+      name: 'novalabs_email_dead_lettered_total',
+      help: 'Email jobs moved to the dead-letter queue after exhausting retries, labelled by kind',
+      labelNames: ['kind'],
       registers: [this.registry],
     });
   }

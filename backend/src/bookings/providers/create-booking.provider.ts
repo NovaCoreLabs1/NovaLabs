@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -16,6 +17,8 @@ import { EmailService } from '../../email/email.service';
 
 @Injectable()
 export class CreateBookingProvider {
+  private readonly logger = new Logger(CreateBookingProvider.name);
+
   constructor(
     @InjectRepository(Booking)
     private readonly bookingsRepository: Repository<Booking>,
@@ -84,13 +87,15 @@ export class CreateBookingProvider {
 
       const saved = await manager.save(booking);
 
-      // Fire-and-forget booking created email
-      this.usersRepository
+      // Fire-and-forget booking created email; every failure path is logged
+      void this.usersRepository
         .findOne({ where: { id: userId } })
-        .then((user) => {
+        .then(async (user) => {
           if (!user) return;
-          this.emailService
-            .sendBookingCreatedEmail(user.email, user.fullName, {
+          const emailed = await this.emailService.sendBookingCreatedEmail(
+            user.email,
+            user.fullName,
+            {
               bookingId: saved.id,
               workspaceName: workspace.name,
               planType: saved.planType,
@@ -98,10 +103,19 @@ export class CreateBookingProvider {
               endDate: saved.endDate,
               seatCount: saved.seatCount,
               totalAmountNaira: (totalAmount / 100).toFixed(2),
-            })
-            .catch(() => void 0);
+            },
+          );
+          if (!emailed) {
+            this.logger.warn(
+              `Failed to queue booking-created email for booking ${saved.id}`,
+            );
+          }
         })
-        .catch(() => void 0);
+        .catch((err) =>
+          this.logger.warn(
+            `Failed to send booking-created email for booking ${saved.id}: ${err.message}`,
+          ),
+        );
 
       return saved;
     });

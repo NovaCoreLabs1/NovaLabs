@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
   Optional,
 } from '@nestjs/common';
@@ -16,6 +17,8 @@ import { WorkspacesService } from '../../workspaces/workspaces.service';
 
 @Injectable()
 export class CancelBookingProvider {
+  private readonly logger = new Logger(CancelBookingProvider.name);
+
   constructor(
     @InjectRepository(Booking)
     private readonly bookingsRepository: Repository<Booking>,
@@ -58,26 +61,37 @@ export class CancelBookingProvider {
     booking.status = BookingStatus.CANCELLED;
     const saved = await this.bookingsRepository.save(booking);
 
-    // Fire-and-forget cancellation email
-    Promise.all([
+    // Fire-and-forget cancellation email; every failure path is logged
+    void Promise.all([
       this.usersRepository.findOne({ where: { id: saved.userId } }),
       this.workspacesService.findById(saved.workspaceId),
     ])
-      .then(([user, workspace]) => {
+      .then(async ([user, workspace]) => {
         if (!user || !workspace) return;
         const cancelledBy =
           saved.userId === userId ? user.fullName : 'Administrator';
-        this.emailService
-          .sendBookingCancelledEmail(user.email, user.fullName, {
+        const emailed = await this.emailService.sendBookingCancelledEmail(
+          user.email,
+          user.fullName,
+          {
             bookingId: saved.id,
             workspaceName: workspace.name,
             startDate: saved.startDate,
             endDate: saved.endDate,
             cancelledBy,
-          })
-          .catch(() => void 0);
+          },
+        );
+        if (!emailed) {
+          this.logger.warn(
+            `Failed to queue booking-cancelled email for booking ${saved.id}`,
+          );
+        }
       })
-      .catch(() => void 0);
+      .catch((err) =>
+        this.logger.warn(
+          `Failed to send booking-cancelled email for booking ${saved.id}: ${err.message}`,
+        ),
+      );
 
     return saved;
   }

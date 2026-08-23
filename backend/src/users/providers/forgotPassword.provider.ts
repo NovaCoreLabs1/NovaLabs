@@ -1,8 +1,4 @@
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../entities/user.entity';
@@ -48,15 +44,13 @@ export class ForgotPasswordProvider {
       const resetLink = `${frontendBase}${rawToken}`;
 
       const fullName = `${user.firstname} ${user.lastname}`.trim();
-      const emailed = await this.emailService.sendPasswordResetLinkEmail(
+      // Critical send: throws ServiceUnavailableException when the queue is
+      // unreachable, so the caller learns the email could not be queued
+      await this.emailService.sendPasswordResetLinkEmail(
         user.email,
         fullName || user.email,
         resetLink,
       );
-
-      if (!emailed) {
-        throw new BadRequestException('Failed to send password reset email');
-      }
 
       return { message: 'Password reset instructions sent to email' };
     } catch (error) {
