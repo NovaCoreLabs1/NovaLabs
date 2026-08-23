@@ -10,6 +10,7 @@ import { JwtAuthGuard } from './auth/guard/jwt.auth.guard';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { BullModule } from '@nestjs/bull';
 import { ScheduleModule } from '@nestjs/schedule';
+import { NAMED_THROTTLERS } from './app.throttlers';
 import { NewsletterModule } from './newsletter/newsletter.module';
 import { EmailModule } from './email/email.module';
 import { DashboardModule } from './dashboard/dashboard.module';
@@ -31,26 +32,9 @@ import { MetricsModule } from './metrics/metrics.module';
       isGlobal: true,
     }),
     ScheduleModule.forRoot(),
-    ThrottlerModule.forRoot([
-      {
-        name: 'short',
-        ttl: 1000, // 1 second
-        limit: 3, // 3 requests per second
-      },
-      {
-        name: 'medium',
-        ttl: 10000, // 10 seconds
-        limit: 20, // 20 requests per 10 seconds
-      },
-      {
-        name: 'long',
-        ttl: 60000, // 1 minute
-        limit: 100, // 100 requests per minute
-      },
-      { name: 'newsletter', ttl: 60_000, limit: 10 },
-      { name: 'contact', ttl: 60_000, limit: 5 },
-      { name: 'feedback', ttl: 60_000, limit: 10 },
-    ]),
+    // Named throttlers (incl. the strict day-pass buckets) live in
+    // ./app.throttlers.ts — see there for why each entry carries a skipIf.
+    ThrottlerModule.forRoot(NAMED_THROTTLERS),
     BullModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => {

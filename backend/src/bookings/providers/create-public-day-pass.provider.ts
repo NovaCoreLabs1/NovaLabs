@@ -17,6 +17,7 @@ import { Payment } from '../../payments/entities/payment.entity';
 import { PaymentProvider } from '../../payments/enums/payment-provider.enum';
 import { PaymentStatus } from '../../payments/enums/payment-status.enum';
 import { PaystackProvider } from '../../payments/providers/paystack.provider';
+import { BookingExpiryPolicy } from './booking-expiry.policy';
 
 @Injectable()
 export class CreatePublicDayPassProvider {
@@ -26,6 +27,7 @@ export class CreatePublicDayPassProvider {
     @InjectRepository(Payment)
     private readonly paymentsRepository: Repository<Payment>,
     private readonly pricingService: PricingService,
+    private readonly expiryPolicy: BookingExpiryPolicy,
     private readonly paystackProvider: PaystackProvider,
     private readonly configService: ConfigService,
     private readonly dataSource: DataSource,
@@ -91,6 +93,7 @@ export class CreatePublicDayPassProvider {
         seatCount: 1,
         totalAmount,
         status: BookingStatus.PENDING,
+        paymentDeadline: this.expiryPolicy.deadlineFor(PlanType.DAILY),
         isGuestBooking: true,
         guestInfo: {
           name: dto.guestName,

@@ -34,6 +34,12 @@ import { Public } from '../auth/decorators/public.decorator';
 export class BookingsController {
   constructor(private readonly bookingsService: BookingsService) {}
 
+  /**
+   * Public guest funnel — strictly rate-limited (10/min per IP and 5/min per
+   * guest email) via the `daypass-*` named throttlers in app.throttlers.ts.
+   * Created bookings stay PENDING until payment and expire after their plan
+   * TTL via BookingExpiryService, releasing held seats.
+   */
   @Post('public/day-pass')
   @Public()
   @HttpCode(HttpStatus.CREATED)

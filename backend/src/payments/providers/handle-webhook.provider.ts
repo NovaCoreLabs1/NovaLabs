@@ -13,7 +13,9 @@ import { PaystackProvider } from './paystack.provider';
 import { SorobanEscrowProvider } from './soroban-escrow.provider';
 import { BookingsService } from '../../bookings/bookings.service';
 import { Booking } from '../../bookings/entities/booking.entity';
+import { BookingStatus } from '../../bookings/enums/booking-status.enum';
 import { PlanType } from '../../bookings/enums/plan-type.enum';
+import { ReactivateExpiredBookingProvider } from '../../bookings/providers/reactivate-expired-booking.provider';
 import { InvoicesService } from '../../invoices/invoices.service';
 import { NotificationsService } from '../../notifications/notifications.service';
 import { NotificationType } from '../../notifications/enums/notification-type.enum';
@@ -42,6 +44,7 @@ export class HandleWebhookProvider {
     private readonly paystackProvider: PaystackProvider,
     private readonly sorobanEscrowProvider: SorobanEscrowProvider,
     private readonly bookingsService: BookingsService,
+    private readonly reactivateExpiredBookingProvider: ReactivateExpiredBookingProvider,
     private readonly invoicesService: InvoicesService,
     private readonly notificationsService: NotificationsService,
     private readonly emailService: EmailService,
@@ -135,20 +138,30 @@ export class HandleWebhookProvider {
     payment.metadata = data;
     await this.paymentsRepository.save(payment);
 
-    // Confirm the booking
-    const booking = await this.bookingsService.confirm(payment.bookingId);
+    // Confirm the booking. The money is taken at this point, so the webhook
+    // must resolve deterministically no matter what state the booking is in
+    // (it may have been expired by the sweep while the guest sat on the
+    // checkout page). A null result means "payment recorded, booking not
+    // honoured" — refunding stays a deliberate admin action via
+    // RefundPaymentProvider.
+    const booking = await this.resolveBookingForSuccessfulPayment(payment);
 
-    // For long-term bookings, record on-chain escrow
-    if (LONG_TERM_PLANS.has(booking.planType)) {
+    // For long-term bookings, record on-chain escrow — only when the booking
+    // was actually honoured; never escrow funds for an unfulfilled booking.
+    if (booking && LONG_TERM_PLANS.has(booking.planType)) {
       await this.recordSorobanEscrow(payment, booking);
     }
 
     // Generate invoice asynchronously — do not block payment confirmation
-    this.invoicesService.generateForPayment(payment.id).catch((err: Error) => {
-      this.logger.error(
-        `Failed to generate invoice for payment ${payment.id}: ${err.message}`,
-      );
-    });
+    if (booking) {
+      this.invoicesService
+        .generateForPayment(payment.id)
+        .catch((err: Error) => {
+          this.logger.error(
+            `Failed to generate invoice for payment ${payment.id}: ${err.message}`,
+          );
+        });
+    }
 
     // Send payment success email
     this.usersRepository
@@ -193,8 +206,76 @@ export class HandleWebhookProvider {
     }
 
     this.logger.log(
-      `charge.success: payment ${payment.id} succeeded, booking ${booking.id} confirmed`,
+      `charge.success: payment ${payment.id} succeeded, booking ${booking?.id ?? 'not honoured'}`,
     );
+  }
+
+  /**
+   * Resolves the booking side of a successful charge, whatever state the
+   * booking is in:
+   *
+   * - PENDING → confirmed as before.
+   * - EXPIRED (sweep released the seat while the guest was on the checkout
+   *   page) → re-confirmed only if its seats are still free; otherwise the
+   *   payment stands recorded and the booking stays expired (manual refund
+   *   via RefundPaymentProvider).
+   * - anything else / missing row → logged and treated as not honoured.
+   *
+   * This method never throws: the payment is already marked SUCCESS, so a
+   * thrown error would only turn the webhook into a 5xx retry loop with no
+   * way to change the outcome.
+   */
+  private async resolveBookingForSuccessfulPayment(
+    payment: Payment,
+  ): Promise<Booking | null> {
+    let booking: Booking | null;
+    try {
+      booking = await this.bookingsRepository.findOne({
+        where: { id: payment.bookingId },
+      });
+    } catch (err) {
+      this.logger.error(
+        `charge.success: failed to load booking ${payment.bookingId} for payment ${payment.id}: ${(err as Error).message}`,
+      );
+      return null;
+    }
+
+    if (!booking) {
+      this.logger.error(
+        `charge.success: booking ${payment.bookingId} missing for paid payment ${payment.id} — manual resolution required`,
+      );
+      return null;
+    }
+
+    if (booking.status === BookingStatus.EXPIRED) {
+      try {
+        const revived =
+          await this.reactivateExpiredBookingProvider.reactivateExpired(
+            booking.id,
+          );
+        if (!revived) {
+          this.logger.warn(
+            `charge.success: payment ${payment.id} arrived after booking ${booking.id} expired and its seats were taken — payment recorded without re-confirmation, refund required`,
+          );
+          return null;
+        }
+        return revived;
+      } catch (err) {
+        this.logger.error(
+          `charge.success: failed to reactivate expired booking ${booking.id} for payment ${payment.id}: ${(err as Error).message}`,
+        );
+        return null;
+      }
+    }
+
+    try {
+      return await this.bookingsService.confirm(payment.bookingId);
+    } catch (err) {
+      this.logger.error(
+        `charge.success: could not confirm ${booking.status} booking ${booking.id} for payment ${payment.id}: ${(err as Error).message}`,
+      );
+      return null;
+    }
   }
 
   private async handleChargeFailed(reference: string): Promise<void> {

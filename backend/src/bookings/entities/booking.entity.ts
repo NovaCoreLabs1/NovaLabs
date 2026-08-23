@@ -53,6 +53,15 @@ export class Booking {
   @Column({ type: 'enum', enum: BookingStatus, default: BookingStatus.PENDING })
   status: BookingStatus;
 
+  /**
+   * Absolute deadline for the payment of a PENDING booking to arrive before
+   * the scheduled sweep moves it to EXPIRED and releases its seats.
+   * Nullable because rows created before this column existed have no stamped
+   * deadline; the sweep then falls back to `createdAt + plan TTL`.
+   */
+  @Column({ type: 'timestamptz', nullable: true })
+  paymentDeadline: Date | null;
+
   @Column({ type: 'int', default: 1 })
   seatCount: number;
 

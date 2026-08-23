@@ -10,6 +10,24 @@ import { BookingStatus } from '../enums/booking-status.enum';
 import { User } from '../../users/entities/user.entity';
 import { MembershipStatus } from '../../users/enums/membership-status.enum';
 
+/**
+ * Activates a user's membership on their first confirmed booking.
+ * Shared with ReactivateExpiredBookingProvider so an expired-then-paid
+ * booking gets the exact same membership semantics as a normal confirmation.
+ */
+export async function activateMembershipIfNeeded(
+  usersRepository: Repository<User>,
+  userId: string | null,
+): Promise<void> {
+  if (!userId) return;
+  const user = await usersRepository.findOne({ where: { id: userId } });
+  if (user && !user.memberSince) {
+    user.memberSince = new Date();
+    user.membershipStatus = MembershipStatus.ACTIVE;
+    await usersRepository.save(user);
+  }
+}
+
 @Injectable()
 export class ConfirmBookingProvider {
   constructor(
@@ -34,14 +52,7 @@ export class ConfirmBookingProvider {
     await this.bookingsRepository.save(booking);
 
     // Activate member and set memberSince if first booking
-    const user = await this.usersRepository.findOne({
-      where: { id: booking.userId },
-    });
-    if (user && !user.memberSince) {
-      user.memberSince = new Date();
-      user.membershipStatus = MembershipStatus.ACTIVE;
-      await this.usersRepository.save(user);
-    }
+    await activateMembershipIfNeeded(this.usersRepository, booking.userId);
 
     return booking;
   }

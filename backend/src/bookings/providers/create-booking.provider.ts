@@ -13,6 +13,7 @@ import { PricingService } from '../pricing/pricing.service';
 import { Workspace } from '../../workspaces/entities/workspace.entity';
 import { User } from '../../users/entities/user.entity';
 import { EmailService } from '../../email/email.service';
+import { BookingExpiryPolicy } from './booking-expiry.policy';
 
 @Injectable()
 export class CreateBookingProvider {
@@ -22,6 +23,7 @@ export class CreateBookingProvider {
     @InjectRepository(User)
     private readonly usersRepository: Repository<User>,
     private readonly pricingService: PricingService,
+    private readonly expiryPolicy: BookingExpiryPolicy,
     private readonly dataSource: DataSource,
     private readonly emailService: EmailService,
   ) {}
@@ -80,6 +82,7 @@ export class CreateBookingProvider {
         userId,
         totalAmount,
         status: BookingStatus.PENDING,
+        paymentDeadline: this.expiryPolicy.deadlineFor(dto.planType),
       });
 
       const saved = await manager.save(booking);
