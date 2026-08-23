@@ -1,21 +1,24 @@
 import { Module } from '@nestjs/common';
+import { JwtModule } from '@nestjs/jwt';
 import { MetricsController } from './metrics.controller';
 import { MetricsService } from './metrics.service';
+import { MetricsAuthGuard } from './metrics-auth.guard';
 
 /**
  * MetricsModule — Issue #118
  *
- * Exposes a Prometheus-compatible `/metrics` endpoint that reports
- * rate-limit hit counters per endpoint. Intended for scraping by a
- * Prometheus server and visualisation in Grafana.
+ * Exposes a Prometheus-compatible `/api/metrics` endpoint. Access is
+ * gated by `MetricsAuthGuard`: a dedicated scrape bearer token
+ * (`METRICS_SCRAPE_TOKEN`) and/or an admin JWT. Register this module in
+ * `AppModule` to activate the endpoint.
  *
- * Note: Register this module in AppModule to activate the `/api/metrics`
- * endpoint. For production, add IP-allow-list or Basic Auth in front of
- * the endpoint via a reverse-proxy rule.
+ * A reverse-proxy IP allow-list is a valid extra control (not enforced
+ * here). See `docs/SECRETS.md` for Prometheus job configuration.
  */
 @Module({
+  imports: [JwtModule.register({})],
   controllers: [MetricsController],
-  providers: [MetricsService],
+  providers: [MetricsService, MetricsAuthGuard],
   exports: [MetricsService],
 })
 export class MetricsModule {}
