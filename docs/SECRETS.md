@@ -173,6 +173,63 @@ cooling-off notes to avoid service disruption during rotation.
 
 ---
 
+## 8. Prometheus metrics scrape token
+
+| Variable | Description |
+|----------|-------------|
+| `METRICS_SCRAPE_TOKEN` | Bearer token accepted by `GET /api/metrics`. Alias: `METRICS_TOKEN`. |
+
+`GET /api/metrics` is **not** anonymously public. The global JWT guard is
+skipped (`@Public()`) only so a Prometheus scraper that has no NovaLabs
+user JWT can present this scrape credential instead. Access is granted by
+**either**:
+
+1. `Authorization: Bearer <METRICS_SCRAPE_TOKEN>` (Prometheus
+   `bearer_token` / `bearer_token_file`); or
+2. A valid access JWT whose role is `admin` or `super_admin`.
+
+Regular `USER` JWTs are rejected (403). If `METRICS_SCRAPE_TOKEN` is
+unset/blank **and** `JWT_SECRET` is missing, the endpoint fails closed
+(401). A reverse-proxy IP allow-list is a valid extra control; it is not
+enforced in this repo.
+
+### How to rotate
+
+1. Generate a new token:
+   ```bash
+   METRICS_SCRAPE_TOKEN=$(openssl rand -base64 48)
+   ```
+2. Update `METRICS_SCRAPE_TOKEN` in the backend environment.
+3. Update the Prometheus scrape job (`bearer_token` or the file pointed
+   at by `bearer_token_file`) to the same value.
+4. Deploy the backend, then reload Prometheus (`kill -HUP <prometheus-pid>`
+   or `curl -X POST http://prometheus:9090/-/reload`).
+
+### Prometheus job example
+
+```yaml
+scrape_configs:
+  - job_name: novalabs
+    metrics_path: /api/metrics
+    scheme: https
+    bearer_token_file: /etc/prometheus/novalabs_metrics_token
+    # Alternatively (avoid committing the token into the job file):
+    # bearer_token: '<METRICS_SCRAPE_TOKEN>'
+    static_configs:
+      - targets: ['api.example.com:6000']
+    scrape_interval: 15s
+```
+
+### Cooling-off
+
+- Scrapes fail with 401 as soon as the backend is deployed with the new
+  token and Prometheus still presents the old one (only one scrape token
+  is accepted at a time).
+- **Mitigation**: rotate during a window and reload Prometheus immediately
+  after the backend deploy. The gap is at most one scrape interval.
+
+---
+
 ## General Checklist
 
 When rotating any secret:
