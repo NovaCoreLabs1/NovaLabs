@@ -6,7 +6,6 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { ConfigService } from '@nestjs/config';
 import { Payment } from '../entities/payment.entity';
 import { PaymentStatus } from '../enums/payment-status.enum';
 import { PaystackProvider } from './paystack.provider';
@@ -21,6 +20,7 @@ import { NotificationsService } from '../../notifications/notifications.service'
 import { NotificationType } from '../../notifications/enums/notification-type.enum';
 import { User } from '../../users/entities/user.entity';
 import { EmailService } from '../../email/email.service';
+import { MetricsService } from '../../metrics/metrics.service';
 
 const LONG_TERM_PLANS = new Set([
   PlanType.MONTHLY,
@@ -48,7 +48,7 @@ export class HandleWebhookProvider {
     private readonly invoicesService: InvoicesService,
     private readonly notificationsService: NotificationsService,
     private readonly emailService: EmailService,
-    private readonly configService: ConfigService,
+    private readonly metricsService: MetricsService,
   ) {}
 
   async handle(
@@ -360,17 +360,13 @@ export class HandleWebhookProvider {
     booking: Booking,
   ): Promise<void> {
     try {
-      const beneficiary = this.configService.get<string>(
-        'STELLAR_BENEFICIARY_ADDRESS',
-        'GBENEFIT_PLACEHOLDER',
-      );
       const releaseAfterUnix =
         Math.floor(new Date(booking.endDate).getTime() / 1000) + 86400;
 
+      // The platform is the on-chain depositor (see SorobanEscrowProvider);
+      // funds land in the configured STELLAR_BENEFICIARY_ADDRESS.
       const txHash = await this.sorobanEscrowProvider.createEscrow(
         booking.id,
-        payment.userId,
-        beneficiary,
         payment.amount,
         `Booking ${booking.id}`,
         releaseAfterUnix,
@@ -384,10 +380,20 @@ export class HandleWebhookProvider {
         `Soroban escrow recorded for booking ${booking.id}: ${txHash}`,
       );
     } catch (err) {
-      // Non-critical — log but do not fail the payment confirmation
+      // Non-critical for the customer's payment confirmation, but it MUST
+      // be observable: structured log + Prometheus counter (issue #227)
+      // instead of a swallowed error-level line.
       this.logger.error(
-        `Failed to record Soroban escrow for booking ${booking.id}: ${(err as Error).message}`,
+        JSON.stringify({
+          event: 'soroban_escrow_failed',
+          operation: 'create_escrow',
+          bookingId: booking.id,
+          paymentId: payment.id,
+          amount: payment.amount,
+          error: (err as Error).message,
+        }),
       );
+      this.metricsService.recordSorobanEscrowFailure('create_escrow');
     }
   }
 }

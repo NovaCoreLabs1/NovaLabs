@@ -11,6 +11,7 @@ import { InvoicesService } from '../../invoices/invoices.service';
 import { NotificationsService } from '../../notifications/notifications.service';
 import { EmailService } from '../../email/email.service';
 import { ReactivateExpiredBookingProvider } from '../../bookings/providers/reactivate-expired-booking.provider';
+import { MetricsService } from '../../metrics/metrics.service';
 import { Payment } from '../entities/payment.entity';
 import { PaymentStatus } from '../enums/payment-status.enum';
 import { Booking } from '../../bookings/entities/booking.entity';
@@ -61,7 +62,14 @@ describe('HandleWebhookProvider – replay protection', () => {
           useValue: { create: jest.fn() },
         },
         { provide: EmailService, useValue: {} },
-        { provide: ConfigService, useValue: { get: jest.fn() } },
+        {
+          provide: MetricsService,
+          useValue: { recordSorobanEscrowFailure: jest.fn() },
+        },
+        {
+          provide: ConfigService,
+          useValue: { get: jest.fn() },
+        },
       ],
     }).compile();
 
@@ -180,6 +188,10 @@ describe('HandleWebhookProvider – charge.success after expiry (issue #230)', (
         { provide: InvoicesService, useValue: invoicesService },
         { provide: NotificationsService, useValue: { create: jest.fn() } },
         { provide: EmailService, useValue: {} },
+        {
+          provide: MetricsService,
+          useValue: { recordSorobanEscrowFailure: jest.fn() },
+        },
         {
           provide: ConfigService,
           useValue: { get: jest.fn().mockReturnValue('beneficiary') },
@@ -321,5 +333,162 @@ describe('HandleWebhookProvider – charge.success after expiry (issue #230)', (
 
     expect(bookingsService.confirm).not.toHaveBeenCalled();
     expect(invoicesService.generateForPayment).not.toHaveBeenCalled();
+  });
+});
+
+describe('HandleWebhookProvider – escrow recording end-to-end (issue #227)', () => {
+  let provider: HandleWebhookProvider;
+  let paymentsRepository: ReturnType<typeof mockRepository>;
+  let bookingsRepository: ReturnType<typeof mockRepository>;
+  let usersRepository: ReturnType<typeof mockRepository>;
+  let bookingsService: { confirm: jest.Mock };
+  let invoicesService: { generateForPayment: jest.Mock };
+  let sorobanEscrowProvider: { createEscrow: jest.Mock };
+  let metricsService: { recordSorobanEscrowFailure: jest.Mock };
+
+  function longTermPayment(): Payment {
+    return {
+      id: 'pay-9',
+      bookingId: 'bk-9',
+      userId: null,
+      amount: 50_000,
+      currency: 'NGN',
+      provider: 'paystack' as Payment['provider'],
+      providerReference: 'ref-9',
+      status: PaymentStatus.PENDING,
+      paidAt: null,
+      metadata: undefined,
+    } as unknown as Payment;
+  }
+
+  function longTermBooking(
+    status: BookingStatus = BookingStatus.PENDING,
+  ): Booking {
+    return {
+      id: 'bk-9',
+      workspaceId: 'ws-1',
+      userId: null,
+      planType: 'monthly' as Booking['planType'],
+      startDate: '2030-02-01',
+      endDate: '2030-03-01',
+      totalAmount: 50_000n,
+      status,
+      seatCount: 2,
+      isGuestBooking: true,
+      guestInfo: { name: 'Guest', email: 'g@e.com', phone: '000' },
+    } as unknown as Booking;
+  }
+
+  beforeEach(async () => {
+    paymentsRepository = mockRepository();
+    bookingsRepository = mockRepository();
+    usersRepository = mockRepository();
+    usersRepository.findOne.mockResolvedValue(null);
+    bookingsService = { confirm: jest.fn() };
+    invoicesService = {
+      generateForPayment: jest.fn().mockResolvedValue(undefined),
+    };
+    sorobanEscrowProvider = {
+      createEscrow: jest.fn().mockResolvedValue('tx-hash-227'),
+    };
+    metricsService = { recordSorobanEscrowFailure: jest.fn() };
+
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        HandleWebhookProvider,
+        { provide: getRepositoryToken(Payment), useValue: paymentsRepository },
+        { provide: getRepositoryToken(Booking), useValue: bookingsRepository },
+        { provide: getRepositoryToken(User), useValue: usersRepository },
+        {
+          provide: PaystackProvider,
+          useValue: { verifyWebhookSignature: jest.fn().mockReturnValue(true) },
+        },
+        { provide: SorobanEscrowProvider, useValue: sorobanEscrowProvider },
+        { provide: BookingsService, useValue: bookingsService },
+        {
+          provide: ReactivateExpiredBookingProvider,
+          useValue: { reactivateExpired: jest.fn() },
+        },
+        { provide: InvoicesService, useValue: invoicesService },
+        { provide: NotificationsService, useValue: { create: jest.fn() } },
+        { provide: EmailService, useValue: {} },
+        { provide: MetricsService, useValue: metricsService },
+      ],
+    }).compile();
+
+    provider = module.get<HandleWebhookProvider>(HandleWebhookProvider);
+  });
+
+  it('populates sorobanEscrowId on the booking when the RPC succeeds', async () => {
+    const booking = longTermBooking();
+    paymentsRepository.findOne.mockResolvedValue(longTermPayment());
+    paymentsRepository.save.mockResolvedValue(undefined);
+    bookingsRepository.findOne.mockResolvedValue(booking);
+    bookingsService.confirm.mockResolvedValue({
+      ...booking,
+      status: BookingStatus.CONFIRMED,
+    });
+
+    await expect(
+      provider.handle(createEventPayload('charge.success', 'ref-9'), 'sig', ''),
+    ).resolves.toBeUndefined();
+
+    const releaseAfterUnix =
+      Math.floor(new Date('2030-03-01').getTime() / 1000) + 86_400;
+    expect(sorobanEscrowProvider.createEscrow).toHaveBeenCalledWith(
+      'bk-9',
+      50_000,
+      'Booking bk-9',
+      releaseAfterUnix,
+    );
+    expect(bookingsRepository.update).toHaveBeenCalledWith('bk-9', {
+      sorobanEscrowId: 'tx-hash-227',
+    });
+    expect(metricsService.recordSorobanEscrowFailure).not.toHaveBeenCalled();
+  });
+
+  it('keeps the payment confirmed but records an operator-visible failure when escrow fails', async () => {
+    const booking = longTermBooking();
+    paymentsRepository.findOne.mockResolvedValue(longTermPayment());
+    paymentsRepository.save.mockResolvedValue(undefined);
+    bookingsRepository.findOne.mockResolvedValue(booking);
+    bookingsService.confirm.mockResolvedValue({
+      ...booking,
+      status: BookingStatus.CONFIRMED,
+    });
+    sorobanEscrowProvider.createEscrow.mockRejectedValue(
+      new Error('rpc unreachable'),
+    );
+
+    await expect(
+      provider.handle(createEventPayload('charge.success', 'ref-9'), 'sig', ''),
+    ).resolves.toBeUndefined();
+
+    expect(metricsService.recordSorobanEscrowFailure).toHaveBeenCalledWith(
+      'create_escrow',
+    );
+    expect(bookingsRepository.update).not.toHaveBeenCalledWith('bk-9', {
+      sorobanEscrowId: expect.anything(),
+    });
+  });
+
+  it('never escrows short-term plans', async () => {
+    const booking = longTermBooking();
+    const daily = {
+      ...booking,
+      planType: 'daily' as Booking['planType'],
+    };
+    paymentsRepository.findOne.mockResolvedValue(longTermPayment());
+    paymentsRepository.save.mockResolvedValue(undefined);
+    bookingsRepository.findOne.mockResolvedValue(daily);
+    bookingsService.confirm.mockResolvedValue(daily);
+
+    await provider.handle(
+      createEventPayload('charge.success', 'ref-9'),
+      '',
+      '',
+    );
+
+    expect(sorobanEscrowProvider.createEscrow).not.toHaveBeenCalled();
   });
 });

@@ -33,6 +33,9 @@ export class MetricsService implements OnModuleInit {
   /** Counter: SMTP deliveries that exhausted all retries and hit the DLQ */
   readonly emailDeadLettered: Counter<string>;
 
+  /** Counter: on-chain escrow operations that failed after submission, by operation */
+  readonly sorobanEscrowFailures: Counter<string>;
+
   constructor() {
     this.registry = new Registry();
 
@@ -81,6 +84,13 @@ export class MetricsService implements OnModuleInit {
       labelNames: ['kind'],
       registers: [this.registry],
     });
+
+    this.sorobanEscrowFailures = new Counter({
+      name: 'novalabs_soroban_escrow_failures_total',
+      help: 'Failed on-chain escrow operations (issue #227), labelled by contract function',
+      labelNames: ['operation'],
+      registers: [this.registry],
+    });
   }
 
   onModuleInit(): void {
@@ -112,6 +122,17 @@ export class MetricsService implements OnModuleInit {
   /** Serialise all metrics in the Prometheus text exposition format. */
   async getMetrics(): Promise<string> {
     return this.registry.metrics();
+  }
+
+  /**
+   * Increment the failed escrow counter for a contract function.
+   * Call this wherever an escrow operation fails and the failure is
+   * deliberately not allowed to abort the surrounding flow.
+   *
+   * @param operation - Contract function name (e.g. `create_escrow`)
+   */
+  recordSorobanEscrowFailure(operation: string): void {
+    this.sorobanEscrowFailures.inc({ operation });
   }
 
   /** Returns the content-type expected by Prometheus scrapers. */

@@ -83,6 +83,18 @@ cooling-off notes to avoid service disruption during rotation.
 |----------|-------------|
 | `STELLAR_SECRET_KEY` | Stellar secret (private) key for signing Soroban transactions |
 | `STELLAR_ESCROW_CONTRACT_ID` | On-chain contract address (changes only if redeployed) |
+| `STELLAR_BENEFICIARY_ADDRESS` | Stellar account (G…) that receives released escrow funds |
+| `STELLAR_NETWORK` | Network alias (`TESTNET`, `PUBLIC`, `FUTURENET`) or full network passphrase |
+
+### Boot validation (issue #227)
+
+Escrow is **enabled** when any `STELLAR_*` variable above is set — then all
+four are required and validated at boot: the contract ID must be 64-char
+hex, both addresses must be valid Stellar keys, and the network must be a
+known alias or passphrase. A partial or malformed configuration aborts
+startup instead of failing silently on the first long-term payment. With
+all four unset, the escrow path stays disabled and long-term bookings
+confirm without on-chain records.
 
 ### How to rotate
 
