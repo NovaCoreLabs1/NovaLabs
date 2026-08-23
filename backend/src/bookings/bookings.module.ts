@@ -9,6 +9,9 @@ import { ConfirmBookingProvider } from './providers/confirm-booking.provider';
 import { CancelBookingProvider } from './providers/cancel-booking.provider';
 import { CompleteBookingProvider } from './providers/complete-booking.provider';
 import { FindBookingsProvider } from './providers/find-bookings.provider';
+import { BookingExpiryPolicy } from './providers/booking-expiry.policy';
+import { BookingExpiryService } from './providers/booking-expiry.service';
+import { ReactivateExpiredBookingProvider } from './providers/reactivate-expired-booking.provider';
 import { PricingService } from './pricing/pricing.service';
 import { WorkspacesModule } from '../workspaces/workspaces.module';
 import { User } from '../users/entities/user.entity';
@@ -30,8 +33,11 @@ import { PaystackProvider } from '../payments/providers/paystack.provider';
     CancelBookingProvider,
     CompleteBookingProvider,
     FindBookingsProvider,
+    BookingExpiryPolicy,
+    BookingExpiryService,
+    ReactivateExpiredBookingProvider,
     PaystackProvider,
   ],
-  exports: [BookingsService],
+  exports: [BookingsService, ReactivateExpiredBookingProvider],
 })
 export class BookingsModule {}
