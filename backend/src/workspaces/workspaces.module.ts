@@ -9,6 +9,7 @@ import { FindWorkspaceByIdProvider } from './providers/find-workspace-by-id.prov
 import { UpdateWorkspaceProvider } from './providers/update-workspace.provider';
 import { DeleteWorkspaceProvider } from './providers/delete-workspace.provider';
 import { CheckWorkspaceAvailabilityProvider } from './providers/check-workspace-availability.provider';
+import { SeatAvailabilityProvider } from './providers/seat-availability.provider';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Workspace])],
@@ -21,7 +22,12 @@ import { CheckWorkspaceAvailabilityProvider } from './providers/check-workspace-
     UpdateWorkspaceProvider,
     DeleteWorkspaceProvider,
     CheckWorkspaceAvailabilityProvider,
+    SeatAvailabilityProvider,
   ],
-  exports: [WorkspacesService, FindWorkspaceByIdProvider],
+  exports: [
+    WorkspacesService,
+    FindWorkspaceByIdProvider,
+    SeatAvailabilityProvider,
+  ],
 })
 export class WorkspacesModule {}

@@ -65,14 +65,25 @@ export class WorkspacesService {
   }
 
   /**
-   * Checks whether the workspace has sufficient available seats for the request.
+   * Checks whether the workspace has sufficient available seats for the
+   * requested window. Availability is derived live from PENDING and
+   * CONFIRMED bookings overlapping [startDate, endDate].
    * @param workspaceId - Workspace UUID
    * @param requestedSeats - Number of seats required (defaults to 1)
+   * @param window - Optional inclusive YYYY-MM-DD window; defaults to today
    */
-  checkAvailability(workspaceId: string, requestedSeats?: number) {
+  checkAvailability(
+    workspaceId: string,
+    requestedSeats?: number,
+    window?: {
+      startDate?: string;
+      endDate?: string;
+    },
+  ) {
     return this.checkWorkspaceAvailabilityProvider.check(
       workspaceId,
       requestedSeats,
+      window,
     );
   }
 }

@@ -12,6 +12,7 @@ import { CreateBookingDto } from '../dto/create-booking.dto';
 import { BookingStatus } from '../enums/booking-status.enum';
 import { PricingService } from '../pricing/pricing.service';
 import { Workspace } from '../../workspaces/entities/workspace.entity';
+import { SeatAvailabilityProvider } from '../../workspaces/providers/seat-availability.provider';
 import { User } from '../../users/entities/user.entity';
 import { EmailService } from '../../email/email.service';
 import { BookingExpiryPolicy } from './booking-expiry.policy';
@@ -27,6 +28,7 @@ export class CreateBookingProvider {
     private readonly usersRepository: Repository<User>,
     private readonly pricingService: PricingService,
     private readonly expiryPolicy: BookingExpiryPolicy,
+    private readonly seatAvailabilityProvider: SeatAvailabilityProvider,
     private readonly dataSource: DataSource,
     private readonly emailService: EmailService,
   ) {}
@@ -51,21 +53,14 @@ export class CreateBookingProvider {
         throw new BadRequestException('Workspace is not active');
       }
 
-      // Conflict check: sum existing confirmed/pending seat counts for overlapping dates
-      const overlap = await manager
-        .createQueryBuilder(Booking, 'b')
-        .select('COALESCE(SUM(b.seatCount), 0)', 'booked')
-        .where('b.workspaceId = :workspaceId', {
-          workspaceId: dto.workspaceId,
-        })
-        .andWhere('b.status IN (:...statuses)', {
-          statuses: [BookingStatus.PENDING, BookingStatus.CONFIRMED],
-        })
-        .andWhere('b.startDate <= :endDate', { endDate: dto.endDate })
-        .andWhere('b.endDate >= :startDate', { startDate: dto.startDate })
-        .getRawOne<{ booked: string }>();
-
-      const alreadyBooked = Number(overlap?.booked ?? 0);
+      // Conflict check: shared seat math — sum of PENDING/CONFIRMED
+      // seats overlapping the requested window (issue #229)
+      const alreadyBooked = await this.seatAvailabilityProvider.bookedSeats(
+        manager,
+        dto.workspaceId,
+        dto.startDate,
+        dto.endDate,
+      );
       if (alreadyBooked + dto.seatCount > workspace.totalSeats) {
         throw new ConflictException(
           `Only ${workspace.totalSeats - alreadyBooked} seat(s) available for the requested dates`,

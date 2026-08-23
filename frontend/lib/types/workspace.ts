@@ -12,7 +12,6 @@ export interface Workspace {
   name: string;
   type: WorkspaceType;
   totalSeats: number;
-  availableSeats: number;
   hourlyRate: number; // in kobo
   description?: string;
   amenities?: string[];

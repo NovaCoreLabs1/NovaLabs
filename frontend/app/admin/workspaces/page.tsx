@@ -149,7 +149,7 @@ export default function AdminWorkspacesPage() {
                         {TYPE_LABELS[w.type] ?? w.type}
                       </td>
                       <td className="px-5 py-3.5 text-gray-600">
-                        {w.availableSeats}/{w.totalSeats}
+                        {w.totalSeats} seats
                       </td>
                       <td className="px-5 py-3.5 text-gray-600">
                         {formatNaira(w.hourlyRate)}
