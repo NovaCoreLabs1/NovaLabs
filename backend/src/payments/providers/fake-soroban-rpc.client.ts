@@ -1,4 +1,9 @@
-import { SorobanRpc, Transaction } from '@stellar/stellar-sdk';
+import {
+  Account,
+  Keypair,
+  SorobanRpc,
+  Transaction,
+} from '@stellar/stellar-sdk';
 import { SorobanRpcClientInterface } from './soroban-rpc-client.interface';
 
 export interface FakeSorobanRpcOptions {
@@ -25,6 +30,8 @@ export class FakeSorobanRpcClient implements SorobanRpcClientInterface {
   public readonly sentTransactions: Transaction[] = [];
   /** Records every hash passed to getTransaction for assertions. */
   public readonly queriedHashes: string[] = [];
+  /** Records every transaction passed to prepareTransaction (simulate path). */
+  public readonly simulatedTransactions: Transaction[] = [];
 
   constructor(options?: FakeSorobanRpcOptions) {
     this.opts = {
@@ -39,6 +46,7 @@ export class FakeSorobanRpcClient implements SorobanRpcClientInterface {
   }
 
   async prepareTransaction(tx: Transaction): Promise<Transaction> {
+    this.simulatedTransactions.push(tx);
     return tx;
   }
 
@@ -137,14 +145,10 @@ export class FakeSorobanRpcClient implements SorobanRpcClientInterface {
     } as unknown as SorobanRpc.Api.SimulateTransactionSuccessResponse;
   }
 
-  async getAccount(_accountId: string): Promise<any> {
+  async getAccount(_accountId: string): Promise<Account> {
     if (this.opts.getAccountFails) {
       throw new Error('Account not found');
     }
-    return {
-      accountId: 'GAXES',
-      sequenceNumber: '0',
-      incrementSequenceNumber: () => {},
-    };
+    return new Account(Keypair.random().publicKey(), '100');
   }
 }
