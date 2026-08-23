@@ -23,7 +23,6 @@ export class CreateWorkspaceProvider {
 
     const workspace = this.workspacesRepository.create({
       ...dto,
-      availableSeats: dto.totalSeats,
     });
     return this.workspacesRepository.save(workspace);
   }

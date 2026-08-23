@@ -16,12 +16,6 @@ export class UpdateWorkspaceProvider {
   async update(id: string, dto: UpdateWorkspaceDto): Promise<Workspace> {
     const workspace = await this.findWorkspaceByIdProvider.findById(id);
 
-    // If totalSeats is being increased, increase availableSeats proportionally
-    if (dto.totalSeats && dto.totalSeats > workspace.totalSeats) {
-      const added = dto.totalSeats - workspace.totalSeats;
-      workspace.availableSeats = workspace.availableSeats + added;
-    }
-
     Object.assign(workspace, dto);
     return this.workspacesRepository.save(workspace);
   }

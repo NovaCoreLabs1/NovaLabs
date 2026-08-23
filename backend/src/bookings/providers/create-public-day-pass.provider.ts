@@ -13,6 +13,7 @@ import { BookingStatus } from '../enums/booking-status.enum';
 import { PlanType } from '../enums/plan-type.enum';
 import { PricingService } from '../pricing/pricing.service';
 import { Workspace } from '../../workspaces/entities/workspace.entity';
+import { SeatAvailabilityProvider } from '../../workspaces/providers/seat-availability.provider';
 import { Payment } from '../../payments/entities/payment.entity';
 import { PaymentProvider } from '../../payments/enums/payment-provider.enum';
 import { PaymentStatus } from '../../payments/enums/payment-status.enum';
@@ -28,6 +29,7 @@ export class CreatePublicDayPassProvider {
     private readonly paymentsRepository: Repository<Payment>,
     private readonly pricingService: PricingService,
     private readonly expiryPolicy: BookingExpiryPolicy,
+    private readonly seatAvailabilityProvider: SeatAvailabilityProvider,
     private readonly paystackProvider: PaystackProvider,
     private readonly configService: ConfigService,
     private readonly dataSource: DataSource,
@@ -58,18 +60,14 @@ export class CreatePublicDayPassProvider {
         throw new BadRequestException('Workspace is not active');
       }
 
-      const overlap = await manager
-        .createQueryBuilder(Booking, 'b')
-        .select('COALESCE(SUM(b.seatCount), 0)', 'booked')
-        .where('b.workspaceId = :workspaceId', { workspaceId: dto.workspaceId })
-        .andWhere('b.status IN (:...statuses)', {
-          statuses: [BookingStatus.PENDING, BookingStatus.CONFIRMED],
-        })
-        .andWhere('b.startDate <= :date', { date: dto.date })
-        .andWhere('b.endDate >= :date', { date: dto.date })
-        .getRawOne<{ booked: string }>();
-
-      const alreadyBooked = Number(overlap?.booked ?? 0);
+      // Conflict check: shared seat math — same routine the
+      // availability endpoint and authenticated creation use (#229)
+      const alreadyBooked = await this.seatAvailabilityProvider.bookedSeats(
+        manager,
+        dto.workspaceId,
+        dto.date,
+        dto.date,
+      );
       if (alreadyBooked + 1 > workspace.totalSeats) {
         throw new ConflictException(
           'No seats available for the requested date',

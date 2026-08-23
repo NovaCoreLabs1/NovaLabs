@@ -14,8 +14,10 @@ import { Hub } from '../../hub/entities/hub.entity';
 /**
  * TypeORM entity representing a bookable workspace resource.
  *
- * Stores the workspace type, total and currently-available seat counts,
- * pricing per hour (in kobo), descriptive metadata, and lifecycle flags.
+ * Stores the workspace type, total seat capacity, pricing per hour
+ * (in kobo), descriptive metadata, and lifecycle flags. Seat
+ * availability is derived live from bookings (see
+ * SeatAvailabilityProvider); no availability counter is stored here.
  */
 @Entity('workspaces')
 export class Workspace {
@@ -30,9 +32,6 @@ export class Workspace {
 
   @Column({ type: 'int', default: 1 })
   totalSeats: number;
-
-  @Column({ type: 'int', default: 1 })
-  availableSeats: number;
 
   // Stored in kobo (smallest currency unit). e.g. ₦5000/hr = 500000 kobo
   @Column({ type: 'bigint' })

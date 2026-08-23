@@ -36,7 +36,11 @@ export class FindAllWorkspacesProvider {
     }
 
     if (minSeats) {
-      qb.andWhere('workspace.availableSeats >= :minSeats', { minSeats });
+      // Filters on seating CAPACITY. The stored `availableSeats` counter
+      // this filter previously read was never updated by any booking
+      // path, so it always equalled totalSeats in practice; live
+      // availability is served by the /:id/availability endpoint (#229).
+      qb.andWhere('workspace.totalSeats >= :minSeats', { minSeats });
     }
 
     if (maxRate) {

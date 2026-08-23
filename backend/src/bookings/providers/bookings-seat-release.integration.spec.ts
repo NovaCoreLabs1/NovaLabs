@@ -15,6 +15,7 @@ import { User } from '../../users/entities/user.entity';
 import { Workspace } from '../../workspaces/entities/workspace.entity';
 import { PaystackProvider } from '../../payments/providers/paystack.provider';
 import { EmailService } from '../../email/email.service';
+import { SeatAvailabilityProvider } from '../../workspaces/providers/seat-availability.provider';
 import { BookingStatus } from '../enums/booking-status.enum';
 import { PlanType } from '../enums/plan-type.enum';
 
@@ -208,6 +209,7 @@ describe('Seat release lifecycle (issue #230)', () => {
       providers: [
         CreatePublicDayPassProvider,
         CreateBookingProvider,
+        SeatAvailabilityProvider,
         BookingExpiryService,
         ReactivateExpiredBookingProvider,
         BookingExpiryPolicy,
