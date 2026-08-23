@@ -24,6 +24,7 @@ import { WorkspaceTrackingModule } from './workspace-tracking/workspace-tracking
 import { AuditLogModule } from './audit-log/audit-log.module';
 import { SecretsModule } from './config/secrets';
 import { HubModule } from './hub/hub.module';
+import { MetricsModule } from './metrics/metrics.module';
 
 @Module({
   imports: [
@@ -89,6 +90,7 @@ import { HubModule } from './hub/hub.module';
     SecretsModule.forRoot(),
     AuditLogModule,
     HubModule,
+    MetricsModule,
   ],
   controllers: [AppController],
   providers: [
