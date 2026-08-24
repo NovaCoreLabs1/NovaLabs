@@ -14,8 +14,8 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
  *    before creating an on-chain escrow, the handler checks `booking.sorobanEscrowId`
  *    to avoid double-creation.
  */
-export class WebhookRaceConditionGuard2361724500000000 implements MigrationInterface {
-  name = 'WebhookRaceConditionGuard2361724500000000';
+export class WebhookRaceConditionGuard2361756156800000 implements MigrationInterface {
+  name = 'WebhookRaceConditionGuard2361756156800000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     // Partial unique index: at most one SUCCESS payment per provider reference.
