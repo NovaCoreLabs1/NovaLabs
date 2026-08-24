@@ -13,25 +13,24 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
  *    Speeds up the idempotency check in HandleWebhookProvider.recordSorobanEscrow —
  *    before creating an on-chain escrow, the handler checks `booking.sorobanEscrowId`
  *    to avoid double-creation.
+ *
+ * Migration name numeric portion must exceed the baseline's
+ * (BaselineSchema17356896000001787522225542) so TypeORM runs this AFTER tables exist.
  */
-export class WebhookRaceConditionGuard2361756156800000 implements MigrationInterface {
-  name = 'WebhookRaceConditionGuard2361756156800000';
+export class WebhookRaceConditionGuard23617561568000001787522225543 implements MigrationInterface {
+  name = 'WebhookRaceConditionGuard23617561568000001787522225543';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     // Partial unique index: at most one SUCCESS payment per provider reference.
     // This is a defense-in-depth constraint — the application uses atomic UPDATEs,
     // but this catches any bug that slips through.
     await queryRunner.query(
-      `CREATE UNIQUE INDEX "UQ_payment_reference_success"
-         ON "payments" ("providerReference")
-         WHERE "status" = 'success'`,
+      `CREATE UNIQUE INDEX "UQ_payment_reference_success" ON "payments" ("providerReference") WHERE "status" = 'success'`,
     );
 
     // Index on sorobanEscrowId for the idempotency guard in recordSorobanEscrow.
     await queryRunner.query(
-      `CREATE INDEX "IDX_bookings_soroban_escrow_id"
-         ON "bookings" ("sorobanEscrowId")
-         WHERE "sorobanEscrowId" IS NOT NULL`,
+      `CREATE INDEX "IDX_bookings_soroban_escrow_id" ON "bookings" ("sorobanEscrowId") WHERE "sorobanEscrowId" IS NOT NULL`,
     );
   }
 
