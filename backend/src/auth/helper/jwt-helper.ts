@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { UserMessages } from './user-messages';
 import { JwtPayload } from '../interface/user.interface';
 import { User } from '../../users/entities/user.entity';
+import { DefaultHubService } from '../../hub/default-hub.service';
 
 type TwoFaPendingPayload = {
   sub: string;
@@ -17,7 +18,10 @@ type JwtExpiry = `${number}${'s' | 'm' | 'h' | 'd'}` | number;
 export class JwtHelper {
   private readonly logger = new Logger(JwtHelper.name);
 
-  constructor(private readonly jwtService: JwtService) {}
+  constructor(
+    private readonly jwtService: JwtService,
+    private readonly defaultHubService: DefaultHubService,
+  ) {}
 
   public validateRefreshToken(refreshToken: string): string | null {
     try {
@@ -41,6 +45,10 @@ export class JwtHelper {
       email: user.email,
       fullName: user.fullName,
       role: user.role,
+      // Issue #225: the claim must exist on every access token. Legacy users
+      // whose `hubId` column is NULL get the deployment default hub's real
+      // UUID so downstream tenant scoping never compares against a slug.
+      hubId: user.hubId ?? this.defaultHubService.defaultHubId,
     };
 
     return this.jwtService.sign(payload, {

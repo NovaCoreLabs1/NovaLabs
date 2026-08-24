@@ -10,6 +10,7 @@ import { ContentTypeMiddleware } from './common/middlewares/content-type.middlew
 import { CsrfGuard } from './common/guards/csrf.guard';
 import { AuditLogInterceptor } from './audit-log/interceptors/audit-log.interceptor';
 import { TenantInterceptor } from './hub/tenant.interceptor';
+import { DefaultHubService } from './hub/default-hub.service';
 import { resolveCorsConfig } from './common/cors/cors-config';
 import * as cookieParser from 'cookie-parser';
 import * as session from 'express-session';
@@ -100,6 +101,11 @@ async function bootstrap() {
   SwaggerModule.setup('swagger', app as any, document);
 
   app.setGlobalPrefix('/api');
+
+  // Tenant resolution (issue #225): guarantee the default hub exists and
+  // cache its UUID before the first request is served, so JWT minting and
+  // the tenant context never fall back to a non-UUID placeholder.
+  await app.get(DefaultHubService).ensureDefaultHub();
 
   await app.listen(process.env.PORT ?? 3000, '0.0.0.0');
   console.log(`Server is listening at: ${await app.getUrl()}`);
