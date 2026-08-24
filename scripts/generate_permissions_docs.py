@@ -340,6 +340,33 @@ The following operations require multisig approval when enabled:
 
 ---
 
+## Users Module (Backend API)
+
+Authorization matrix for `UsersController` (`backend/src/users/users.controller.ts`), enforced by
+`backend/src/users/utils/user-access.util.ts`, the route-level `RolesGuard`, and provider-level
+checks (issue #226). Self-service account removal uses `DELETE /api/users/me` (GDPR anonymisation),
+not the admin hard-delete below.
+
+| Endpoint | USER (self) | USER (other) | STAFF | ADMIN / SUPER_ADMIN |
+|----------|-------------|--------------|-------|---------------------|
+| `GET /api/users` | No | No | No | Yes |
+| `GET /api/users/:id` | Own profile only | 404 (anti-enumeration) | Own profile only | Yes |
+| `PATCH /api/users/:id` | Profile fields only; no `role`/`isVerified`/`isActive`/verification fields; password hashed on write | 403 | Profile fields only | All fields incl. `role` |
+| `DELETE /api/users/:id` | No | No | No | Yes (audited) |
+| `POST /api/users/:id/profile-picture` | Own picture only | 403/400 | Own picture only | Any account |
+| `GET /api/users/me/export.json` | Own data | N/A (self-scoped) | Own data | Own data |
+| `DELETE /api/users/me` | Own account (anonymised) | N/A (self-scoped) | Own account | Own account |
+
+Additional role-transition rules applied server-side:
+
+- Only ADMIN / SUPER_ADMIN may set `role`; every applied change writes an `audit_log`
+  entry (`action = users.role_change`) with previous and new role.
+- An administrator cannot change their own role (self lock-out prevention).
+- The last active administrator cannot be demoted.
+- Admin-initiated hard deletes are audited (`action = users.admin_delete`).
+
+---
+
 ## Security Considerations
 
 - **Admin Transfer**: Requires 24-hour acceptance window

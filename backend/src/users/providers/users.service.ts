@@ -127,13 +127,35 @@ export class UsersService {
   }
 
   // UPDATE USER
-  async updateUser(id: string, updateData: UpdateUserDto): Promise<User> {
-    return await this.updateUserProvider.updateUser(id, updateData);
+  async updateUser(
+    id: string,
+    updateData: UpdateUserDto,
+    requestingUserId: string,
+    requestingUserRole: UserRole,
+    requestingUserEmail?: string,
+  ): Promise<User> {
+    return await this.updateUserProvider.updateUser(
+      id,
+      updateData,
+      requestingUserId,
+      requestingUserRole,
+      requestingUserEmail,
+    );
   }
 
   // DELETE USER
-  async deleteUser(id: string): Promise<void> {
-    return await this.deleteUserProvider.deleteUser(id);
+  async deleteUser(
+    id: string,
+    requestingUserId: string,
+    requestingUserRole: UserRole,
+    requestingUserEmail?: string,
+  ): Promise<void> {
+    return await this.deleteUserProvider.deleteUser(
+      id,
+      requestingUserId,
+      requestingUserRole,
+      requestingUserEmail,
+    );
   }
 
   // VALIDATE USER

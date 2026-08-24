@@ -14,10 +14,14 @@ import {
   Logger,
   Res,
   StreamableFile,
+  NotFoundException,
+  UseGuards,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { UsersService } from './providers/users.service';
 import { GetCurrentUser } from '../auth/decorators/getCurrentUser.decorator';
+import { RolesGuard } from '../auth/guard/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorators';
 import { UserRole } from './enums/userRoles.enum';
 import { Response } from 'express';
 import {
@@ -31,6 +35,7 @@ import {
 
 import { UpdateUserDto } from './dto/updateUser.dto';
 import { AnonymiseAccountDto } from './dto/anonymise-account.dto';
+import { isAdminLike } from './utils/user-access.util';
 
 @ApiTags('users')
 @ApiBearerAuth()
@@ -86,28 +91,54 @@ export class UsersController {
     return this.usersService.resetPassword(body.token, body.newPassword);
   }
 
+  /**
+   * Returns a single user. A non-admin actor may only read its own record;
+   * any other lookup responds 404 so the member base cannot be enumerated
+   * by probing IDs.
+   */
   @Get(':id')
-  async findOne(@Param('id', ParseUUIDPipe) id: string) {
+  async findOne(
+    @Param('id', ParseUUIDPipe) id: string,
+    @GetCurrentUser('id') currentUserId: string,
+    @GetCurrentUser('role') currentUserRole: UserRole,
+  ) {
+    if (currentUserId !== id && !isAdminLike(currentUserRole)) {
+      throw new NotFoundException(`User with ID ${id} not found`);
+    }
     const user = await this.usersService.findOnePublicById(id);
     return {
       message: 'User retrieved successfully',
       data: user,
     };
   }
-  // GET /users
+
+  // GET /users — admin-only member listing.
   @Get()
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   async findAll() {
     const users = await this.usersService.findAllUsers();
     return { success: true, data: users };
   }
 
-  // PATCH /users/:id
+  // PATCH /users/:id — self-service profile edit, admin full edit.
+  // Authorization (ownership + field sensitivity + role transitions) is
+  // enforced in UpdateUserProvider via the shared user-access helpers.
   @Patch(':id')
   async update(
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() updateData: UpdateUserDto,
+    @GetCurrentUser('id') currentUserId: string,
+    @GetCurrentUser('role') currentUserRole: UserRole,
+    @GetCurrentUser('email') currentUserEmail: string,
   ) {
-    const user = await this.usersService.updateUser(id, updateData);
+    const user = await this.usersService.updateUser(
+      id,
+      updateData,
+      currentUserId,
+      currentUserRole,
+      currentUserEmail,
+    );
     return {
       success: true,
       message: `User ${id} updated successfully`,
@@ -115,11 +146,24 @@ export class UsersController {
     };
   }
 
-  // DELETE /users/:id
+  // DELETE /users/:id — hard delete, admin-only. Self-service account
+  // removal is DELETE /users/me (GDPR anonymisation) below.
   @Delete(':id')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
-  async remove(@Param('id', new ParseUUIDPipe()) id: string) {
-    await this.usersService.deleteUser(id);
+  async remove(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @GetCurrentUser('id') currentUserId: string,
+    @GetCurrentUser('role') currentUserRole: UserRole,
+    @GetCurrentUser('email') currentUserEmail: string,
+  ) {
+    await this.usersService.deleteUser(
+      id,
+      currentUserId,
+      currentUserRole,
+      currentUserEmail,
+    );
     return;
   }
 
