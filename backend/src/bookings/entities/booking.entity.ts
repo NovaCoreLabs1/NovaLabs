@@ -68,9 +68,7 @@ export class Booking {
   @Column({ type: 'text', nullable: true })
   notes: string;
 
-  // Populated for MONTHLY/QUARTERLY/YEARLY after Soroban escrow is created.
-  // Indexed for the idempotency check in HandleWebhookProvider (issue #236).
-  @Index()
+  // Populated for MONTHLY/QUARTERLY/YEARLY after Soroban escrow is created
   @Column({ nullable: true })
   sorobanEscrowId: string;
 
