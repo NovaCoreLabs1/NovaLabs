@@ -18,6 +18,25 @@ import { PaymentStatus } from '../enums/payment-status.enum';
  * TypeORM entity representing a payment record in the system.
  * Stores payment details including provider info, amount, status, and timestamps.
  * Indexed on bookingId, userId, and providerReference for fast lookups.
+ *
+ * Status state machine (issue #236 — enforced atomically in webhook handlers):
+ *
+ *   PENDING ──► SUCCESS ──► REFUNDED
+ *     │                      ▲
+ *     └──► FAILED            │
+ *                            │
+ *   SUCCESS ─────────────► REFUNDED  (via RefundPaymentProvider)
+ *
+ * Transitions are enforced by atomic conditional UPDATEs:
+ *   • charge.success: UPDATE ... SET status='success' WHERE status='pending'
+ *   • charge.failed:  UPDATE ... SET status='failed'  WHERE status='pending'
+ *   • refund:         UPDATE ... SET status='refunded' WHERE status='success'
+ *
+ * This guarantees that:
+ *   • FAILED can never overwrite SUCCESS (atomic WHERE rejects the update)
+ *   • SUCCESS can never be overwritten by FAILED (same atomic guard)
+ *   • REFUNDED requires SUCCESS as precondition (atomic WHERE)
+ *   • Concurrent webhook deliveries are safe — only one wins the race
  */
 @Entity('payments')
 @Index(['bookingId'])

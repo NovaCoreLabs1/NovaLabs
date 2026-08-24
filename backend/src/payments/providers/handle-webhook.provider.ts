@@ -120,23 +120,53 @@ export class HandleWebhookProvider {
     });
 
     if (!payment) {
-      this.logger.warn(
-        `charge.success: no payment found for reference ${reference}`,
+      this.logger.error(
+        `charge.success: no payment found for reference ${reference} — possible misconfiguration`,
       );
+      throw new BadRequestException(
+        `No payment found for reference ${reference}`,
+      );
+    }
+
+    // Atomic transition: only one concurrent delivery can flip PENDING → SUCCESS.
+    // This eliminates the check-then-act race where two webhook deliveries both
+    // read PENDING and both proceed to confirm booking / create escrow.
+    const result = await this.paymentsRepository
+      .createQueryBuilder()
+      .update(Payment)
+      .set({
+        status: PaymentStatus.SUCCESS,
+        paidAt: () => 'NOW()',
+        metadata: data,
+      })
+      .where('id = :id AND status = :status', {
+        id: payment.id,
+        status: PaymentStatus.PENDING,
+      })
+      .execute();
+
+    if (result.affected === 0) {
+      // Another delivery already transitioned this payment — re-read to determine outcome.
+      const current = await this.paymentsRepository.findOne({
+        where: { id: payment.id },
+      });
+      if (current?.status === PaymentStatus.SUCCESS) {
+        this.metricsService.recordWebhookStaleIgnored('charge.success');
+        this.logger.log(
+          `charge.success: payment ${payment.id} already succeeded — idempotent skip`,
+        );
+      } else {
+        // Terminal state (FAILED/REFUNDED) was set before our success arrived.
+        this.metricsService.recordWebhookSuccessAfterTerminal();
+        this.logger.warn(
+          `charge.success: payment ${payment.id} is in terminal state ${current?.status} — stale webhook ignored`,
+        );
+      }
       return;
     }
 
-    if (payment.status === PaymentStatus.SUCCESS) {
-      this.logger.log(
-        `charge.success: payment ${payment.id} already succeeded — idempotent skip`,
-      );
-      return;
-    }
-
-    payment.status = PaymentStatus.SUCCESS;
-    payment.paidAt = new Date();
-    payment.metadata = data;
-    await this.paymentsRepository.save(payment);
+    // We won the race — this delivery performs the side effects exactly once.
+    this.metricsService.recordWebhookRaceWin('charge.success');
 
     // Confirm the booking. The money is taken at this point, so the webhook
     // must resolve deterministically no matter what state the booking is in
@@ -147,8 +177,12 @@ export class HandleWebhookProvider {
     const booking = await this.resolveBookingForSuccessfulPayment(payment);
 
     // For long-term bookings, record on-chain escrow — only when the booking
-    // was actually honoured; never escrow funds for an unfulfilled booking.
-    if (booking && LONG_TERM_PLANS.has(booking.planType)) {
+    // was actually honoured and no escrow has been recorded yet.
+    if (
+      booking &&
+      LONG_TERM_PLANS.has(booking.planType) &&
+      !booking.sorobanEscrowId
+    ) {
       await this.recordSorobanEscrow(payment, booking);
     }
 
@@ -296,12 +330,40 @@ export class HandleWebhookProvider {
       return;
     }
 
-    if (payment.status !== PaymentStatus.PENDING) {
+    // Atomic transition: only one concurrent delivery can flip PENDING → FAILED.
+    // This prevents a late charge.failed from overwriting a SUCCESS that was
+    // concurrently set by a charge.success delivery.
+    const result = await this.paymentsRepository
+      .createQueryBuilder()
+      .update(Payment)
+      .set({ status: PaymentStatus.FAILED })
+      .where('id = :id AND status = :status', {
+        id: payment.id,
+        status: PaymentStatus.PENDING,
+      })
+      .execute();
+
+    if (result.affected === 0) {
+      // Re-read to determine why the transition failed.
+      const current = await this.paymentsRepository.findOne({
+        where: { id: payment.id },
+      });
+      if (current?.status === PaymentStatus.SUCCESS) {
+        this.metricsService.recordWebhookFailureAfterSuccess();
+        this.logger.warn(
+          `charge.failed: payment ${payment.id} already succeeded — stale failure ignored (anomaly)`,
+        );
+      } else {
+        this.metricsService.recordWebhookStaleIgnored('charge.failed');
+        this.logger.log(
+          `charge.failed: payment ${payment.id} already in terminal state ${current?.status} — idempotent skip`,
+        );
+      }
       return;
     }
 
-    payment.status = PaymentStatus.FAILED;
-    await this.paymentsRepository.save(payment);
+    // We won the race — this delivery performs the side effects exactly once.
+    this.metricsService.recordWebhookRaceWin('charge.failed');
 
     // Send payment failed email; every failure path is logged
     void (async () => {

@@ -38,18 +38,45 @@ export class ConfirmBookingProvider {
   ) {}
 
   async confirm(bookingId: string): Promise<Booking> {
+    // Atomic transition: PENDING → CONFIRMED with a conditional UPDATE.
+    // This is defense-in-depth alongside the atomic payment transition in
+    // HandleWebhookProvider — if two webhook deliveries both attempt to
+    // confirm the same booking, only one succeeds at the storage level.
+    const result = await this.bookingsRepository
+      .createQueryBuilder()
+      .update(Booking)
+      .set({ status: BookingStatus.CONFIRMED })
+      .where('id = :id AND status = :status', {
+        id: bookingId,
+        status: BookingStatus.PENDING,
+      })
+      .execute();
+
+    if (result.affected === 0) {
+      // Re-read to determine current state.
+      const current = await this.bookingsRepository.findOne({
+        where: { id: bookingId },
+      });
+      if (!current) {
+        throw new NotFoundException(`Booking "${bookingId}" not found`);
+      }
+      if (current.status === BookingStatus.CONFIRMED) {
+        // Already confirmed by a concurrent delivery — idempotent success.
+        return current;
+      }
+      throw new BadRequestException(
+        `Only PENDING bookings can be confirmed (current: ${current.status})`,
+      );
+    }
+
+    // Atomic update succeeded — read back the full entity for the return value
+    // (the UPDATE query doesn't populate the entity).
     const booking = await this.bookingsRepository.findOne({
       where: { id: bookingId },
     });
     if (!booking) {
       throw new NotFoundException(`Booking "${bookingId}" not found`);
     }
-    if (booking.status !== BookingStatus.PENDING) {
-      throw new BadRequestException('Only PENDING bookings can be confirmed');
-    }
-
-    booking.status = BookingStatus.CONFIRMED;
-    await this.bookingsRepository.save(booking);
 
     // Activate member and set memberSince if first booking
     await activateMembershipIfNeeded(this.usersRepository, booking.userId);
