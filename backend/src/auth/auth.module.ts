@@ -56,6 +56,7 @@ import { SsoModule } from './sso/sso.module';
   ],
   exports: [
     AuthService,
+    UserHelper,
     HashingProvider,
     GenerateTokensProvider,
     RefreshTokenRepositoryOperations,
