@@ -122,11 +122,14 @@ backend/
 
 ## Migrations
 
+Schema changes are managed with TypeORM migrations — `synchronize` is
+disabled in production, so every entity change must ship with a migration.
+
 ```bash
 # Run pending migrations
 npm run typeorm:run-migrations
 
-# Generate a new migration
+# Generate a new migration (from entity changes)
 npm run typeorm:generate-migration --name=MigrationName
 
 # Create a blank migration
@@ -134,7 +137,17 @@ npm run typeorm:create-migration --name=MigrationName
 
 # Revert the last migration
 npm run typeorm:revert-migration
+
+# CI gate: fails when entities changed without a migration
+# (requires DATABASE_* pointing at a fully migrated database)
+npm run typeorm:check-drift
 ```
+
+All commands share the connection options in
+[`src/config/typeorm.config.ts`](src/config/typeorm.config.ts), which reads
+the usual `DATABASE_*` environment variables (and the local `.env` file).
+CI applies every migration to a fresh PostgreSQL service, verifies the
+multi-tenant `hubId` columns exist, and runs the drift check on each push.
 
 ---
 

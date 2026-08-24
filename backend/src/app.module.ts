@@ -23,6 +23,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { WorkspaceTrackingModule } from './workspace-tracking/workspace-tracking.module';
 import { AuditLogModule } from './audit-log/audit-log.module';
 import { SecretsModule } from './config/secrets';
+import { buildTypeOrmOptions } from './config/typeorm.config';
 import { HubModule } from './hub/hub.module';
 import { MetricsModule } from './metrics/metrics.module';
 
@@ -54,26 +55,14 @@ import { MetricsModule } from './metrics/metrics.module';
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => {
-        const host = configService.get<string>('DATABASE_HOST');
-        const sslRequired =
-          configService.get<string>('NODE_ENV') === 'production' ||
-          configService.get<string>('PGSSLMODE') === 'require' ||
-          configService.get<string>('DATABASE_SSL') === 'true' ||
-          (host ? host.includes('neon.tech') : false);
-
-        return {
-          type: 'postgres',
-          database: configService.get('DATABASE_NAME'),
-          password: configService.get('DATABASE_PASSWORD'),
-          username: configService.get('DATABASE_USERNAME'),
-          port: +configService.get('DATABASE_PORT'),
-          host,
-          autoLoadEntities: true,
-          synchronize: true,
-          ssl: sslRequired ? { rejectUnauthorized: false } : false,
-        };
-      },
+      // Connection resolution lives in ./config/typeorm.config.ts so the
+      // migration CLI shares the exact same options (see issue #228).
+      useFactory: (configService: ConfigService) => ({
+        ...buildTypeOrmOptions((key) => configService.get<string>(key)),
+        // NestJS-only: register entities from every imported module on top
+        // of the shared glob.
+        autoLoadEntities: true,
+      }),
     }),
     EmailModule,
     AuthModule,

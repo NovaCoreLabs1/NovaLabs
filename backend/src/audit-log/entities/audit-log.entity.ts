@@ -69,7 +69,9 @@ export class AuditLog {
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt: Date;
 
-  @Index()
+  // Indexed via the class-level `@Index(['hubId'])` above — a second
+  // column-level @Index here would register the same index twice.
+  // The column keeps its snake_case database name.
   @Column({ name: 'hub_id', type: 'uuid', nullable: true })
   hubId: string;
 

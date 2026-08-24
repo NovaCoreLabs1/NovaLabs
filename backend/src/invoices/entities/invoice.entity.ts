@@ -75,7 +75,8 @@ export class Invoice {
   @UpdateDateColumn()
   updatedAt: Date;
 
-  @Index()
+  // Indexed via the class-level `@Index(['hubId'])` above — a second
+  // column-level @Index here would register the same index twice.
   @Column({ type: 'uuid', nullable: true })
   hubId: string;
 
