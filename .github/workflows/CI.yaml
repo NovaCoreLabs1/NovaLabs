@@ -145,6 +145,28 @@ jobs:
       run:
         working-directory: backend
 
+    env:
+      DATABASE_HOST: localhost
+      DATABASE_PORT: 5432
+      DATABASE_USERNAME: postgres
+      DATABASE_PASSWORD: postgres
+      DATABASE_NAME: nova_ci
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: nova_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -167,6 +189,26 @@ jobs:
 
       - name: Build (TypeScript check)
         run: npm run build
+
+      # Migration discipline (issue #228): the committed migrations must
+      # rebuild the full entity schema from an empty database, the multi-
+      # tenant hubId columns must exist afterwards, and generating a
+      # migration against the migrated schema must produce no diff.
+      - name: Apply migrations to a fresh database
+        run: npm run typeorm:run-migrations
+
+      - name: Verify multi-tenant columns after migration
+        run: |
+          COUNT=$(PGPASSWORD=postgres psql -h localhost -U postgres -d nova_ci -tAc \
+            "SELECT count(*) FROM information_schema.columns WHERE column_name = 'hubId'")
+          echo "hubId columns found: $COUNT"
+          if [ "$COUNT" -lt 7 ]; then
+            echo "::error::Expected at least 7 hubId columns after migrating, found $COUNT"
+            exit 1
+          fi
+
+      - name: Schema drift check
+        run: npm run typeorm:check-drift
 
       - name: Unit tests with coverage
         run: npm run test -- --passWithNoTests --coverage --coverageReporters=lcov --coverageDirectory=coverage
