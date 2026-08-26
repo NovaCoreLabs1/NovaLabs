@@ -19,7 +19,8 @@ password breach checking against known compromised credentials.
   hashed password, TOTP secret, backup codes, passkey credentials,
   verification codes, and refresh tokens.
 - **RefreshToken** (`entities/refreshToken.entity.ts`) — rotating token family
-  for stateless session management with reuse detection.
+  for stateless session management with reuse detection. The `token` column
+  stores a `sha256` hash of the JWT, never the raw credential (issue #237).
 
 ## Endpoints
 
@@ -51,6 +52,9 @@ All routes under `/auth/`. `@Public()` routes bypass JWT/CSRF guards.
 - **Password breach detection** via `PasswordBreachService` (Have I Been Pwned)
 - **Refresh token rotation** with family-based reuse detection and automatic
   family revocation on suspected theft
+- **Refresh tokens hashed at rest** — only `sha256(token)` is persisted, so a
+  database or backup leak cannot be replayed against `/auth/refresh-token`
+  (see `docs/SECRETS.md`)
 - **TOTP 2FA** with backup codes
 - **Passkey/WebAuthn** support via SimpleWebAuthn (`passkey/`)
 - **Account locking** after repeated failed attempts

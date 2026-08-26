@@ -24,7 +24,7 @@ export class RefreshToken {
   @ManyToOne(() => User, (user) => user.refreshTokens, { onDelete: 'CASCADE' })
   user: User;
 
-  @Column({ type: 'text' })
+  @Column({ type: 'varchar', length: 64 })
   token: string;
 
   @Column({ type: 'varchar', length: 255 })

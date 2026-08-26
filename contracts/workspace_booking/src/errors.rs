@@ -36,6 +36,9 @@ pub enum Error {
     /// Invalid booking time window.
     InvalidTimeRange = 8,
 
+    /// Requested seat count must be >= 1.
+    InvalidSeatCount = 9,
+
     // -----------------------------
     // Booking Errors (100–199)
     // -----------------------------
@@ -62,6 +65,9 @@ pub enum Error {
 
     /// Member balance insufficient for payment.
     InsufficientBalance = 107,
+
+    /// Requested seats exceed the workspace's remaining capacity for the slot.
+    InsufficientCapacity = 108,
 
     // -----------------------------
     // Workspace Errors (200–299)

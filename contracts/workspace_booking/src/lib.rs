@@ -9,7 +9,15 @@
 /// Off-chain consumers match on this string as the **first** element of every
 /// event topic. Resolves issue #76 (`Add event topic versioning for forward
 /// compatibility`).
-pub const EVENT_VERSION: &str = "v1";
+///
+/// Issue #238 introduces a breaking ABI shape change for
+/// `book_workspace(member, booking_id, workspace_id, start_time, end_time,
+/// seat_count)` and makes `check_availability` return
+/// `AvailabilityResult { available, remaining_seats }`. Because the new
+/// public ABI is source-level and no deployed consumer is known to be using
+/// the old signature in this workspace, we bump the contract event topic
+/// version to `v2` and document the compatibility contract here.
+pub const EVENT_VERSION: &str = "v2";
 
 mod errors;
 mod guards;
@@ -26,7 +34,8 @@ mod fuzz;
 
 pub use errors::Error;
 pub use types::{
-    Booking, BookingStatus, UnavailabilityReason, Workspace, WorkspaceAvailability, WorkspaceType,
+    AvailabilityResult, Booking, BookingStatus, UnavailabilityReason, Workspace,
+    WorkspaceAvailability, WorkspaceType,
 };
 
 use soroban_sdk::{
@@ -84,15 +93,29 @@ impl WorkspaceBookingContract {
             .ok_or(Error::PaymentTokenNotSet)
     }
 
-    /// Returns `true` if no active booking for `workspace_id` overlaps
-    /// [`start_time`, `end_time`).
-    fn is_slot_available(env: &Env, workspace_id: &String, start_time: u64, end_time: u64) -> bool {
+    /// Sum of `seat_count` across all **active** bookings for `workspace_id`
+    /// whose reservation overlaps [`start_time`, `end_time`).
+    ///
+    /// Cancelled and completed bookings hold no seats (their status is no longer
+    /// `Active`), so seats are released the instant a booking transitions out of
+    /// `Active` — freeing the slot for a rebooking in the same window.
+    ///
+    /// The running total is accumulated with `saturating_add` so a pathological
+    /// set of bookings can never overflow `u32`; a saturated total simply stays
+    /// at `u32::MAX`, which still compares correctly against any `capacity`.
+    fn booked_seats_in_slot(
+        env: &Env,
+        workspace_id: &String,
+        start_time: u64,
+        end_time: u64,
+    ) -> u32 {
         let booking_ids: Vec<String> = env
             .storage()
             .persistent()
             .get(&DataKey::WorkspaceBookings(workspace_id.clone()))
             .unwrap_or(Vec::new(env));
 
+        let mut booked_seats: u32 = 0;
         for i in 0..booking_ids.len() {
             let bid = booking_ids.get(i).unwrap();
             let booking: Booking = match env.storage().persistent().get(&DataKey::Booking(bid)) {
@@ -106,10 +129,10 @@ impl WorkspaceBookingContract {
 
             // Overlap: existing booking starts before new slot ends AND ends after new slot starts.
             if booking.start_time < end_time && booking.end_time > start_time {
-                return false;
+                booked_seats = booked_seats.saturating_add(booking.seat_count);
             }
         }
-        true
+        booked_seats
     }
 
     // ── Initialisation ────────────────────────────────────────────────────────
@@ -283,6 +306,9 @@ impl WorkspaceBookingContract {
     /// * `workspace_id` – workspace to book.
     /// * `start_time`   – Unix timestamp (seconds) for start of reservation.
     /// * `end_time`     – Unix timestamp (seconds) for end of reservation.
+    /// * `seat_count`   – seats to reserve (≥ 1). The booking is rejected unless
+    ///   the seats already held by overlapping active bookings, plus these,
+    ///   fit within the workspace's `capacity`.
     pub fn book_workspace(
         env: Env,
         member: Address,
@@ -290,6 +316,7 @@ impl WorkspaceBookingContract {
         workspace_id: String,
         start_time: u64,
         end_time: u64,
+        seat_count: u32,
     ) -> Result<(), Error> {
         member.require_auth();
 
@@ -307,6 +334,10 @@ impl WorkspaceBookingContract {
             return Err(Error::InvalidTimeRange);
         }
 
+        if seat_count == 0 {
+            return Err(Error::InvalidSeatCount);
+        }
+
         let workspace: Workspace = env
             .storage()
             .persistent()
@@ -317,8 +348,14 @@ impl WorkspaceBookingContract {
             return Err(Error::WorkspaceUnavailable);
         }
 
-        if !Self::is_slot_available(&env, &workspace_id, start_time, end_time) {
-            return Err(Error::BookingConflict);
+        // Enforce seat capacity: the seats already held by overlapping active
+        // bookings plus the seats requested here must fit within `capacity`.
+        // `saturating_add` guards the sum against `u32` overflow (a saturated
+        // total only ever over-estimates, so it can never wrongly admit a
+        // booking).
+        let booked_seats = Self::booked_seats_in_slot(&env, &workspace_id, start_time, end_time);
+        if booked_seats.saturating_add(seat_count) > workspace.capacity {
+            return Err(Error::InsufficientCapacity);
         }
 
         // Cost = hourly_rate × ⌈duration_seconds / 3600⌉
@@ -347,6 +384,7 @@ impl WorkspaceBookingContract {
             start_time,
             end_time,
             status: BookingStatus::Active,
+            seat_count,
             amount_paid: amount,
             created_at: now,
             cancelled_at: None,
@@ -520,29 +558,47 @@ impl WorkspaceBookingContract {
             .unwrap_or(Vec::new(&env))
     }
 
-    /// Check whether a workspace has no conflicting active booking in the
-    /// requested slot. Returns `false` if the workspace does not exist or is
-    /// marked unavailable.
+    /// Report how many seats remain bookable for a workspace over the requested
+    /// slot, and whether at least one is free.
+    ///
+    /// Returns `{ available: false, remaining_seats: 0 }` if the workspace does
+    /// not exist or is marked unavailable. Otherwise `remaining_seats` is
+    /// `capacity` minus the seats held by overlapping active bookings, and
+    /// `available` is `true` when that remainder is non-zero.
     pub fn check_availability(
         env: Env,
         workspace_id: String,
         start_time: u64,
         end_time: u64,
-    ) -> bool {
+    ) -> AvailabilityResult {
         let workspace: Workspace = match env
             .storage()
             .persistent()
             .get(&DataKey::Workspace(workspace_id.clone()))
         {
             Some(ws) => ws,
-            None => return false,
+            None => {
+                return AvailabilityResult {
+                    available: false,
+                    remaining_seats: 0,
+                }
+            }
         };
 
         if workspace.availability != WorkspaceAvailability::Available {
-            return false;
+            return AvailabilityResult {
+                available: false,
+                remaining_seats: 0,
+            };
         }
 
-        Self::is_slot_available(&env, &workspace_id, start_time, end_time)
+        let booked_seats = Self::booked_seats_in_slot(&env, &workspace_id, start_time, end_time);
+        let remaining_seats = workspace.capacity.saturating_sub(booked_seats);
+
+        AvailabilityResult {
+            available: remaining_seats > 0,
+            remaining_seats,
+        }
     }
 
     /// Return the current admin address.

@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { RefreshToken } from '../entities/refreshToken.entity';
 import { User } from '../../users/entities/user.entity';
+import { hashRefreshToken } from '../helper/refresh-token-hash';
 
 @Injectable()
 export class RefreshTokenRepositoryOperations {
@@ -19,9 +20,11 @@ export class RefreshTokenRepositoryOperations {
   ): Promise<RefreshToken> {
     const expiresAt = this.computeExpiryFromEnv();
 
+    // Store only the hash — the raw JWT (held by the client) never lands on
+    // disk. See `helper/refresh-token-hash.ts` / issue #237.
     const rt = this.repo.create({
       userId: user.id,
-      token,
+      token: hashRefreshToken(token),
       familyId,
       version,
       expiresAt,
@@ -38,11 +41,15 @@ export class RefreshTokenRepositoryOperations {
   }
 
   async findByToken(token: string): Promise<RefreshToken | null> {
-    return this.repo.findOne({ where: { token } });
+    // Hash the presented token before querying so it matches the stored hash.
+    return this.repo.findOne({ where: { token: hashRefreshToken(token) } });
   }
 
   async revokeToken(token: string): Promise<void> {
-    await this.repo.update({ token }, { revoked: true });
+    await this.repo.update(
+      { token: hashRefreshToken(token) },
+      { revoked: true },
+    );
   }
 
   async findValidToken(token: string): Promise<RefreshToken | null> {
