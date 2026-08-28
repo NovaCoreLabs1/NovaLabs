@@ -1,4 +1,3 @@
-
 // contracts/workspace_booking/src/test.rs
 
 use super::*;
@@ -428,8 +427,7 @@ fn test_check_availability_reports_remaining_seats() {
     assert_eq!(avail.remaining_seats, 5);
 
     // A non-overlapping slot is untouched — the full capacity is free.
-    let avail =
-        client.check_availability(&String::from_str(&env, "ws-001"), &end, &(end + 3_600));
+    let avail = client.check_availability(&String::from_str(&env, "ws-001"), &end, &(end + 3_600));
     assert!(avail.available);
     assert_eq!(avail.remaining_seats, 8);
 }
@@ -1189,7 +1187,9 @@ fn test_book_workspace_partial_occupancy_accumulates_seats() {
 
     // Each booking remembers how many seats it holds.
     assert_eq!(
-        client.get_booking(&String::from_str(&env, "bk-a")).seat_count,
+        client
+            .get_booking(&String::from_str(&env, "bk-a"))
+            .seat_count,
         2u32
     );
 
