@@ -55,6 +55,12 @@ export class HashRefreshTokensAtRest1790000000000 implements MigrationInterface 
       cursor = rows[rows.length - 1].id;
       if (rows.length < BATCH_SIZE) break;
     }
+
+    await queryRunner.query(
+      `ALTER TABLE "refresh_tokens"
+         ALTER COLUMN "token" TYPE varchar(64)
+         USING "token"::varchar(64)`,
+    );
   }
 
   public async down(): Promise<void> {
