@@ -50,13 +50,21 @@ export class PaymentsController {
 
   /**
    * Paystack webhook — must be @Public() and receive raw body for HMAC verification.
+   *
+   * Concurrency safety (issue #236):
+   *   • Atomic conditional UPDATEs prevent duplicate booking confirms / escrows
+   *     when Paystack retries the same event concurrently.
+   *   • charge.failed can never overwrite a SUCCESS payment.
+   *   • Unknown payment references return 400 so Paystack retries (alerting operators).
+   *   • Idempotent on retries — safe to return 200 for already-processed events.
    */
   @Public()
   @Post('webhook')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Paystack webhook endpoint (internal use only)',
-    description: 'Receives Paystack events. Do not call directly.',
+    description:
+      'Receives Paystack events. Atomic status transitions prevent race conditions on concurrent deliveries. Unknown references return 400.',
   })
   async webhook(@Req() req: RawBodyRequest<Request>) {
     const signature = (req.headers['x-paystack-signature'] as string) ?? '';

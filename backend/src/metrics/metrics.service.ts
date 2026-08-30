@@ -36,6 +36,18 @@ export class MetricsService implements OnModuleInit {
   /** Counter: on-chain escrow operations that failed after submission, by operation */
   readonly sorobanEscrowFailures: Counter<string>;
 
+  /** Counter: webhook deliveries where a concurrent delivery already won the race */
+  readonly webhookRaceWins: Counter<string>;
+
+  /** Counter: webhook deliveries rejected because another delivery already transitioned the payment */
+  readonly webhookStaleIgnored: Counter<string>;
+
+  /** Counter: charge.success webhooks that arrived after a terminal state (FAILED/REFUNDED) was already set */
+  readonly webhookSuccessAfterTerminal: Counter<string>;
+
+  /** Counter: charge.failed webhooks that arrived after a SUCCESS was already recorded */
+  readonly webhookFailureAfterSuccess: Counter<string>;
+
   constructor() {
     this.registry = new Registry();
 
@@ -91,6 +103,32 @@ export class MetricsService implements OnModuleInit {
       labelNames: ['operation'],
       registers: [this.registry],
     });
+
+    this.webhookRaceWins = new Counter({
+      name: 'novalabs_webhook_race_wins_total',
+      help: 'Webhook deliveries that won the atomic race and performed side effects (issue #236)',
+      labelNames: ['event_type'],
+      registers: [this.registry],
+    });
+
+    this.webhookStaleIgnored = new Counter({
+      name: 'novalabs_webhook_stale_ignored_total',
+      help: 'Webhook deliveries rejected because another delivery already transitioned the payment (issue #236)',
+      labelNames: ['event_type'],
+      registers: [this.registry],
+    });
+
+    this.webhookSuccessAfterTerminal = new Counter({
+      name: 'novalabs_webhook_success_after_terminal_total',
+      help: 'charge.success webhooks that arrived after payment was already in a terminal state (issue #236)',
+      registers: [this.registry],
+    });
+
+    this.webhookFailureAfterSuccess = new Counter({
+      name: 'novalabs_webhook_failure_after_success_total',
+      help: 'charge.failed webhooks that arrived after payment was already SUCCESS (issue #236)',
+      registers: [this.registry],
+    });
   }
 
   onModuleInit(): void {
@@ -133,6 +171,26 @@ export class MetricsService implements OnModuleInit {
    */
   recordSorobanEscrowFailure(operation: string): void {
     this.sorobanEscrowFailures.inc({ operation });
+  }
+
+  /** Record that a webhook delivery won the atomic race and performed side effects. */
+  recordWebhookRaceWin(eventType: string): void {
+    this.webhookRaceWins.inc({ event_type: eventType });
+  }
+
+  /** Record that a webhook delivery was stale and skipped (another delivery won). */
+  recordWebhookStaleIgnored(eventType: string): void {
+    this.webhookStaleIgnored.inc({ event_type: eventType });
+  }
+
+  /** Record a charge.success that arrived after a terminal state. */
+  recordWebhookSuccessAfterTerminal(): void {
+    this.webhookSuccessAfterTerminal.inc();
+  }
+
+  /** Record a charge.failed that arrived after SUCCESS was already recorded. */
+  recordWebhookFailureAfterSuccess(): void {
+    this.webhookFailureAfterSuccess.inc();
   }
 
   /** Returns the content-type expected by Prometheus scrapers. */

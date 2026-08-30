@@ -48,7 +48,35 @@ export class RefundPaymentProvider {
 
     await this.paystackProvider.initiateRefund(payment.providerReference);
 
-    payment.status = PaymentStatus.REFUNDED;
-    return this.paymentsRepository.save(payment);
+    // Atomic transition: SUCCESS → REFUNDED with a conditional UPDATE.
+    // Prevents a concurrent refund request from double-initiating the
+    // Paystack refund or flipping an already-refunded payment.
+    const result = await this.paymentsRepository
+      .createQueryBuilder()
+      .update(Payment)
+      .set({ status: PaymentStatus.REFUNDED })
+      .where('id = :id AND status = :status', {
+        id: payment.id,
+        status: PaymentStatus.SUCCESS,
+      })
+      .execute();
+
+    if (result.affected === 0) {
+      const current = await this.paymentsRepository.findOne({
+        where: { id: payment.id },
+      });
+      if (current?.status === PaymentStatus.REFUNDED) {
+        // Already refunded by a concurrent request — idempotent.
+        return current;
+      }
+      throw new BadRequestException(
+        `Payment "${paymentId}" is no longer in a refundable state (${current?.status})`,
+      );
+    }
+
+    // Read back the updated entity for the return value.
+    return (await this.paymentsRepository.findOne({
+      where: { id: payment.id },
+    }))!;
   }
 }
