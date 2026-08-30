@@ -6,6 +6,15 @@ A workspace booking/reservation contract for managing physical or virtual worksp
 
 The Workspace Booking contract enables members to reserve workspaces for specific time slots. Payment is collected at booking time, with support for cancellations, completions, and availability management.
 
+## Event ABI / versioning note
+
+Issue #238 introduces a breaking seat-aware API surface in the contract:
+
+- `book_workspace` now accepts an additional `seat_count` parameter.
+- `check_availability` returns `AvailabilityResult { available, remaining_seats }`.
+
+This workspace therefore records the contract event topic version as `v2` in the emitted `EVENT_VERSION` constant in the source contract (`workspace_booking/src/lib.rs`). The `booked` event payload remains otherwise unchanged in shape; the public ABI change is handled by the event topic version bump rather than by preserving the old event tag.
+
 ## Features
 
 - **Workspace Registration**: Admins register bookable workspaces

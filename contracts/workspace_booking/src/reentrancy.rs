@@ -117,6 +117,7 @@ impl MaliciousToken {
                     &workspace,
                     &(now + 10),
                     &(now + 10 + 3_600),
+                    &1u32,
                 ),
                 _ => client.try_cancel_booking(&member, &booking),
             };
@@ -186,6 +187,7 @@ fn setup(env: &Env) -> (Address, Address, Address, String, String) {
         &String::from_str(env, "ws-001"),
         &(now + 60),
         &(now + 60 + 3_600),
+        &1u32,
     );
 
     (
@@ -233,6 +235,7 @@ pub fn fuzz_booking(seed: u64, iterations: u32) -> bool {
                 &workspace,
                 &(now + 1),
                 &(now + 1 + 3_600),
+                &1u32,
             ),
             _ => c.try_cancel_booking(&member, &booking),
         };

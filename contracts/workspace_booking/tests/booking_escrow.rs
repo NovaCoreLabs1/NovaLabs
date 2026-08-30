@@ -80,6 +80,7 @@ fn test_booking_then_escrow_release_full_lifecycle() {
         &String::from_str(&env, "ws-001"),
         &start,
         &end,
+        &1u32,
     );
 
     let booking = booking_client.get_booking(&String::from_str(&env, "booking-001"));
@@ -166,6 +167,7 @@ fn test_booking_then_escrow_dispute_and_refund() {
         &String::from_str(&env, "ws-002"),
         &start,
         &end,
+        &1u32,
     );
 
     // Create escrow with dispute window
@@ -240,6 +242,7 @@ fn test_cancel_booking_then_claim_escrow() {
         &String::from_str(&env, "ws-003"),
         &start,
         &end,
+        &1u32,
     );
 
     // Member balance: 100000 - 1000 = 99000
@@ -332,6 +335,7 @@ fn test_multiple_bookings_with_escrows() {
         &String::from_str(&env, "ws-A"),
         &(now + 3_600),
         &(now + 7_200),
+        &1u32,
     );
 
     // Book ws-B: 2 hours → 4000
@@ -341,6 +345,7 @@ fn test_multiple_bookings_with_escrows() {
         &String::from_str(&env, "ws-B"),
         &(now + 3_600),
         &(now + 10_800),
+        &1u32,
     );
 
     // Create escrow for ws-A booking
@@ -453,6 +458,7 @@ fn test_admin_cancel_booking_with_escrow_refund() {
         &String::from_str(&env, "ws-004"),
         &start,
         &end,
+        &1u32,
     );
 
     // Create escrow
@@ -530,6 +536,7 @@ fn test_unavailable_workspace_booking_blocks_escrow_creation() {
         &String::from_str(&env, "ws-005"),
         &(now + 3_600),
         &(now + 7_200),
+        &1u32,
     );
     assert!(result.is_err());
 
@@ -597,6 +604,7 @@ fn test_time_locked_escrow_with_booking() {
         &String::from_str(&env, "ws-006"),
         &start,
         &end,
+        &1u32,
     );
 
     // Create time-locked escrow — release after 2 hours
@@ -678,6 +686,7 @@ fn test_escrow_dispute_window_closed_after_booking() {
         &String::from_str(&env, "ws-007"),
         &start,
         &end,
+        &1u32,
     );
 
     // Create escrow with dispute window

@@ -127,6 +127,13 @@ pub struct Booking {
     /// Current booking lifecycle status
     pub status: BookingStatus,
 
+    /// Number of seats reserved by this booking (always >= 1).
+    ///
+    /// Bookings predating on-chain seat capacity (issue #238) would carry an
+    /// implicit value of 1; see the contract README for why no such records
+    /// exist (the changed functions have no deployed consumer yet).
+    pub seat_count: u32,
+
     /// Amount paid for booking
     pub amount_paid: u128,
 
@@ -138,4 +145,22 @@ pub struct Booking {
 
     /// Timestamp booking was completed
     pub completed_at: Option<u64>,
+}
+
+/// Result of a [`check_availability`](crate::WorkspaceBookingContract::check_availability)
+/// query for a workspace over a time slot.
+///
+/// Reports both the boolean answer and the number of seats still free, so
+/// callers can size a booking (issue #238) without a second round-trip.
+#[contracttype]
+#[derive(Clone, Debug, PartialEq)]
+pub struct AvailabilityResult {
+    /// `true` when the workspace exists, is marked available, and has at least
+    /// one free seat in the requested slot.
+    pub available: bool,
+
+    /// Seats still free in the requested slot (`capacity` minus the seats held
+    /// by overlapping active bookings). `0` when the workspace is missing or
+    /// unavailable.
+    pub remaining_seats: u32,
 }

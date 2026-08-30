@@ -101,7 +101,7 @@ proptest! {
         client.book_workspace(
             &member,
             &String::from_str(&env, "bk-001"),
-            &ws_id, &start, &end,
+            &ws_id, &start, &end, &1u32,
         );
 
         let booking = client.get_booking(&String::from_str(&env, "bk-001"));
@@ -141,10 +141,10 @@ proptest! {
         let b_end = b_start + dur_b;
 
         env.mock_all_auths();
-        client.book_workspace(&member, &String::from_str(&env, "bk-a"), &ws_id, &a_start, &a_end);
+        client.book_workspace(&member, &String::from_str(&env, "bk-a"), &ws_id, &a_start, &a_end, &1u32);
 
         env.mock_all_auths();
-        client.book_workspace(&member, &String::from_str(&env, "bk-b"), &ws_id, &b_start, &b_end);
+        client.book_workspace(&member, &String::from_str(&env, "bk-b"), &ws_id, &b_start, &b_end, &1u32);
 
         let bka = client.get_booking(&String::from_str(&env, "bk-a"));
         let bkb = client.get_booking(&String::from_str(&env, "bk-b"));
@@ -178,7 +178,7 @@ proptest! {
         let end = start + dur_secs;
 
         env.mock_all_auths();
-        client.book_workspace(&member, &String::from_str(&env, "bk-001"), &ws_id, &start, &end);
+        client.book_workspace(&member, &String::from_str(&env, "bk-001"), &ws_id, &start, &end, &1u32);
 
         env.mock_all_auths();
         client.cancel_booking(&member, &String::from_str(&env, "bk-001"));
@@ -215,7 +215,7 @@ proptest! {
         let end = start + dur_secs;
 
         env.mock_all_auths();
-        client.book_workspace(&member, &String::from_str(&env, "bk-001"), &ws_id, &start, &end);
+        client.book_workspace(&member, &String::from_str(&env, "bk-001"), &ws_id, &start, &end, &1u32);
 
         // Advance time past the booking end
         env.ledger().with_mut(|l| l.timestamp = end + 1);
@@ -259,7 +259,7 @@ proptest! {
         let a_start = t0 + 60;
         let a_end = a_start + dur_secs;
         env.mock_all_auths();
-        client.book_workspace(&member, &String::from_str(&env, "bk-a"), &ws_id, &a_start, &a_end);
+        client.book_workspace(&member, &String::from_str(&env, "bk-a"), &ws_id, &a_start, &a_end, &1u32);
         let booking_a = client.get_booking(&String::from_str(&env, "bk-a"));
         let dur_u128 = dur_secs as u128;
         let expected_old_cost = old_rate * dur_u128.div_ceil(3600);
@@ -273,7 +273,7 @@ proptest! {
         let b_start = a_end + 60;
         let b_end = b_start + dur_secs;
         env.mock_all_auths();
-        client.book_workspace(&member, &String::from_str(&env, "bk-b"), &ws_id, &b_start, &b_end);
+        client.book_workspace(&member, &String::from_str(&env, "bk-b"), &ws_id, &b_start, &b_end, &1u32);
         let booking_b = client.get_booking(&String::from_str(&env, "bk-b"));
         let expected_new_cost = new_rate * dur_u128.div_ceil(3600);
         prop_assert_eq!(booking_b.amount_paid, expected_new_cost);
@@ -304,15 +304,118 @@ proptest! {
         let a_end = a_start + dur;
 
         env.mock_all_auths();
-        client.book_workspace(&member, &String::from_str(&env, "bk-a"), &ws_id, &a_start, &a_end);
+        client.book_workspace(&member, &String::from_str(&env, "bk-a"), &ws_id, &a_start, &a_end, &1u32);
 
-        // Exact same slot is unavailable
-        prop_assert!(!client.check_availability(&ws_id, &a_start, &a_end));
+        // Exact same slot is unavailable (single seat, now taken)
+        prop_assert!(!client.check_availability(&ws_id, &a_start, &a_end).available);
 
         // Slot immediately after (no overlap) is available
         let after_start = a_end + gap;
         let after_end = after_start + dur;
-        prop_assert!(client.check_availability(&ws_id, &after_start, &after_end));
+        prop_assert!(client.check_availability(&ws_id, &after_start, &after_end).available);
+    }
+
+    /// Invariant (issue #238): a single booking into an empty slot is admitted
+    /// iff `1 ≤ seats ≤ capacity`. On success `check_availability` reports
+    /// exactly `capacity - seats` free; on rejection the whole capacity stays
+    /// free (the rejected booking mutates no state).
+    #[test]
+    fn prop_seat_capacity_enforced_single_booking(
+        capacity in 1u32..=8u32,
+        seats in 0u32..=12u32,
+    ) {
+        let env = Env::default();
+        let contract_id = setup_contract(&env);
+        let admin = Address::generate(&env);
+        let member = Address::generate(&env);
+        let token = setup_token(&env, &admin, &member, 1_000_000i128);
+        let client = init_client(&env, &contract_id, &admin, &token);
+
+        let ws_id = String::from_str(&env, "ws-cap");
+        env.mock_all_auths();
+        client.register_workspace(
+            &admin, &ws_id, &String::from_str(&env, "Cap WS"),
+            &WorkspaceType::HotDesk, &capacity, &1u128,
+        );
+
+        let start = env.ledger().timestamp() + 60;
+        let end = start + 3_600;
+
+        env.mock_all_auths();
+        let res = client.try_book_workspace(
+            &member, &String::from_str(&env, "bk-cap"), &ws_id, &start, &end, &seats,
+        );
+
+        if seats == 0 {
+            // InvalidSeatCount — zero seats is never a valid booking.
+            prop_assert!(res.is_err());
+        } else if seats <= capacity {
+            prop_assert!(res.is_ok());
+            let avail = client.check_availability(&ws_id, &start, &end);
+            prop_assert_eq!(avail.remaining_seats, capacity - seats);
+            prop_assert_eq!(avail.available, capacity - seats > 0);
+        } else {
+            // InsufficientCapacity — and no state was mutated.
+            prop_assert!(res.is_err());
+            let avail = client.check_availability(&ws_id, &start, &end);
+            prop_assert_eq!(avail.remaining_seats, capacity);
+        }
+    }
+
+    /// Invariant (issue #238): across a sequence of overlapping bookings, the
+    /// seats actually committed never exceed capacity. Each request is admitted
+    /// iff it still fits, and a rejected request leaves the committed total (and
+    /// thus `remaining_seats`) unchanged.
+    #[test]
+    fn prop_overlapping_seats_never_exceed_capacity(
+        capacity in 1u32..=6u32,
+        r0 in 1u32..=4u32,
+        r1 in 1u32..=4u32,
+        r2 in 1u32..=4u32,
+    ) {
+        let env = Env::default();
+        let contract_id = setup_contract(&env);
+        let admin = Address::generate(&env);
+        let member = Address::generate(&env);
+        let token = setup_token(&env, &admin, &member, 1_000_000i128);
+        let client = init_client(&env, &contract_id, &admin, &token);
+
+        let ws_id = String::from_str(&env, "ws-cap2");
+        env.mock_all_auths();
+        client.register_workspace(
+            &admin, &ws_id, &String::from_str(&env, "Cap WS"),
+            &WorkspaceType::HotDesk, &capacity, &1u128,
+        );
+
+        let start = env.ledger().timestamp() + 60;
+        let end = start + 3_600;
+
+        let reqs = [r0, r1, r2];
+        let mut committed: u32 = 0;
+        for (n, req) in reqs.iter().copied().enumerate() {
+            let bid = match n {
+                0 => "b0",
+                1 => "b1",
+                _ => "b2",
+            };
+            env.mock_all_auths();
+            let res = client.try_book_workspace(
+                &member, &String::from_str(&env, bid), &ws_id, &start, &end, &req,
+            );
+            if committed + req <= capacity {
+                prop_assert!(res.is_ok());
+                committed += req;
+            } else {
+                prop_assert!(res.is_err());
+            }
+            // The core safety property: committed seats always fit capacity, and
+            // check_availability agrees on what is left.
+            prop_assert!(committed <= capacity);
+            prop_assert_eq!(
+                client.check_availability(&ws_id, &start, &end).remaining_seats,
+                capacity - committed
+            );
+        }
     }
 }
 
@@ -351,6 +454,7 @@ fn test_overlapping_booking_fails_deterministic() {
         &ws_id,
         &start,
         &end,
+        &1u32,
     );
 
     // Overlap: starts in the middle of first booking
@@ -361,6 +465,7 @@ fn test_overlapping_booking_fails_deterministic() {
         &ws_id,
         &(start + 1800),
         &(end + 1800),
+        &1u32,
     );
 }
 
@@ -401,6 +506,7 @@ fn test_unavailable_workspace_rejects_bookings() {
         &ws_id,
         &start,
         &end,
+        &1u32,
     );
 }
 
@@ -434,6 +540,7 @@ fn test_invalid_time_range_rejected() {
         &ws_id,
         &3600u64,
         &60u64,
+        &1u32,
     );
 }
 

@@ -185,6 +185,7 @@ fn test_book_workspace_success() {
         &String::from_str(&env, "ws-001"),
         &start,
         &end,
+        &1u32,
     );
 
     let booking = client.get_booking(&String::from_str(&env, "booking-001"));
@@ -199,8 +200,8 @@ fn test_book_workspace_success() {
 }
 
 #[test]
-#[should_panic(expected = "Error(Contract, #102)")]
-fn test_book_workspace_conflict_fails() {
+#[should_panic(expected = "Error(Contract, #108)")]
+fn test_book_workspace_over_capacity_fails() {
     let env = Env::default();
     env.mock_all_auths();
 
@@ -217,7 +218,7 @@ fn test_book_workspace_conflict_fails() {
         &String::from_str(&env, "ws-001"),
         &String::from_str(&env, "Desk A"),
         &WorkspaceType::HotDesk,
-        &1u32,
+        &1u32, // single seat
         &500u128,
     );
 
@@ -225,21 +226,25 @@ fn test_book_workspace_conflict_fails() {
     let start = now + 60;
     let end = start + 3_600;
 
+    // First booking takes the only seat.
     client.book_workspace(
         &member,
         &String::from_str(&env, "booking-001"),
         &String::from_str(&env, "ws-001"),
         &start,
         &end,
+        &1u32,
     );
 
-    // Second booking overlaps — BookingConflict = 102
+    // Second overlapping booking would need seat 2 of a 1-seat workspace —
+    // InsufficientCapacity = 108.
     client.book_workspace(
         &member,
         &String::from_str(&env, "booking-002"),
         &String::from_str(&env, "ws-001"),
         &(start + 1_800), // starts in the middle of first booking
         &(end + 1_800),
+        &1u32,
     );
 }
 
@@ -275,6 +280,7 @@ fn test_cancel_booking_refunds_member() {
         &String::from_str(&env, "ws-001"),
         &start,
         &end,
+        &1u32,
     );
 
     let balance_after_booking = TokenClient::new(&env, &token_address).balance(&member);
@@ -321,6 +327,7 @@ fn test_complete_booking_by_admin() {
         &String::from_str(&env, "ws-001"),
         &start,
         &end,
+        &1u32,
     );
 
     // Advance time past end
@@ -365,6 +372,7 @@ fn test_cancel_already_cancelled_fails() {
         &String::from_str(&env, "ws-001"),
         &start,
         &end,
+        &1u32,
     );
 
     client.cancel_booking(&member, &String::from_str(&env, "booking-001"));
@@ -373,7 +381,7 @@ fn test_cancel_already_cancelled_fails() {
 }
 
 #[test]
-fn test_check_availability_no_conflict() {
+fn test_check_availability_reports_remaining_seats() {
     let env = Env::default();
     env.mock_all_auths();
 
@@ -398,23 +406,30 @@ fn test_check_availability_no_conflict() {
     let start = now + 3_600;
     let end = start + 3_600;
 
-    // No bookings yet — should be available
-    assert!(client.check_availability(&String::from_str(&env, "ws-001"), &start, &end));
+    // No bookings yet — all eight seats free.
+    let avail = client.check_availability(&String::from_str(&env, "ws-001"), &start, &end);
+    assert!(avail.available);
+    assert_eq!(avail.remaining_seats, 8);
 
-    // Book it
+    // Reserve three of the eight seats.
     client.book_workspace(
         &member,
         &String::from_str(&env, "booking-001"),
         &String::from_str(&env, "ws-001"),
         &start,
         &end,
+        &3u32,
     );
 
-    // Same slot should no longer be available
-    assert!(!client.check_availability(&String::from_str(&env, "ws-001"), &start, &end));
+    // The slot is still bookable — five seats remain.
+    let avail = client.check_availability(&String::from_str(&env, "ws-001"), &start, &end);
+    assert!(avail.available);
+    assert_eq!(avail.remaining_seats, 5);
 
-    // Non-overlapping slot after the booking should still be available
-    assert!(client.check_availability(&String::from_str(&env, "ws-001"), &end, &(end + 3_600)));
+    // A non-overlapping slot is untouched — the full capacity is free.
+    let avail = client.check_availability(&String::from_str(&env, "ws-001"), &end, &(end + 3_600));
+    assert!(avail.available);
+    assert_eq!(avail.remaining_seats, 8);
 }
 
 #[test]
@@ -442,11 +457,13 @@ fn test_set_workspace_availability_blocks_new_bookings() {
     // Disable the workspace
     client.set_workspace_availability(&admin, &String::from_str(&env, "ws-001"), &false);
 
-    assert!(!client.check_availability(
+    let avail = client.check_availability(
         &String::from_str(&env, "ws-001"),
         &(env.ledger().timestamp() + 60),
-        &(env.ledger().timestamp() + 3_660)
-    ));
+        &(env.ledger().timestamp() + 3_660),
+    );
+    assert!(!avail.available);
+    assert_eq!(avail.remaining_seats, 0);
 }
 
 #[test]
@@ -492,13 +509,26 @@ fn test_multiple_workspaces_independent_availability() {
         &String::from_str(&env, "ws-001"),
         &start,
         &end,
+        &1u32,
     );
 
     // ws-002 and ws-003 should still be available for the same slot
-    assert!(client.check_availability(&String::from_str(&env, "ws-002"), &start, &end));
-    assert!(client.check_availability(&String::from_str(&env, "ws-003"), &start, &end));
-    // ws-001 should NOT be available
-    assert!(!client.check_availability(&String::from_str(&env, "ws-001"), &start, &end));
+    assert!(
+        client
+            .check_availability(&String::from_str(&env, "ws-002"), &start, &end)
+            .available
+    );
+    assert!(
+        client
+            .check_availability(&String::from_str(&env, "ws-003"), &start, &end)
+            .available
+    );
+    // ws-001 is a single-seat workspace, now fully booked for the slot
+    assert!(
+        !client
+            .check_availability(&String::from_str(&env, "ws-001"), &start, &end)
+            .available
+    );
 }
 
 #[test]
@@ -537,6 +567,7 @@ fn test_member_and_workspace_booking_indexes() {
         &String::from_str(&env, "ws-001"),
         &s1,
         &e1,
+        &1u32,
     );
     client.book_workspace(
         &member,
@@ -544,6 +575,7 @@ fn test_member_and_workspace_booking_indexes() {
         &String::from_str(&env, "ws-001"),
         &s2,
         &e2,
+        &1u32,
     );
 
     assert_eq!(client.get_member_bookings(&member).len(), 2u32);
@@ -593,6 +625,7 @@ fn test_hourly_rate_update_applies_to_future_bookings() {
         &String::from_str(&env, "ws-001"),
         &start,
         &end,
+        &1u32,
     );
 
     let booking = client.get_booking(&String::from_str(&env, "bk-001"));
@@ -672,6 +705,7 @@ fn test_book_workspace_start_after_end_fails() {
         &String::from_str(&env, "ws-001"),
         &(now + 7200),
         &(now + 3600),
+        &1u32,
     );
 }
 
@@ -705,6 +739,7 @@ fn test_book_workspace_end_in_past_fails() {
         &String::from_str(&env, "ws-001"),
         &(now + 3600),
         &(now + 60),
+        &1u32,
     );
 }
 
@@ -729,6 +764,7 @@ fn test_book_workspace_not_found_fails() {
         &String::from_str(&env, "nonexistent-ws"),
         &(now + 60),
         &(now + 3660),
+        &1u32,
     );
 }
 
@@ -763,6 +799,7 @@ fn test_book_workspace_unavailable_fails() {
         &String::from_str(&env, "ws-001"),
         &(now + 60),
         &(now + 3660),
+        &1u32,
     );
 }
 
@@ -814,6 +851,7 @@ fn test_complete_already_completed_booking_fails() {
         &String::from_str(&env, "ws-001"),
         &start,
         &end,
+        &1u32,
     );
 
     advance_time(&env, 4000);
@@ -853,6 +891,7 @@ fn test_cancel_completed_booking_fails() {
         &String::from_str(&env, "ws-001"),
         &start,
         &end,
+        &1u32,
     );
 
     advance_time(&env, 4000);
@@ -890,6 +929,7 @@ fn test_book_workspace_duplicate_booking_id_fails() {
         &String::from_str(&env, "ws-001"),
         &(now + 60),
         &(now + 3660),
+        &1u32,
     );
 
     client.book_workspace(
@@ -898,6 +938,7 @@ fn test_book_workspace_duplicate_booking_id_fails() {
         &String::from_str(&env, "ws-001"),
         &(now + 7200),
         &(now + 10800),
+        &1u32,
     );
 }
 
@@ -985,6 +1026,7 @@ fn test_cancel_booking_unauthorized_fails() {
         &String::from_str(&env, "ws-001"),
         &(now + 60),
         &(now + 3660),
+        &1u32,
     );
 
     // Unauthorized — third party can't cancel someone else's booking
@@ -1020,6 +1062,7 @@ fn test_complete_booking_non_admin_fails() {
         &String::from_str(&env, "ws-001"),
         &(now + 60),
         &(now + 3660),
+        &1u32,
     );
 
     advance_time(&env, 4000);
@@ -1087,10 +1130,247 @@ fn test_cancel_already_completed_booking_fails() {
         &String::from_str(&env, "ws-001"),
         &start,
         &end,
+        &1u32,
     );
 
     advance_time(&env, 4000);
     client.complete_booking(&admin, &String::from_str(&env, "booking-001"));
     // BookingNotActive = 103 — completed booking cannot be cancelled
     client.cancel_booking(&admin, &String::from_str(&env, "booking-001"));
+}
+
+// ── Seat-capacity tests (Issue #238) ───────────────────────────────────────────
+
+#[test]
+fn test_book_workspace_partial_occupancy_accumulates_seats() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let contract_id = setup_contract(&env);
+    let client = WorkspaceBookingContractClient::new(&env, &contract_id);
+
+    let admin = Address::generate(&env);
+    let member = Address::generate(&env);
+    let token_address = setup_token(&env, &admin, &member, 50_000i128);
+
+    client.initialize(&admin, &token_address);
+    client.register_workspace(
+        &admin,
+        &String::from_str(&env, "ws-001"),
+        &String::from_str(&env, "Open Floor"),
+        &WorkspaceType::HotDesk,
+        &5u32,
+        &1_000u128,
+    );
+
+    let now = env.ledger().timestamp();
+    let start = now + 60;
+    let end = start + 3_600;
+
+    // Two overlapping bookings take 2, then 2 more, of a 5-seat space.
+    client.book_workspace(
+        &member,
+        &String::from_str(&env, "bk-a"),
+        &String::from_str(&env, "ws-001"),
+        &start,
+        &end,
+        &2u32,
+    );
+    client.book_workspace(
+        &member,
+        &String::from_str(&env, "bk-b"),
+        &String::from_str(&env, "ws-001"),
+        &start,
+        &end,
+        &2u32,
+    );
+
+    // Each booking remembers how many seats it holds.
+    assert_eq!(
+        client
+            .get_booking(&String::from_str(&env, "bk-a"))
+            .seat_count,
+        2u32
+    );
+
+    // 4 of 5 seats are taken for the slot → 1 remaining, still bookable.
+    let avail = client.check_availability(&String::from_str(&env, "ws-001"), &start, &end);
+    assert!(avail.available);
+    assert_eq!(avail.remaining_seats, 1);
+}
+
+#[test]
+fn test_book_workspace_exact_fill_leaves_no_seats() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let contract_id = setup_contract(&env);
+    let client = WorkspaceBookingContractClient::new(&env, &contract_id);
+
+    let admin = Address::generate(&env);
+    let member = Address::generate(&env);
+    let token_address = setup_token(&env, &admin, &member, 50_000i128);
+
+    client.initialize(&admin, &token_address);
+    client.register_workspace(
+        &admin,
+        &String::from_str(&env, "ws-001"),
+        &String::from_str(&env, "Board Room"),
+        &WorkspaceType::MeetingRoom,
+        &3u32,
+        &1_000u128,
+    );
+
+    let now = env.ledger().timestamp();
+    let start = now + 60;
+    let end = start + 3_600;
+
+    // Fill the room exactly: 3 seats of a 3-seat room in a single booking.
+    client.book_workspace(
+        &member,
+        &String::from_str(&env, "bk-full"),
+        &String::from_str(&env, "ws-001"),
+        &start,
+        &end,
+        &3u32,
+    );
+
+    // No seats remain; the slot is no longer available.
+    let avail = client.check_availability(&String::from_str(&env, "ws-001"), &start, &end);
+    assert!(!avail.available);
+    assert_eq!(avail.remaining_seats, 0);
+}
+
+#[test]
+#[should_panic(expected = "Error(Contract, #108)")]
+fn test_book_workspace_seats_exceed_capacity_fails() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let contract_id = setup_contract(&env);
+    let client = WorkspaceBookingContractClient::new(&env, &contract_id);
+
+    let admin = Address::generate(&env);
+    let member = Address::generate(&env);
+    let token_address = setup_token(&env, &admin, &member, 50_000i128);
+
+    client.initialize(&admin, &token_address);
+    client.register_workspace(
+        &admin,
+        &String::from_str(&env, "ws-001"),
+        &String::from_str(&env, "Board Room"),
+        &WorkspaceType::MeetingRoom,
+        &3u32,
+        &1_000u128,
+    );
+
+    let now = env.ledger().timestamp();
+    let start = now + 60;
+    let end = start + 3_600;
+
+    // A single request for 4 seats in a 3-seat room — InsufficientCapacity = 108.
+    client.book_workspace(
+        &member,
+        &String::from_str(&env, "bk-too-big"),
+        &String::from_str(&env, "ws-001"),
+        &start,
+        &end,
+        &4u32,
+    );
+}
+
+#[test]
+#[should_panic(expected = "Error(Contract, #9)")]
+fn test_book_workspace_zero_seats_fails() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let contract_id = setup_contract(&env);
+    let client = WorkspaceBookingContractClient::new(&env, &contract_id);
+
+    let admin = Address::generate(&env);
+    let member = Address::generate(&env);
+    let token_address = setup_token(&env, &admin, &member, 10_000i128);
+
+    client.initialize(&admin, &token_address);
+    client.register_workspace(
+        &admin,
+        &String::from_str(&env, "ws-001"),
+        &String::from_str(&env, "Desk"),
+        &WorkspaceType::HotDesk,
+        &4u32,
+        &500u128,
+    );
+
+    let now = env.ledger().timestamp();
+    // Zero seats is never a valid booking — InvalidSeatCount = 9.
+    client.book_workspace(
+        &member,
+        &String::from_str(&env, "booking-001"),
+        &String::from_str(&env, "ws-001"),
+        &(now + 60),
+        &(now + 3660),
+        &0u32,
+    );
+}
+
+#[test]
+fn test_cancel_then_rebook_same_window_succeeds() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let contract_id = setup_contract(&env);
+    let client = WorkspaceBookingContractClient::new(&env, &contract_id);
+
+    let admin = Address::generate(&env);
+    let member = Address::generate(&env);
+    let token_address = setup_token(&env, &admin, &member, 50_000i128);
+
+    client.initialize(&admin, &token_address);
+    client.register_workspace(
+        &admin,
+        &String::from_str(&env, "ws-001"),
+        &String::from_str(&env, "Single Desk"),
+        &WorkspaceType::DedicatedDesk,
+        &1u32,
+        &1_000u128,
+    );
+
+    let now = env.ledger().timestamp();
+    let start = now + 60;
+    let end = start + 3_600;
+
+    // First booking fills the only seat.
+    client.book_workspace(
+        &member,
+        &String::from_str(&env, "bk-1"),
+        &String::from_str(&env, "ws-001"),
+        &start,
+        &end,
+        &1u32,
+    );
+    assert!(
+        !client
+            .check_availability(&String::from_str(&env, "ws-001"), &start, &end)
+            .available
+    );
+
+    // Cancelling releases the seat: a cancelled booking no longer counts.
+    client.cancel_booking(&member, &String::from_str(&env, "bk-1"));
+    let avail = client.check_availability(&String::from_str(&env, "ws-001"), &start, &end);
+    assert!(avail.available);
+    assert_eq!(avail.remaining_seats, 1);
+
+    // Re-booking the very same window now succeeds.
+    client.book_workspace(
+        &member,
+        &String::from_str(&env, "bk-2"),
+        &String::from_str(&env, "ws-001"),
+        &start,
+        &end,
+        &1u32,
+    );
+    let rebooked = client.get_booking(&String::from_str(&env, "bk-2"));
+    assert_eq!(rebooked.status, BookingStatus::Active);
+    assert_eq!(rebooked.seat_count, 1u32);
 }

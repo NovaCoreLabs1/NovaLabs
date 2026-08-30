@@ -138,6 +138,48 @@ confirm without on-chain records.
   - **Zero-downtime rotation**: Keep the old secret as `JWT_SECRET_PREV` and check both secrets during token verification for a grace period (e.g. 24 hours). After the grace period, remove the old secret.
   - **Scheduled rotation**: Announce a maintenance window. All users will need to log in again.
 
+### Refresh token storage (hashed at rest — issue #237)
+
+Refresh tokens are 7-day bearer credentials. They are **never stored
+verbatim**: `refresh_tokens.token` holds `sha256(token)` (hex) instead of the
+raw JWT. A database dump, backup leak, or read-replica compromise therefore
+yields only hashes, which cannot be replayed against
+`POST /api/auth/refresh-token`.
+
+**Why `sha256` (not bcrypt or a keyed HMAC).** Refresh tokens are signed JWTs
+with high entropy, so there is nothing to brute-force — a plain cryptographic
+hash is sufficient, and bcrypt's work factor would only add latency to every
+refresh. This also matches how password-reset and email-verification tokens are
+already hashed at rest (`users/providers/forgotPassword.provider.ts`), keeping a
+single primitive across the codebase and introducing **no new managed secret**.
+A keyed HMAC (e.g. under a dedicated key) would add defence against offline
+attacks on future *lower*-entropy tokens; it was not adopted here to avoid the
+key-management and key-rotation burden for no gain on today's high-entropy JWTs.
+Hashing lives in one place — `src/auth/helper/refresh-token-hash.ts`
+(`hashRefreshToken`) — imported by both the repository and the migration so the
+two can never diverge.
+
+**Migration procedure (hash-in-place).** Existing plaintext rows are converted
+by the `HashRefreshTokensAtRest1790000000000` migration:
+
+```bash
+cd backend
+npm run typeorm:run-migrations
+```
+
+- **Chosen strategy: hash-in-place** (not forced rotation). Each row's `token`
+  is rewritten to its `sha256`. Because a lookup hashes the presented token
+  before querying, every already-issued session keeps working — a client
+  refreshes once with the token it already holds, with **no forced re-login**.
+- **Safe on a live database**: idempotent (already-hashed 64-char-hex rows are
+  skipped), batched via keyset pagination on the immutable `id`, and runs inside
+  the migration transaction.
+- **Irreversible**: `sha256` is one-way, so `down()` is a documented no-op — the
+  original tokens cannot be recovered, and restoring them would re-open the
+  vulnerability. To roll back operationally, force a clean slate instead: revoke
+  all refresh tokens (which triggers the refresh-family-revoked notification)
+  and require re-login.
+
 ---
 
 ## 6. PostgreSQL Database
