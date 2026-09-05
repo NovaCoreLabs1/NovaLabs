@@ -6,6 +6,7 @@ import { mutationKeys } from "../../keys/mutationKeys";
 import { LoginUser } from "@/lib/types/user";
 import { toast } from "sonner";
 import { useRouter, useSearchParams } from "next/navigation";
+import { sanitizeRedirect } from "@/lib/utils";
 
 /**
  * Custom hook for user login
@@ -28,7 +29,7 @@ export const useLoginUser = () => {
       toast.success("Login successful");
       
       // Handle redirect after successful login
-      const redirectTo = searchParams.get("redirect");
+      const redirectTo = sanitizeRedirect(searchParams.get("redirect"));
       if (redirectTo) {
         router.push(redirectTo);
       } else {
