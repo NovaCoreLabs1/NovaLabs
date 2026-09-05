@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { sanitizeRedirect } from "@/lib/utils";
 
 interface SsoStatus {
   enabled: boolean;
@@ -36,7 +37,7 @@ function labelFor(idp: string): { name: string; emoji: string } {
 export default function StaffSsoLoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectAfter = searchParams.get("redirect") ?? "/admin/dashboard";
+  const redirectAfter = sanitizeRedirect(searchParams.get("redirect")) ?? "/admin/dashboard";
 
   const [status, setStatus] = useState<SsoStatus | null>(null);
   const [loading, setLoading] = useState(true);

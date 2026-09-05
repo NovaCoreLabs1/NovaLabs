@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useAuthStore } from "@/lib/store/authStore";
 import type { LoginUser } from "@/lib/types/user";
 import { toast } from "sonner";
+import { sanitizeRedirect } from "@/lib/utils";
 
 /**
  * Hook that encapsulates the login flow for the NovaLabs frontend.
@@ -30,7 +31,7 @@ export function useLogin() {
 
       toast.success("Login successful");
 
-      const redirect = searchParams.get("redirect");
+      const redirect = sanitizeRedirect(searchParams.get("redirect"));
       if (redirect) {
         router.push(redirect);
       } else {
